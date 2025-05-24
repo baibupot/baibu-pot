@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -103,6 +102,7 @@ const DergiDetay = () => {
     });
   };
 
+  // Tam ekran dergi okuyucu gösteriliyorsa sadece onu render et
   if (showReader) {
     return (
       <ThemeProvider>
