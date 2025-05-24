@@ -18,6 +18,7 @@ import SiteHaritasi from "./pages/SiteHaritasi";
 import SSS from "./pages/SSS";
 import GizlilikPolitikasi from "./pages/GizlilikPolitikasi";
 import AdminGirisi from "./pages/AdminGirisi";
+import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,6 +44,7 @@ const App = () => (
           <Route path="/sss" element={<SSS />} />
           <Route path="/gizlilik-politikasi" element={<GizlilikPolitikasi />} />
           <Route path="/admin" element={<AdminGirisi />} />
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
