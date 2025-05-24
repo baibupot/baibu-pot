@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Etkinlikler from "./pages/Etkinlikler";
 import Dergi from "./pages/Dergi";
+import DergiDetay from "./pages/DergiDetay";
 import Anketler from "./pages/Anketler";
 import Sponsorlar from "./pages/Sponsorlar";
 import Haberler from "./pages/Haberler";
@@ -34,6 +35,7 @@ const App = () => (
           <Route path="/haberler" element={<Haberler />} />
           <Route path="/etkinlikler" element={<Etkinlikler />} />
           <Route path="/dergi" element={<Dergi />} />
+          <Route path="/dergi/:id" element={<DergiDetay />} />
           <Route path="/anketler" element={<Anketler />} />
           <Route path="/sponsorlar" element={<Sponsorlar />} />
           <Route path="/ekipler" element={<Ekipler />} />

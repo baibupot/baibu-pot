@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Book, Download, Eye, Search, Calendar } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { ThemeProvider } from '@/components/ThemeProvider';
@@ -48,7 +49,6 @@ const mockMagazineIssues = [
 
 const Dergi = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedIssue, setSelectedIssue] = useState<typeof mockMagazineIssues[0] | null>(null);
 
   const filteredIssues = mockMagazineIssues.filter(issue =>
     issue.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -130,12 +130,11 @@ const Dergi = () => {
                           {featuredIssue.description}
                         </p>
                         <div className="flex flex-col sm:flex-row gap-3">
-                          <Button 
-                            onClick={() => setSelectedIssue(featuredIssue)}
-                            className="flex items-center gap-2"
-                          >
-                            <Eye className="h-4 w-4" />
-                            Oku
+                          <Button asChild className="flex items-center gap-2">
+                            <Link to={`/dergi/${featuredIssue.id}`}>
+                              <Eye className="h-4 w-4" />
+                              Detayları Gör
+                            </Link>
                           </Button>
                           <Button variant="outline" className="flex items-center gap-2">
                             <Download className="h-4 w-4" />
@@ -184,12 +183,14 @@ const Dergi = () => {
                     </p>
                     <div className="flex flex-col gap-2">
                       <Button 
-                        onClick={() => setSelectedIssue(issue)}
+                        asChild
                         variant="outline" 
                         className="w-full flex items-center gap-2"
                       >
-                        <Eye className="h-4 w-4" />
-                        Oku
+                        <Link to={`/dergi/${issue.id}`}>
+                          <Eye className="h-4 w-4" />
+                          Detayları Gör
+                        </Link>
                       </Button>
                       <Button variant="outline" className="w-full flex items-center gap-2">
                         <Download className="h-4 w-4" />
@@ -214,43 +215,6 @@ const Dergi = () => {
             </div>
           )}
         </main>
-
-        {/* Magazine Reader Modal */}
-        {selectedIssue && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-slate-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
-              <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-                    {selectedIssue.title}
-                  </h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
-                    Sayı {selectedIssue.issue_number} - {formatDate(selectedIssue.publication_date)}
-                  </p>
-                </div>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setSelectedIssue(null)}
-                >
-                  Kapat
-                </Button>
-              </div>
-              <div className="p-6">
-                <div className="h-96 bg-slate-100 dark:bg-slate-700 rounded-lg flex items-center justify-center">
-                  <div className="text-center">
-                    <Book className="h-16 w-16 text-slate-400 mx-auto mb-4" />
-                    <p className="text-slate-600 dark:text-slate-400">
-                      PDF okuyucu burada gösterilecek
-                    </p>
-                    <p className="text-sm text-slate-500 dark:text-slate-500 mt-2">
-                      Supabase entegrasyonu ile PDF görüntüleme eklenecek
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         <Footer />
       </div>
