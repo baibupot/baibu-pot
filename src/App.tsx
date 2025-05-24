@@ -14,6 +14,10 @@ import Ekipler from "./pages/Ekipler";
 import AkademikBelgeler from "./pages/AkademikBelgeler";
 import Staj from "./pages/Staj";
 import Iletisim from "./pages/Iletisim";
+import SiteHaritasi from "./pages/SiteHaritasi";
+import SSS from "./pages/SSS";
+import GizlilikPolitikasi from "./pages/GizlilikPolitikasi";
+import AdminGirisi from "./pages/AdminGirisi";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +39,10 @@ const App = () => (
           <Route path="/akademik-belgeler" element={<AkademikBelgeler />} />
           <Route path="/staj" element={<Staj />} />
           <Route path="/iletisim" element={<Iletisim />} />
+          <Route path="/site-haritasi" element={<SiteHaritasi />} />
+          <Route path="/sss" element={<SSS />} />
+          <Route path="/gizlilik-politikasi" element={<GizlilikPolitikasi />} />
+          <Route path="/admin" element={<AdminGirisi />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
