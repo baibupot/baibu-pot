@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,38 +12,16 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 // Mock data - bu veriler Supabase'den gelecek
 const mockMagazineIssues = [
   {
-    id: '1',
-    title: 'Psikoloji ve Teknoloji',
-    issue_number: 15,
-    publication_date: '2024-03-01',
-    cover_image: '/placeholder.svg',
-    description: 'Bu sayımızda psikoloji alanında teknolojinin etkilerini ve gelecekteki rolünü inceliyoruz.',
-    pdf_url: '#',
-    featured: true,
-    published: true
-  },
-  {
-    id: '2',
-    title: 'Çocuk Gelişimi',
-    issue_number: 14,
-    publication_date: '2024-01-01',
-    cover_image: '/placeholder.svg',
-    description: 'Çocuk gelişimi süreçleri ve modern yaklaşımlar üzerine detaylı incelemeler.',
-    pdf_url: '#',
+    id: 'pdf-demo',
+    title: 'PDF Flipbook Demo Dergisi',
+    issue_number: 99,
+    publication_date: '2024-06-01',
+    cover_image: '/pdf-demo-cover.jpg',
+    description: 'Gerçek PDF dosyasını flipbook olarak deneyimleyin! Bu sayı, PDF dosyasının sayfa sayfa çevrilebildiği bir demo içerir.',
+    pdf_url: '/ornek.pdf',
     featured: false,
     published: true
   },
-  {
-    id: '3',
-    title: 'Klinik Psikoloji',
-    issue_number: 13,
-    publication_date: '2023-11-01',
-    cover_image: '/placeholder.svg',
-    description: 'Klinik psikoloji alanındaki son gelişmeler ve vaka çalışmaları.',
-    pdf_url: '#',
-    featured: false,
-    published: true
-  }
 ];
 
 const Dergi = () => {
@@ -158,8 +135,12 @@ const Dergi = () => {
               {filteredIssues.map((issue) => (
                 <Card key={issue.id} className="hover:shadow-lg transition-shadow duration-300">
                   <CardHeader>
-                    <div className="h-48 bg-slate-200 dark:bg-slate-700 rounded-lg flex items-center justify-center mb-4">
-                      <Book className="h-12 w-12 text-slate-400" />
+                    <div className="h-48 bg-slate-200 dark:bg-slate-700 rounded-lg flex items-center justify-center mb-4 overflow-hidden">
+                      {issue.cover_image ? (
+                        <img src={issue.cover_image} alt={issue.title} className="object-cover w-full h-full" />
+                      ) : (
+                        <Book className="h-12 w-12 text-slate-400" />
+                      )}
                     </div>
                     <div className="flex items-center gap-2 mb-2">
                       <Badge className="bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">
@@ -182,19 +163,30 @@ const Dergi = () => {
                       {issue.description}
                     </p>
                     <div className="flex flex-col gap-2">
-                      <Button 
-                        asChild
-                        variant="outline" 
-                        className="w-full flex items-center gap-2"
-                      >
-                        <Link to={`/dergi/${issue.id}`}>
-                          <Eye className="h-4 w-4" />
-                          Detayları Gör
-                        </Link>
-                      </Button>
-                      <Button variant="outline" className="w-full flex items-center gap-2">
-                        <Download className="h-4 w-4" />
-                        PDF İndir
+                      {issue.id === 'pdf-demo' ? (
+                        <Button asChild variant="outline" className="w-full flex items-center gap-2">
+                          <Link to="/pdf-demo">
+                            <Eye className="h-4 w-4" />
+                            Flipbook ile Oku
+                          </Link>
+                        </Button>
+                      ) : (
+                        <Button 
+                          asChild
+                          variant="outline" 
+                          className="w-full flex items-center gap-2"
+                        >
+                          <Link to={`/dergi/${issue.id}`}>
+                            <Eye className="h-4 w-4" />
+                            Detayları Gör
+                          </Link>
+                        </Button>
+                      )}
+                      <Button variant="outline" className="w-full flex items-center gap-2" asChild>
+                        <a href={issue.pdf_url} target="_blank" rel="noopener noreferrer">
+                          <Download className="h-4 w-4" />
+                          PDF İndir
+                        </a>
                       </Button>
                     </div>
                   </CardContent>

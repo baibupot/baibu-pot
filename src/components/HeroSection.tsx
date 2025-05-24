@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -6,13 +5,15 @@ import { ArrowDown } from 'lucide-react';
 
 const HeroSection = () => {
   return (
-    <section className="relative bg-gradient-to-br from-cyan-50 via-white to-teal-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 py-20 lg:py-32 overflow-hidden">
+    <section className="relative bg-[url('/kampus.jpg')] bg-cover bg-center py-20 lg:py-32 overflow-hidden">
       {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-10 dark:opacity-5">
+      <div className="absolute inset-0 opacity-5 dark:opacity-5">
         <div className="absolute top-10 left-10 w-72 h-72 bg-cyan-400 rounded-full mix-blend-multiply filter blur-xl animate-pulse"></div>
         <div className="absolute top-32 right-10 w-72 h-72 bg-teal-400 rounded-full mix-blend-multiply filter blur-xl animate-pulse animation-delay-2000"></div>
         <div className="absolute bottom-10 left-1/2 w-72 h-72 bg-emerald-400 rounded-full mix-blend-multiply filter blur-xl animate-pulse animation-delay-4000"></div>
       </div>
+
+      <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/80 z-0"></div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">

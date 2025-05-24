@@ -99,3 +99,9 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Flipbook Reader - Köşe Tıklama Alanı */
+.page-corner {
+  width: 64px !important;
+  height: 64px !important;
+}

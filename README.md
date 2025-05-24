@@ -1,73 +1,75 @@
-# Welcome to your Lovable project
+# BAİBÜ PÖT - Psikoloji Öğrencileri Topluluğu Web Sitesi
 
-## Project info
+## Proje Hakkında
 
-**URL**: https://lovable.dev/projects/07ae0ace-0f41-4be2-9555-13c6ba458cb5
+Bolu Abant İzzet Baysal Üniversitesi Psikoloji Öğrencileri Topluluğu (BAİBÜ PÖT) resmi web sitesidir. Bu platform, topluluğumuzun etkinliklerini, dergilerimizi, haberlerimizi ve daha fazlasını paylaşmak için oluşturulmuştur.
 
-## How can I edit this code?
+## Özellikler
 
-There are several ways of editing your application.
+- **Etkinlikler:** Yaklaşan etkinlikler, atölyeler ve seminerler hakkında bilgi
+- **Dergi:** Topluluğumuzun çıkardığı "Psikolojiİbu" dergisinin tüm sayılarına erişim
+- **Haberler/Duyurular:** Güncel duyurular ve haberler
+- **Ekipler:** Topluluk ekiplerimiz ve çalışma alanları
+- **Akademik Belgeler:** Psikoloji alanında faydalı akademik kaynaklar
+- **İletişim:** Bizimle iletişime geçin
 
-**Use Lovable**
+## Geliştirme
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/07ae0ace-0f41-4be2-9555-13c6ba458cb5) and start prompting.
+Bu projeyi yerel ortamınızda çalıştırmak ve geliştirmek için:
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+Aşağıdaki adımları izleyin:
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# 1. Adım: Projeyi klonlayın
+git clone https://github.com/your-username/baibu-pot.git
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# 2. Adım: Proje dizinine girin
+cd baibu-pot
 
-# Step 3: Install the necessary dependencies.
-npm i
+# 3. Adım: Gerekli bağımlılıkları yükleyin
+npm install
+# veya
+bun install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# 4. Adım: Geliştirme sunucusunu başlatın
 npm run dev
+# veya
+bun dev
 ```
 
-**Edit a file directly in GitHub**
+Tarayıcınızda otomatik olarak `http://localhost:5173` adresinde açılacaktır.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Kullanılan Teknolojiler
 
-**Use GitHub Codespaces**
+Bu proje aşağıdaki teknolojileri kullanmaktadır:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- **Frontend:** React + TypeScript
+- **Build aracı:** Vite
+- **CSS Framework:** Tailwind CSS
+- **UI Components:** shadcn/ui
+- **Veritabanı:** Supabase (PostgreSQL)
+- **Paket Yöneticisi:** Bun/npm
 
-## What technologies are used for this project?
+## Dağıtım (Deployment)
 
-This project is built with:
+Bu proje Netlify kullanılarak dağıtılabilir. `netlify.toml` dosyası gerekli yapılandırmaları içermektedir.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```sh
+# Dağıtım için projeyi derleyin
+npm run build
 
-## How can I deploy this project?
+# Netlify CLI ile dağıtım (isteğe bağlı)
+netlify deploy
+```
 
-Simply open [Lovable](https://lovable.dev/projects/07ae0ace-0f41-4be2-9555-13c6ba458cb5) and click on Share -> Publish.
+## İletişim
 
-## Can I connect a custom domain to my Lovable project?
+Topluluk hakkında daha fazla bilgi için veya herhangi bir soru için:
 
-Yes, you can!
+- **Instagram:** [@baibu_pot](https://www.instagram.com/baibu_pot)
+- **E-posta:** psikoloji.topluluk@baibu.edu.tr
+- **Web:** [baibu-pot.netlify.app](https://baibu-pot.netlify.app)
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## Lisans
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+Bu proje [MIT Lisansı](LICENSE) altında lisanslanmıştır.

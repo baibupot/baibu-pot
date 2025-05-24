@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -118,7 +117,7 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
           {event.location && (
             <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
               <MapPin className="h-4 w-4" />
-              <span>{event.location}</span>
+              <span>{event.location === 'Bolu' ? 'BAİBÜ Gölköy Kampüsü, Psikoloji Bölümü, Bolu (40.71388, 31.51442)' : event.location}</span>
             </div>
           )}
           

@@ -11,57 +11,22 @@ import FlipbookReader from '@/components/FlipbookReader';
 
 // Mock data - bu veriler Supabase'den gelecek
 const mockMagazineDetails = {
-  '1': {
-    id: '1',
-    title: 'Psikoloji ve Teknoloji',
-    issue_number: 15,
-    publication_date: '2024-03-01',
-    cover_image: '/placeholder.svg',
-    description: 'Bu sayımızda psikoloji alanında teknolojinin etkilerini ve gelecekteki rolünü inceliyoruz. Dijital çağın insan davranışları üzerindeki etkilerini, sanal gerçeklik terapisini, yapay zeka destekli psikolojik değerlendirmeleri ve teknoloji bağımlılığını ele alıyoruz.',
-    editor: 'Dr. Ayşe Kaya',
-    authors: [
-      'Prof. Dr. Mehmet Özkan',
-      'Doç. Dr. Zeynep Acar',
-      'Arş. Gör. Burak Demir',
-      'Psk. Elif Yıldız'
-    ],
-    illustrators: [
-      'Grafiker Cem Tunç',
-      'İllüstratör Seda Kara'
-    ],
-    sponsors: [
-      'BAİBÜ Rektörlüğü',
-      'Türk Psikologlar Derneği',
-      'Mindfulness Merkezi'
-    ],
-    pdf_url: '#',
-    pages: [
-      '/placeholder.svg', '/placeholder.svg', '/placeholder.svg', '/placeholder.svg',
-      '/placeholder.svg', '/placeholder.svg', '/placeholder.svg', '/placeholder.svg',
-      '/placeholder.svg', '/placeholder.svg', '/placeholder.svg', '/placeholder.svg'
-    ],
-    featured: true,
-    published: true
-  },
-  '2': {
-    id: '2',
-    title: 'Çocuk Gelişimi',
-    issue_number: 14,
-    publication_date: '2024-01-01',
-    cover_image: '/placeholder.svg',
-    description: 'Çocuk gelişimi süreçleri ve modern yaklaşımlar üzerine detaylı incelemeler.',
-    editor: 'Dr. Fatma Yıldırım',
-    authors: ['Prof. Dr. Ali Çelik', 'Doç. Dr. Merve Şen'],
-    illustrators: ['Grafiker Can Öz'],
-    sponsors: ['BAİBÜ Rektörlüğü'],
-    pdf_url: '#',
-    pages: [
-      '/placeholder.svg', '/placeholder.svg', '/placeholder.svg', '/placeholder.svg',
-      '/placeholder.svg', '/placeholder.svg', '/placeholder.svg', '/placeholder.svg'
-    ],
+  'pdf-demo': {
+    id: 'pdf-demo',
+    title: 'PDF Flipbook Demo Dergisi',
+    issue_number: 99,
+    publication_date: '2024-06-01',
+    cover_image: '/pdf-demo-cover.jpg',
+    description: 'Gerçek PDF dosyasını flipbook olarak deneyimleyin! Bu sayı, PDF dosyasının sayfa sayfa çevrilebildiği bir demo içerir.',
+    editor: 'Demo Editör',
+    authors: ['Demo Yazar 1', 'Demo Yazar 2'],
+    illustrators: ['Demo Çizer'],
+    sponsors: ['Demo Sponsor'],
+    pdf_url: '/ornek.pdf',
+    pages: [],
     featured: false,
     published: true
-  }
+  },
 };
 
 const DergiDetay = () => {
@@ -135,7 +100,11 @@ const DergiDetay = () => {
             <div className="lg:col-span-1">
               <Card className="overflow-hidden group hover:shadow-xl transition-all duration-300">
                 <div className="aspect-[3/4] bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center relative overflow-hidden">
-                  <Book className="h-24 w-24 text-slate-400 group-hover:scale-110 transition-transform duration-300" />
+                  {magazineDetail.cover_image ? (
+                    <img src={magazineDetail.cover_image} alt={magazineDetail.title} className="object-cover w-full h-full" />
+                  ) : (
+                    <Book className="h-24 w-24 text-slate-400 group-hover:scale-110 transition-transform duration-300" />
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
               </Card>
@@ -168,21 +137,37 @@ const DergiDetay = () => {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <Button 
-                  onClick={() => setShowReader(true)}
-                  size="lg" 
-                  className="flex items-center gap-3 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 text-white px-8 py-3 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
-                >
-                  <Eye className="h-5 w-5" />
-                  Dergiyi Tam Ekranda Oku
-                </Button>
+                {magazineDetail.id === 'pdf-demo' ? (
+                  <Button
+                    asChild
+                    size="lg"
+                    className="flex items-center gap-3 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 text-white px-8 py-3 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+                  >
+                    <Link to="/pdf-demo">
+                      <Eye className="h-5 w-5" />
+                      Dergiyi Tam Ekranda Oku
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={() => setShowReader(true)}
+                    size="lg" 
+                    className="flex items-center gap-3 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 text-white px-8 py-3 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+                  >
+                    <Eye className="h-5 w-5" />
+                    Dergiyi Tam Ekranda Oku
+                  </Button>
+                )}
                 <Button 
                   variant="outline" 
                   size="lg" 
                   className="flex items-center gap-3 border-2 hover:bg-slate-50 dark:hover:bg-slate-800 px-8 py-3 text-lg font-semibold transition-all duration-300"
+                  asChild
                 >
-                  <Download className="h-5 w-5" />
-                  PDF İndir
+                  <a href={magazineDetail.pdf_url} target="_blank" rel="noopener noreferrer">
+                    <Download className="h-5 w-5" />
+                    PDF İndir
+                  </a>
                 </Button>
               </div>
             </div>

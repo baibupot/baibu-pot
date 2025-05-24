@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,6 +21,7 @@ import GizlilikPolitikasi from "./pages/GizlilikPolitikasi";
 import AdminGirisi from "./pages/AdminGirisi";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
+import PdfFlipbookDemo from './pages/PdfFlipbookDemo';
 
 const queryClient = new QueryClient();
 
@@ -35,6 +35,7 @@ const AppContent = () => {
       <Route path="/etkinlikler" element={<Etkinlikler />} />
       <Route path="/dergi" element={<Dergi />} />
       <Route path="/dergi/:id" element={<DergiDetay />} />
+      <Route path="/pdf-demo" element={<PdfFlipbookDemo />} />
       <Route path="/anketler" element={<Anketler />} />
       <Route path="/sponsorlar" element={<Sponsorlar />} />
       <Route path="/ekipler" element={<Ekipler />} />

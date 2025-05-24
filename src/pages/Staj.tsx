@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -262,7 +261,7 @@ const Staj = () => {
                             </div>
                             <div className="flex items-center gap-1">
                               <MapPin className="h-4 w-4" />
-                              <span>{internship.location}</span>
+                              <span>{internship.location === 'Bolu' ? 'BAİBÜ Gölköy Kampüsü, Psikoloji Bölümü, Bolu (40.71388, 31.51442)' : internship.location}</span>
                             </div>
                             <div className="flex items-center gap-1">
                               <Clock className="h-4 w-4" />
