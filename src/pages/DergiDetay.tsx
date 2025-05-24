@@ -102,16 +102,14 @@ const DergiDetay = () => {
     });
   };
 
-  // Tam ekran dergi okuyucu gösteriliyorsa sadece onu render et
+  // Tam ekran dergi okuyucu - header/footer olmadan
   if (showReader) {
     return (
-      <ThemeProvider>
-        <FlipbookReader 
-          pages={magazineDetail.pages}
-          title={magazineDetail.title}
-          onClose={() => setShowReader(false)}
-        />
-      </ThemeProvider>
+      <FlipbookReader 
+        pages={magazineDetail.pages}
+        title={magazineDetail.title}
+        onClose={() => setShowReader(false)}
+      />
     );
   }
 
@@ -131,62 +129,67 @@ const DergiDetay = () => {
             </Button>
           </div>
 
-          {/* Magazine Header */}
+          {/* Magazine Header - Responsive iyileştirmeleri */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-            {/* Cover Image */}
+            {/* Cover Image - Daha etkileyici görünüm */}
             <div className="lg:col-span-1">
-              <Card className="overflow-hidden">
-                <div className="aspect-[3/4] bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
-                  <Book className="h-24 w-24 text-slate-400" />
+              <Card className="overflow-hidden group hover:shadow-xl transition-all duration-300">
+                <div className="aspect-[3/4] bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center relative overflow-hidden">
+                  <Book className="h-24 w-24 text-slate-400 group-hover:scale-110 transition-transform duration-300" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
               </Card>
             </div>
 
-            {/* Magazine Info */}
-            <div className="lg:col-span-2">
-              <div className="flex items-center gap-2 mb-4">
-                <Badge className="bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">
+            {/* Magazine Info - Gelişmiş layout */}
+            <div className="lg:col-span-2 space-y-6">
+              <div className="flex flex-wrap items-center gap-3 mb-4">
+                <Badge className="bg-gradient-to-r from-cyan-500 to-teal-500 text-white border-0 px-4 py-2">
                   Sayı {magazineDetail.issue_number}
                 </Badge>
                 {magazineDetail.featured && (
-                  <Badge variant="outline">
-                    Öne Çıkan
+                  <Badge variant="outline" className="border-amber-300 text-amber-600 dark:text-amber-400">
+                    ⭐ Öne Çıkan
                   </Badge>
                 )}
               </div>
 
-              <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
+              <h1 className="text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white leading-tight">
                 {magazineDetail.title}
               </h1>
 
-              <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 mb-6">
-                <Calendar className="h-4 w-4" />
-                <span>{formatDate(magazineDetail.publication_date)}</span>
+              <div className="flex items-center gap-3 text-slate-600 dark:text-slate-400">
+                <Calendar className="h-5 w-5" />
+                <span className="text-lg">{formatDate(magazineDetail.publication_date)}</span>
               </div>
 
-              <p className="text-lg text-slate-600 dark:text-slate-400 mb-8 leading-relaxed">
+              <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
                 {magazineDetail.description}
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <Button 
                   onClick={() => setShowReader(true)}
                   size="lg" 
-                  className="flex items-center gap-2 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700"
+                  className="flex items-center gap-3 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 text-white px-8 py-3 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
                 >
-                  <Eye className="h-4 w-4" />
-                  Dergiyi Oku
+                  <Eye className="h-5 w-5" />
+                  Dergiyi Tam Ekranda Oku
                 </Button>
-                <Button variant="outline" size="lg" className="flex items-center gap-2">
-                  <Download className="h-4 w-4" />
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  className="flex items-center gap-3 border-2 hover:bg-slate-50 dark:hover:bg-slate-800 px-8 py-3 text-lg font-semibold transition-all duration-300"
+                >
+                  <Download className="h-5 w-5" />
                   PDF İndir
                 </Button>
               </div>
             </div>
           </div>
 
-          {/* Team and Credits */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Team and Credits - Grid iyileştirmeleri */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Editor */}
             <Card>
               <CardHeader>
