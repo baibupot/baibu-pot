@@ -9,6 +9,9 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
   },
+  // Base değeri "/" olarak kalmalı, eğer subpath'te çalışacaksa
+  // bu değeri değiştirmeniz gerekebilir, örn: "/lovable/"
+  base: "/",
   plugins: [
     react(),
     mode === 'development' &&

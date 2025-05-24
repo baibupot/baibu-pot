@@ -67,8 +67,12 @@ const HeroSection = () => {
             <div className="relative z-10 bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-2xl">
               <div className="aspect-square bg-gradient-to-br from-cyan-100 to-teal-100 dark:from-cyan-900/20 dark:to-teal-900/20 rounded-xl flex items-center justify-center">
                 <div className="text-center">
-                  <div className="w-24 h-24 bg-gradient-to-br from-cyan-500 to-teal-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-white font-bold text-3xl">PÖT</span>
+                  <div className="w-21 h-21 flex items-center justify-center mx-auto mb-4">
+                    <img 
+                      src="/logo.png" 
+                      alt="PÖT Logo" 
+                      className="w-full h-full object-contain"
+                    />
                   </div>
                   <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
                     BAİBÜ Psikoloji Topluluğu

@@ -21,8 +21,8 @@ const MagazineSection = () => {
                   
                   {/* Dergi kapağı içerik */}
                   <div className="flex-1 p-6 flex flex-col justify-center items-center text-center">
-                    <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-teal-600 rounded-full flex items-center justify-center mb-4">
-                      <span className="text-white font-bold text-xl">12</span>
+                    <div className="w-16 h-16 flex items-center justify-center mb-4">
+                      <span className="text-xl font-bold text-slate-900 dark:text-white">12</span>
                     </div>
                     <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
                       Travma ve İyileşme

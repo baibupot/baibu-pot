@@ -14,9 +14,11 @@ const Footer = () => {
           {/* Logo ve Açıklama */}
           <div className="col-span-1 lg:col-span-2">
             <div className="flex items-center space-x-3 mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-teal-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">PÖT</span>
-              </div>
+              <img 
+                src="/logo.png" 
+                alt="PÖT Logo" 
+                className="w-12 h-12 object-contain"
+              />
               <div>
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">BAİBÜ PÖT</h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400">Psikoloji Öğrencileri Topluluğu</p>
