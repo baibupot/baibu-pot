@@ -18,6 +18,9 @@ const Header = () => {
     { name: 'Etkinlikler', href: '/etkinlikler' },
     { name: 'Anketler', href: '/anketler' },
     { name: 'Sponsorlar', href: '/sponsorlar' },
+  ];
+
+  const moreItems = [
     { name: 'Ekipler', href: '/ekipler' },
     { name: 'Akademik Belgeler', href: '/akademik-belgeler' },
     { name: 'Staj', href: '/staj' },
@@ -29,33 +32,33 @@ const Header = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-teal-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">PÖT</span>
+          <Link to="/" className="flex items-center space-x-3 min-w-0 flex-shrink-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-cyan-500 to-teal-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm sm:text-lg">PÖT</span>
             </div>
-            <div className="hidden sm:block">
-              <h1 className="text-lg font-bold text-slate-900 dark:text-white">BAİBÜ PÖT</h1>
-              <p className="text-xs text-slate-600 dark:text-slate-400">Psikoloji Öğrencileri Topluluğu</p>
+            <div className="hidden xs:block min-w-0">
+              <h1 className="text-sm sm:text-lg font-bold text-slate-900 dark:text-white truncate">BAİBÜ PÖT</h1>
+              <p className="text-xs text-slate-600 dark:text-slate-400 hidden sm:block">Psikoloji Öğrencileri Topluluğu</p>
             </div>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center space-x-1">
-            {navigationItems.slice(0, 6).map((item) => (
+          <nav className="hidden lg:flex items-center space-x-1 flex-1 justify-center">
+            {navigationItems.map((item) => (
               <Link
                 key={item.name}
                 to={item.href}
-                className="px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors duration-200"
+                className="px-2 xl:px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors duration-200 whitespace-nowrap"
               >
                 {item.name}
               </Link>
             ))}
             <div className="relative group">
-              <button className="px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors duration-200">
+              <button className="px-2 xl:px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors duration-200">
                 Daha Fazla
               </button>
-              <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-800 rounded-md shadow-lg border border-slate-200 dark:border-slate-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                {navigationItems.slice(6).map((item) => (
+              <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-800 rounded-md shadow-lg border border-slate-200 dark:border-slate-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                {moreItems.map((item) => (
                   <Link
                     key={item.name}
                     to={item.href}
@@ -69,7 +72,7 @@ const Header = () => {
           </nav>
 
           {/* Right side controls */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
             {/* Search */}
             <div className="flex items-center">
               {isSearchOpen ? (
@@ -77,15 +80,17 @@ const Header = () => {
                   <Input
                     type="text"
                     placeholder="Site içinde ara..."
-                    className="w-48 h-9"
+                    className="w-32 sm:w-48 h-8 sm:h-9 text-sm"
                     autoFocus
+                    onBlur={() => setIsSearchOpen(false)}
                   />
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setIsSearchOpen(false)}
+                    className="p-1 sm:p-2"
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-3 w-3 sm:h-4 sm:w-4" />
                   </Button>
                 </div>
               ) : (
@@ -93,7 +98,7 @@ const Header = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => setIsSearchOpen(true)}
-                  className="hidden sm:flex"
+                  className="hidden sm:flex p-2"
                 >
                   <Search className="h-4 w-4" />
                 </Button>
@@ -105,12 +110,12 @@ const Header = () => {
               variant="ghost"
               size="sm"
               onClick={toggleTheme}
-              className="p-2"
+              className="p-1 sm:p-2"
             >
               {theme === 'light' ? (
-                <Moon className="h-4 w-4" />
+                <Moon className="h-3 w-3 sm:h-4 sm:w-4" />
               ) : (
-                <Sun className="h-4 w-4" />
+                <Sun className="h-3 w-3 sm:h-4 sm:w-4" />
               )}
             </Button>
 
@@ -119,12 +124,12 @@ const Header = () => {
               variant="ghost"
               size="sm"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="lg:hidden p-2"
+              className="lg:hidden p-1 sm:p-2"
             >
               {isMenuOpen ? (
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4 sm:h-5 sm:w-5" />
               ) : (
-                <Menu className="h-5 w-5" />
+                <Menu className="h-4 w-4 sm:h-5 sm:w-5" />
               )}
             </Button>
           </div>
@@ -134,7 +139,7 @@ const Header = () => {
         {isMenuOpen && (
           <div className="lg:hidden border-t border-slate-200 dark:border-slate-700 py-4">
             <div className="space-y-1">
-              {navigationItems.map((item) => (
+              {[...navigationItems, ...moreItems].map((item) => (
                 <Link
                   key={item.name}
                   to={item.href}
@@ -145,13 +150,13 @@ const Header = () => {
                 </Link>
               ))}
             </div>
-            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 sm:hidden">
               <div className="flex items-center space-x-2 px-3">
-                <Search className="h-4 w-4 text-slate-500" />
+                <Search className="h-4 w-4 text-slate-500 flex-shrink-0" />
                 <Input
                   type="text"
                   placeholder="Site içinde ara..."
-                  className="flex-1"
+                  className="flex-1 h-9"
                 />
               </div>
             </div>
