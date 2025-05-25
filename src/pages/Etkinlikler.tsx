@@ -11,58 +11,15 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, List, Search, Filter, MapPin, Clock, Users } from 'lucide-react';
 import EventCard from '@/components/events/EventCard';
 import EventCalendar from '@/components/events/EventCalendar';
+import { useEvents } from '@/hooks/useSupabaseData';
 
 const Etkinlikler = () => {
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
-
-  // Mock data for events
-  const events = [
-    {
-      id: '1',
-      title: 'Mindfulness ve Stres Yönetimi Atölyesi',
-      description: 'Günlük yaşamda stres yönetimi teknikleri üzerine interaktif bir atölye.',
-      event_date: '2024-03-25T14:00:00+03:00',
-      end_date: '2024-03-25T16:00:00+03:00',
-      location: 'Psikoloji Bölümü Konferans Salonu',
-      event_type: 'atolye',
-      max_participants: 30,
-      registration_required: true,
-      featured_image: null,
-      status: 'upcoming',
-      slug: 'mindfulness-atolyesi'
-    },
-    {
-      id: '2',
-      title: 'Psikoloji Kariyer Günleri',
-      description: 'Psikoloji alanında kariyer fırsatları ve uzman konuşmacılarla buluşma.',
-      event_date: '2024-04-02T09:00:00+03:00',
-      end_date: '2024-04-02T17:00:00+03:00',
-      location: 'Rektörlük Konferans Salonu',
-      event_type: 'konferans',
-      max_participants: 100,
-      registration_required: true,
-      featured_image: null,
-      status: 'upcoming',
-      slug: 'kariyer-gunleri-2024'
-    },
-    {
-      id: '3',
-      title: 'Kitap Kulübü Buluşması',
-      description: 'Aylık kitap tartışması ve sosyal etkileşim etkinliği.',
-      event_date: '2024-04-10T18:30:00+03:00',
-      end_date: '2024-04-10T20:00:00+03:00',
-      location: 'Kütüphane Toplantı Salonu',
-      event_type: 'sosyal',
-      max_participants: 20,
-      registration_required: false,
-      featured_image: null,
-      status: 'upcoming',
-      slug: 'kitap-kulubu-nisan'
-    }
-  ];
+  
+  const { data: events = [], isLoading, error } = useEvents();
 
   const filteredEvents = events.filter(event => {
     const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -93,6 +50,34 @@ const Etkinlikler = () => {
     };
     return statuses[status] || status;
   };
+
+  if (isLoading) {
+    return (
+      <ThemeProvider>
+        <div className="min-h-screen bg-white dark:bg-slate-900 transition-colors duration-300">
+          <Header />
+          <main className="container mx-auto px-4 py-8">
+            <div className="text-center">Yükleniyor...</div>
+          </main>
+          <Footer />
+        </div>
+      </ThemeProvider>
+    );
+  }
+
+  if (error) {
+    return (
+      <ThemeProvider>
+        <div className="min-h-screen bg-white dark:bg-slate-900 transition-colors duration-300">
+          <Header />
+          <main className="container mx-auto px-4 py-8">
+            <div className="text-center text-red-500">Etkinlikler yüklenirken bir hata oluştu.</div>
+          </main>
+          <Footer />
+        </div>
+      </ThemeProvider>
+    );
+  }
 
   return (
     <ThemeProvider>
@@ -175,7 +160,11 @@ const Etkinlikler = () => {
                 </SelectContent>
               </Select>
 
-              <Button variant="outline" className="flex items-center gap-2">
+              <Button variant="outline" className="flex items-center gap-2" onClick={() => {
+                setSearchTerm('');
+                setStatusFilter('all');
+                setTypeFilter('all');
+              }}>
                 <Filter className="h-4 w-4" />
                 Filtreleri Temizle
               </Button>

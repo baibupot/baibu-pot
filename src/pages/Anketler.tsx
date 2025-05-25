@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,44 +7,13 @@ import { ExternalLink, Calendar, Users, Clock, BarChart3 } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { ThemeProvider } from '@/components/ThemeProvider';
-
-// Mock data - bu veriler Supabase'den gelecek
-const mockSurveys = [
-  {
-    id: '1',
-    title: 'Öğrenci Memnuniyet Anketi 2024',
-    description: 'Topluluk faaliyetleri ve etkinliklerimiz hakkındaki görüşlerinizi almak istiyoruz.',
-    created_date: '2024-03-01',
-    end_date: '2024-04-01',
-    external_url: '#',
-    active: true,
-    response_count: 142
-  },
-  {
-    id: '2',
-    title: 'Dergi İçerik Tercihleri',
-    description: 'Hangi konularda daha fazla makale okumak istiyorsunuz?',
-    created_date: '2024-02-15',
-    end_date: '2024-03-15',
-    external_url: '#',
-    active: false,
-    response_count: 89
-  },
-  {
-    id: '3',
-    title: 'Gelecek Etkinlik Planlaması',
-    description: 'Hangi tür etkinliklere katılmak istersiniz?',
-    created_date: '2024-02-01',
-    end_date: '2024-02-28',
-    external_url: '#',
-    active: false,
-    response_count: 67
-  }
-];
+import { useSurveys } from '@/hooks/useSupabaseData';
 
 const Anketler = () => {
-  const activeSurveys = mockSurveys.filter(survey => survey.active);
-  const completedSurveys = mockSurveys.filter(survey => !survey.active);
+  const { data: surveys = [], isLoading, error } = useSurveys();
+
+  const activeSurveys = surveys.filter(survey => survey.active);
+  const completedSurveys = surveys.filter(survey => !survey.active);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('tr-TR', {
@@ -61,6 +30,34 @@ const Anketler = () => {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays > 0 ? diffDays : 0;
   };
+
+  if (isLoading) {
+    return (
+      <ThemeProvider>
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
+          <Header />
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="text-center">Yükleniyor...</div>
+          </main>
+          <Footer />
+        </div>
+      </ThemeProvider>
+    );
+  }
+
+  if (error) {
+    return (
+      <ThemeProvider>
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
+          <Header />
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="text-center text-red-500">Anketler yüklenirken bir hata oluştu.</div>
+          </main>
+          <Footer />
+        </div>
+      </ThemeProvider>
+    );
+  }
 
   return (
     <ThemeProvider>
@@ -101,9 +98,11 @@ const Anketler = () => {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-slate-600 dark:text-slate-400 mb-4">
-                        {survey.description}
-                      </p>
+                      {survey.description && (
+                        <p className="text-slate-600 dark:text-slate-400 mb-4">
+                          {survey.description}
+                        </p>
+                      )}
                       
                       <div className="space-y-2 mb-6">
                         <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
@@ -114,13 +113,12 @@ const Anketler = () => {
                           <Clock className="h-4 w-4" />
                           <span>{getDaysRemaining(survey.end_date)} gün kaldı</span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                          <Users className="h-4 w-4" />
-                          <span>{survey.response_count} kişi katıldı</span>
-                        </div>
                       </div>
                       
-                      <Button className="w-full flex items-center gap-2">
+                      <Button 
+                        className="w-full flex items-center gap-2"
+                        onClick={() => window.open(survey.survey_link, '_blank')}
+                      >
                         Ankete Katıl
                         <ExternalLink className="h-4 w-4" />
                       </Button>
@@ -149,18 +147,16 @@ const Anketler = () => {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-slate-600 dark:text-slate-400 mb-4 line-clamp-2">
-                        {survey.description}
-                      </p>
+                      {survey.description && (
+                        <p className="text-slate-600 dark:text-slate-400 mb-4 line-clamp-2">
+                          {survey.description}
+                        </p>
+                      )}
                       
                       <div className="space-y-2 mb-4">
                         <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
                           <Calendar className="h-4 w-4" />
-                          <span>{formatDate(survey.created_date)} - {formatDate(survey.end_date)}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                          <Users className="h-4 w-4" />
-                          <span>{survey.response_count} katılımcı</span>
+                          <span>{formatDate(survey.start_date)} - {formatDate(survey.end_date)}</span>
                         </div>
                       </div>
                       
@@ -175,7 +171,7 @@ const Anketler = () => {
             </div>
           )}
 
-          {activeSurveys.length === 0 && completedSurveys.length === 0 && (
+          {surveys.length === 0 && (
             <div className="text-center py-12">
               <BarChart3 className="h-16 w-16 text-slate-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">

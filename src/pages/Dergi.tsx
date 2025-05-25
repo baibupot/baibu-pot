@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,28 +9,35 @@ import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { useMagazineIssues } from '@/hooks/useSupabaseData';
 
-// Mock data - bu veriler Supabase'den gelecek
-const mockMagazineIssues = [
-  {
+const Dergi = () => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const { data: magazines = [], isLoading, error } = useMagazineIssues(true);
+
+  // Add PDF demo magazine to the list
+  const mockPdfDemo = {
     id: 'pdf-demo',
     title: 'PDF Flipbook Demo Dergisi',
     issue_number: 99,
     publication_date: '2024-06-01',
     cover_image: '/pdf-demo-cover.jpg',
     description: 'Gerçek PDF dosyasını flipbook olarak deneyimleyin! Bu sayı, PDF dosyasının sayfa sayfa çevrilebildiği bir demo içerir.',
-    pdf_url: '/ornek.pdf',
+    pdf_file: '/ornek.pdf',
     featured: false,
-    published: true
-  },
-];
+    published: true,
+    theme: null,
+    slug: 'pdf-demo',
+    created_by: null,
+    created_at: '',
+    updated_at: ''
+  };
 
-const Dergi = () => {
-  const [searchTerm, setSearchTerm] = useState('');
+  const allMagazines = [mockPdfDemo, ...magazines];
 
-  const filteredIssues = mockMagazineIssues.filter(issue =>
+  const filteredIssues = allMagazines.filter(issue =>
     issue.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    issue.description.toLowerCase().includes(searchTerm.toLowerCase())
+    (issue.description && issue.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const formatDate = (dateString: string) => {
@@ -38,6 +46,34 @@ const Dergi = () => {
       month: 'long'
     });
   };
+
+  if (isLoading) {
+    return (
+      <ThemeProvider>
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
+          <Header />
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="text-center">Yükleniyor...</div>
+          </main>
+          <Footer />
+        </div>
+      </ThemeProvider>
+    );
+  }
+
+  if (error) {
+    return (
+      <ThemeProvider>
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
+          <Header />
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="text-center text-red-500">Dergi sayıları yüklenirken bir hata oluştu.</div>
+          </main>
+          <Footer />
+        </div>
+      </ThemeProvider>
+    );
+  }
 
   return (
     <ThemeProvider>
@@ -71,61 +107,6 @@ const Dergi = () => {
             </div>
           </div>
 
-          {/* Featured Issue */}
-          {filteredIssues.find(issue => issue.featured) && (
-            <div className="mb-12">
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">
-                Öne Çıkan Sayı
-              </h2>
-              {(() => {
-                const featuredIssue = filteredIssues.find(issue => issue.featured)!;
-                return (
-                  <Card className="overflow-hidden">
-                    <div className="md:flex">
-                      <div className="md:w-1/3">
-                        <div className="h-64 md:h-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
-                          <Book className="h-16 w-16 text-slate-400" />
-                        </div>
-                      </div>
-                      <div className="md:w-2/3 p-6">
-                        <div className="flex items-center gap-2 mb-3">
-                          <Badge className="bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">
-                            Sayı {featuredIssue.issue_number}
-                          </Badge>
-                          <Badge variant="outline">
-                            Öne Çıkan
-                          </Badge>
-                        </div>
-                        <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-                          {featuredIssue.title}
-                        </h3>
-                        <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 mb-4">
-                          <Calendar className="h-4 w-4" />
-                          <span>{formatDate(featuredIssue.publication_date)}</span>
-                        </div>
-                        <p className="text-slate-600 dark:text-slate-400 mb-6">
-                          {featuredIssue.description}
-                        </p>
-                        <div className="flex flex-col sm:flex-row gap-3">
-                          <Button asChild className="flex items-center gap-2">
-                            <Link to={`/dergi/${featuredIssue.id}`}>
-                              <Eye className="h-4 w-4" />
-                              Detayları Gör
-                            </Link>
-                          </Button>
-                          <Button variant="outline" className="flex items-center gap-2">
-                            <Download className="h-4 w-4" />
-                            PDF İndir
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })()}
-            </div>
-          )}
-
           {/* All Issues Grid */}
           <div>
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">
@@ -146,11 +127,6 @@ const Dergi = () => {
                       <Badge className="bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">
                         Sayı {issue.issue_number}
                       </Badge>
-                      {issue.featured && (
-                        <Badge variant="outline">
-                          Öne Çıkan
-                        </Badge>
-                      )}
                     </div>
                     <CardTitle className="text-lg">{issue.title}</CardTitle>
                   </CardHeader>
@@ -159,9 +135,11 @@ const Dergi = () => {
                       <Calendar className="h-4 w-4" />
                       <span>{formatDate(issue.publication_date)}</span>
                     </div>
-                    <p className="text-slate-600 dark:text-slate-400 mb-4 line-clamp-3">
-                      {issue.description}
-                    </p>
+                    {issue.description && (
+                      <p className="text-slate-600 dark:text-slate-400 mb-4 line-clamp-3">
+                        {issue.description}
+                      </p>
+                    )}
                     <div className="flex flex-col gap-2">
                       {issue.id === 'pdf-demo' ? (
                         <Button asChild variant="outline" className="w-full flex items-center gap-2">
@@ -176,18 +154,20 @@ const Dergi = () => {
                           variant="outline" 
                           className="w-full flex items-center gap-2"
                         >
-                          <Link to={`/dergi/${issue.id}`}>
+                          <Link to={`/dergi/${issue.slug}`}>
                             <Eye className="h-4 w-4" />
                             Detayları Gör
                           </Link>
                         </Button>
                       )}
-                      <Button variant="outline" className="w-full flex items-center gap-2" asChild>
-                        <a href={issue.pdf_url} target="_blank" rel="noopener noreferrer">
-                          <Download className="h-4 w-4" />
-                          PDF İndir
-                        </a>
-                      </Button>
+                      {issue.pdf_file && (
+                        <Button variant="outline" className="w-full flex items-center gap-2" asChild>
+                          <a href={issue.pdf_file} target="_blank" rel="noopener noreferrer">
+                            <Download className="h-4 w-4" />
+                            PDF İndir
+                          </a>
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
