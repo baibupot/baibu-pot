@@ -118,8 +118,8 @@ const AdminDashboard = () => {
 
   const getRolePermissions = (roles: string[]) => {
     const permissions = {
-      baskan: ['news', 'events', 'magazine', 'surveys', 'sponsors', 'team', 'documents', 'internships', 'messages', 'users'],
-      baskan_yardimcisi: ['news', 'events', 'magazine', 'surveys', 'sponsors', 'team', 'documents', 'internships', 'messages', 'users'],
+      baskan: ['news', 'events', 'magazine', 'surveys', 'sponsors', 'team', 'documents', 'internships', 'messages', 'users', 'products'],
+      baskan_yardimcisi: ['news', 'events', 'magazine', 'surveys', 'sponsors', 'team', 'documents', 'internships', 'messages', 'users', 'products'],
       teknik_koordinator: ['news', 'events', 'magazine', 'surveys', 'sponsors', 'team', 'documents', 'internships', 'users'],
       teknik_ekip: ['news', 'events', 'magazine', 'surveys', 'sponsors', 'documents', 'internships'],
       etkinlik_koordinator: ['events', 'sponsors'],
@@ -127,7 +127,9 @@ const AdminDashboard = () => {
       iletisim_koordinator: ['news', 'magazine', 'surveys', 'sponsors', 'documents', 'internships', 'messages'],
       iletisim_ekip: ['news', 'magazine', 'surveys', 'sponsors', 'documents', 'internships'],
       dergi_koordinator: ['magazine', 'sponsors'],
-      dergi_ekip: ['magazine', 'sponsors']
+      dergi_ekip: ['magazine', 'sponsors'],
+      mali_koordinator: ['products', 'sponsors'],
+      mali_ekip: ['products']
     };
     
     // Combine permissions from all user roles
@@ -156,7 +158,9 @@ const AdminDashboard = () => {
       iletisim_koordinator: 'İletişim Koordinatörü',
       iletisim_ekip: 'İletişim Ekip Üyesi',
       dergi_koordinator: 'Dergi Koordinatörü',
-      dergi_ekip: 'Dergi Ekip Üyesi'
+      dergi_ekip: 'Dergi Ekip Üyesi',
+      mali_koordinator: 'Mali İşler Koordinatörü',
+      mali_ekip: 'Mali İşler Ekip Üyesi'
     };
     return roles.map(role => roleLabels[role as keyof typeof roleLabels] || role).join(', ');
   };
@@ -501,6 +505,12 @@ const AdminDashboard = () => {
                   <TabsTrigger value="sponsors" className="text-xs whitespace-nowrap">
                     <Building2 className="h-4 w-4 mr-1" />
                     Sponsorlar
+                  </TabsTrigger>
+                )}
+                {hasPermission('products') && (
+                  <TabsTrigger value="products" className="text-xs whitespace-nowrap">
+                    <Package className="h-4 w-4 mr-1" />
+                    Ürünler
                   </TabsTrigger>
                 )}
                 {hasPermission('team') && (

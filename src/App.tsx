@@ -16,6 +16,7 @@ import Iletisim from '@/pages/Iletisim';
 import PdfFlipbookDemo from '@/pages/PdfFlipbookDemo';
 import AdminLogin from '@/pages/AdminLogin';
 import AdminDashboard from '@/pages/AdminDashboard';
+import Urunler from '@/pages/Urunler';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,6 +38,7 @@ function App() {
           <Route path="/etkinlikler" element={<Etkinlikler />} />
           <Route path="/anketler" element={<Anketler />} />
           <Route path="/sponsorlar" element={<Sponsorlar />} />
+          <Route path="/urunler" element={<Urunler />} />
           <Route path="/ekipler" element={<Ekipler />} />
           <Route path="/akademik-belgeler" element={<AkademikBelgeler />} />
           <Route path="/stajlar" element={<Stajlar />} />

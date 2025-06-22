@@ -22,6 +22,7 @@ const Header = () => {
 
   const moreItems = [
     { name: 'Ekipler', href: '/ekipler' },
+    { name: 'Ürünler', href: '/urunler' },
     { name: 'Akademik Belgeler', href: '/akademik-belgeler' },
     { name: 'Staj', href: '/staj' },
     { name: 'İletişim', href: '/iletisim' },

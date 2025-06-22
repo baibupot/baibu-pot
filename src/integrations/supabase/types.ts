@@ -442,6 +442,65 @@ export type Database = {
           },
         ]
       }
+      products: {
+        Row: {
+          available: boolean | null
+          category: string
+          created_at: string | null
+          created_by: string | null
+          currency: string | null
+          description: string | null
+          features: string[] | null
+          id: string
+          images: string[] | null
+          name: string
+          price: number | null
+          sort_order: number | null
+          stock_status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          available?: boolean | null
+          category: string
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          description?: string | null
+          features?: string[] | null
+          id?: string
+          images?: string[] | null
+          name: string
+          price?: number | null
+          sort_order?: number | null
+          stock_status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          available?: boolean | null
+          category?: string
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          description?: string | null
+          features?: string[] | null
+          id?: string
+          images?: string[] | null
+          name?: string
+          price?: number | null
+          sort_order?: number | null
+          stock_status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sponsors: {
         Row: {
           active: boolean | null
