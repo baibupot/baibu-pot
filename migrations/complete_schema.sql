@@ -40,7 +40,9 @@ CREATE TABLE public.user_roles (
         'iletisim_koordinator', 
         'iletisim_ekip', 
         'dergi_koordinator', 
-        'dergi_ekip'
+        'dergi_ekip',
+        'mali_koordinator',
+        'mali_ekip'
     )),
     is_approved BOOLEAN DEFAULT true,
     approved_by UUID REFERENCES public.users(id),
@@ -237,6 +239,24 @@ CREATE TABLE public.form_responses (
     submitted_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Products tablosu (Ürünler: kalem, çanta, bardak vb.)
+CREATE TABLE public.products (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    category TEXT NOT NULL CHECK (category IN ('kirtasiye', 'giyim', 'aksesuar', 'diger')),
+    price DECIMAL(10,2),
+    currency TEXT DEFAULT 'TL',
+    images TEXT[], -- Ürün resimleri URL array
+    features TEXT[], -- Ürün özellikleri
+    available BOOLEAN DEFAULT true,
+    stock_status TEXT DEFAULT 'available' CHECK (stock_status IN ('available', 'limited', 'out_of_stock')),
+    sort_order INTEGER DEFAULT 0,
+    created_by UUID REFERENCES public.users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- ====================================================================
 -- 3. TRİGGER FONKSİYONLARI
 -- ====================================================================
@@ -294,6 +314,7 @@ CREATE TRIGGER handle_updated_at_academic_documents BEFORE UPDATE ON public.acad
 CREATE TRIGGER handle_updated_at_internships BEFORE UPDATE ON public.internships FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER handle_updated_at_surveys BEFORE UPDATE ON public.surveys FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER handle_updated_at_comments BEFORE UPDATE ON public.comments FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+CREATE TRIGGER handle_updated_at_products BEFORE UPDATE ON public.products FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
 -- ====================================================================
 -- 5. RLS POLİTİKALARI - GÜVENLİ VE ESNEk
@@ -314,6 +335,7 @@ ALTER TABLE public.contact_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.form_fields ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.form_responses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 
 -- *** ESNEk VE GÜVENLİ POLİTİKALAR ***
 
@@ -376,6 +398,10 @@ CREATE POLICY "form_responses_insert_policy" ON public.form_responses FOR INSERT
 CREATE POLICY "form_responses_select_policy" ON public.form_responses FOR SELECT USING (auth.uid() IS NOT NULL);
 CREATE POLICY "form_responses_all_policy" ON public.form_responses FOR ALL USING (auth.uid() IS NOT NULL);
 
+-- Products politikaları
+CREATE POLICY "products_select_policy" ON public.products FOR SELECT USING (true);
+CREATE POLICY "products_all_policy" ON public.products FOR ALL USING (auth.uid() IS NOT NULL);
+
 -- ====================================================================
 -- 6. YETKİLERİ AYARLA
 -- ====================================================================
@@ -407,6 +433,14 @@ INSERT INTO public.magazine_issues (issue_number, title, theme, description, pub
 -- Örnek sponsor
 INSERT INTO public.sponsors (name, website, sponsor_type, active, sort_order) VALUES
 ('Bolu Abant İzzet Baysal Üniversitesi', 'https://baibu.edu.tr', 'akademik', true, 1);
+
+-- Örnek ürünler
+INSERT INTO public.products (name, description, category, price, currency, features, available, stock_status, sort_order) VALUES
+('BAİBÜ PÖT Kalem', 'Psikoloji öğrencileri topluluğu logolu özel tasarım tükenmez kalem', 'kirtasiye', 15.00, 'TL', ARRAY['Ergonomik tutma', 'Kaliteli mürekkep', 'Logo baskılı'], true, 'available', 1),
+('BAİBÜ PÖT T-Shirt', 'Topluluk logolu pamuklu t-shirt', 'giyim', 85.00, 'TL', ARRAY['%100 pamuk', 'Unisex kesim', 'Kaliteli baskı'], true, 'available', 2),
+('BAİBÜ PÖT Çanta', 'Günlük kullanım için bez çanta', 'aksesuar', 45.00, 'TL', ARRAY['Dayanıklı kumaş', 'Geniş iç hacim', 'Topluluk logosu'], true, 'limited', 3),
+('BAİBÜ PÖT Bardak', 'Termal içecek bardağı', 'aksesuar', 35.00, 'TL', ARRAY['Termal özellik', 'BPA içermez', 'Kapak dahil'], true, 'available', 4),
+('BAİBÜ PÖT Defter', 'A5 boyutunda çizgili defter', 'kirtasiye', 25.00, 'TL', ARRAY['120 sayfa', 'Kaliteli kağıt', 'Sert kapak'], true, 'available', 5);
 
 -- ====================================================================
 -- 8. DEBUG FONKSİYONU

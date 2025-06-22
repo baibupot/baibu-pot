@@ -9,19 +9,13 @@ Bu klasörde BAİBÜ PÖT web sitesi için gerekli veritabanı şeması bulunmak
 2. Yeni proje oluşturun veya mevcut projenizi seçin
 3. **SQL Editor** sekmesine gidin
 
-### 2. Ana Şema Kurulumu
+### 2. Şema Kurulumu
 1. `complete_schema.sql` dosyasının içeriğini kopyalayın
 2. Supabase SQL Editor'e yapıştırın
 3. **RUN** butonuna tıklayın
 4. ✅ Başarılı mesajı: `"Schema kurulumu tamamlandı! Toplam tablo sayısı: XX"`
 
-### 3. Ek Özellikler Kurulumu
-1. `add_products_table.sql` dosyasının içeriğini kopyalayın
-2. Supabase SQL Editor'e yapıştırın
-3. **RUN** butonuna tıklayın
-4. ✅ Başarılı mesajı: `"Ürünler tablosu ve mali işler rolleri başarıyla eklendi!"`
-
-### 4. Admin Kullanıcı Oluşturma
+### 3. Admin Kullanıcı Oluşturma
 1. Supabase Dashboard'da **Authentication** > **Users** sekmesine gidin
 2. **Add user** ile admin kullanıcınızı oluşturun
 3. Kullanıcının **User UID**'sini kopyalayın
@@ -32,7 +26,7 @@ INSERT INTO public.user_roles (user_id, role, is_approved)
 VALUES ('BURAYA_USER_ID_YAPIŞTIRIN', 'baskan', true);
 ```
 
-### 5. Bağlantı Bilgilerini Alma
+### 4. Bağlantı Bilgilerini Alma
 1. **Settings** > **API** sekmesine gidin
 2. Aşağıdaki bilgileri projenizde güncelleyin:
    - `SUPABASE_URL`
