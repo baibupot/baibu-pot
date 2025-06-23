@@ -1,4 +1,3 @@
-
 export interface Database {
   public: {
     Tables: {
@@ -453,6 +452,120 @@ export interface Database {
           entity_type?: string
           entity_id?: string
           approved?: boolean
+          created_at?: string
+        }
+      }
+      magazine_reads: {
+        Row: {
+          id: string
+          magazine_issue_id: string
+          reader_ip: string | null
+          reader_location: string | null
+          device_type: string | null
+          browser_info: string | null
+          reading_duration: number | null
+          pages_read: number
+          completed_reading: boolean
+          referrer_url: string | null
+          session_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          magazine_issue_id: string
+          reader_ip?: string | null
+          reader_location?: string | null
+          device_type?: string | null
+          browser_info?: string | null
+          reading_duration?: number | null
+          pages_read?: number
+          completed_reading?: boolean
+          referrer_url?: string | null
+          session_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          magazine_issue_id?: string
+          reader_ip?: string | null
+          reader_location?: string | null
+          device_type?: string | null
+          browser_info?: string | null
+          reading_duration?: number | null
+          pages_read?: number
+          completed_reading?: boolean
+          referrer_url?: string | null
+          session_id?: string | null
+          created_at?: string
+        }
+      }
+      magazine_contributors: {
+        Row: {
+          id: string
+          magazine_issue_id: string
+          name: string
+          role: string
+          bio: string | null
+          profile_image: string | null
+          social_links: any | null
+          sort_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          magazine_issue_id: string
+          name: string
+          role: string
+          bio?: string | null
+          profile_image?: string | null
+          social_links?: any | null
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          magazine_issue_id?: string
+          name?: string
+          role?: string
+          bio?: string | null
+          profile_image?: string | null
+          social_links?: any | null
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      magazine_page_reads: {
+        Row: {
+          id: string
+          magazine_read_id: string
+          magazine_issue_id: string
+          page_number: number
+          time_spent: number
+          scroll_percentage: number
+          zoom_level: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          magazine_read_id: string
+          magazine_issue_id: string
+          page_number: number
+          time_spent?: number
+          scroll_percentage?: number
+          zoom_level?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          magazine_read_id?: string
+          magazine_issue_id?: string
+          page_number?: number
+          time_spent?: number
+          scroll_percentage?: number
+          zoom_level?: number
           created_at?: string
         }
       }

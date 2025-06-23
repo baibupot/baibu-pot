@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,7 +32,7 @@ import SponsorModal from '@/components/admin/SponsorModal';
 import SurveyModal from '@/components/admin/SurveyModal';
 import TeamMemberModal from '@/components/admin/TeamMemberModal';
 import UserRoleManagement from '@/components/admin/UserRoleManagement';
-import { useNews, useEvents, useMagazineIssues, useSurveys, useSponsors, useTeamMembers, useAcademicDocuments, useInternships, useContactMessages, useUsers, useUserRoles } from '@/hooks/useSupabaseData';
+import { useNews, useEvents, useMagazineIssues, useSurveys, useSponsors, useTeamMembers, useAcademicDocuments, useInternships, useContactMessages, useUsers, useUserRoles, useMagazineAnalytics, useMagazineContributors } from '@/hooks/useSupabaseData';
 import { deleteMagazineFilesByUrls } from '@/utils/githubStorageHelper';
 import { getGitHubStorageConfig, isGitHubStorageConfigured } from '@/integrations/github/config';
 
@@ -77,6 +76,62 @@ const AdminDashboard = () => {
   const { data: contactMessages } = useContactMessages();
   const { data: sponsors } = useSponsors(false);
   const { data: teamMembers } = useTeamMembers(false);
+  
+  // Dergi istatistikleri için yeni hook'lar
+  const { data: magazineReads } = useMagazineAnalytics();
+  const { data: allContributors } = useMagazineContributors();
+
+  // Gerçek dergi istatistikleri hesaplama
+  const calculateMagazineStats = () => {
+    if (!magazineReads) return { thisMonth: 0, total: 0, avgDuration: 0, deviceStats: { mobile: 0, desktop: 0, tablet: 0 } };
+    
+    const now = new Date();
+    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    // Bu ay okunan sayısı
+    const thisMonthReads = magazineReads.filter(read => 
+      new Date(read.created_at) >= thisMonth
+    ).length;
+    
+    // Toplam okuma sayısı
+    const totalReads = magazineReads.length;
+    
+    // Ortalama okuma süresi (dakika)
+    const avgDuration = magazineReads.length > 0 
+      ? Math.round(magazineReads.reduce((sum, read) => sum + (read.reading_duration || 0), 0) / magazineReads.length / 60)
+      : 0;
+    
+    // Cihaz istatistikleri
+    const deviceCounts = magazineReads.reduce((acc, read) => {
+      const device = read.device_type?.toLowerCase() || 'desktop';
+      acc[device] = (acc[device] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    const deviceStats = {
+      mobile: Math.round(((deviceCounts.mobile || 0) / totalReads) * 100) || 0,
+      desktop: Math.round(((deviceCounts.desktop || 0) / totalReads) * 100) || 0,
+      tablet: Math.round(((deviceCounts.tablet || 0) / totalReads) * 100) || 0
+    };
+    
+    return { thisMonth: thisMonthReads, total: totalReads, avgDuration, deviceStats };
+  };
+
+  const magazineStats = calculateMagazineStats();
+  const totalContributors = allContributors?.length || 0;
+
+  // Her dergi için okuma sayısını hesapla
+  const getMagazineReadStats = (magazineId: string) => {
+    if (!magazineReads) return { reads: 0, avgDuration: 0 };
+    
+    const magazineSpecificReads = magazineReads.filter(read => read.magazine_issue_id === magazineId);
+    const reads = magazineSpecificReads.length;
+    const avgDuration = reads > 0 
+      ? Math.round(magazineSpecificReads.reduce((sum, read) => sum + (read.reading_duration || 0), 0) / reads / 60)
+      : 0;
+    
+    return { reads, avgDuration };
+  };
 
   useEffect(() => {
     checkUser();
@@ -828,9 +883,9 @@ const AdminDashboard = () => {
                       <Eye className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">156</div>
+                      <div className="text-2xl font-bold">{magazineStats.thisMonth}</div>
                       <p className="text-xs text-muted-foreground">
-                        +12% geçen aya göre
+                        Bu ay okuma sayısı
                       </p>
                     </CardContent>
                   </Card>
@@ -841,7 +896,7 @@ const AdminDashboard = () => {
                       <Users className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">1,247</div>
+                      <div className="text-2xl font-bold">{magazineStats.total}</div>
                       <p className="text-xs text-muted-foreground">
                         Tüm zamanlar
                       </p>
@@ -854,7 +909,7 @@ const AdminDashboard = () => {
                       <BookOpen className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">8dk</div>
+                      <div className="text-2xl font-bold">{magazineStats.avgDuration}dk</div>
                       <p className="text-xs text-muted-foreground">
                         Okuma süresi
                       </p>
@@ -878,13 +933,20 @@ const AdminDashboard = () => {
                               <Badge variant={magazine.published ? "default" : "secondary"}>
                                 {magazine.published ? "Yayında" : "Taslak"}
                               </Badge>
-                              {/* Mock İstatistik Badges */}
-                              <Badge variant="outline" className="text-xs">
-                                👁️ {Math.floor(Math.random() * 200) + 50} okuma
-                              </Badge>
-                              <Badge variant="outline" className="text-xs">
-                                ⏱️ {Math.floor(Math.random() * 10) + 3}dk ortalama
-                              </Badge>
+                              {/* Gerçek İstatistik Badges */}
+                              {(() => {
+                                const stats = getMagazineReadStats(magazine.id);
+                                return (
+                                  <>
+                                    <Badge variant="outline" className="text-xs">
+                                      👁️ {stats.reads} okuma
+                                    </Badge>
+                                    <Badge variant="outline" className="text-xs">
+                                      ⏱️ {stats.avgDuration}dk ortalama
+                                    </Badge>
+                                  </>
+                                );
+                              })()}
                             </div>
                           </div>
                           <div className="flex space-x-2 flex-shrink-0">
@@ -914,18 +976,24 @@ const AdminDashboard = () => {
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
                         <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                           <div className="font-semibold text-blue-800 dark:text-blue-300">📱 Mobil Okuyucular</div>
-                          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">68%</div>
-                          <div className="text-blue-600 dark:text-blue-400 text-xs">847 okuma</div>
+                          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{magazineStats.deviceStats.mobile}%</div>
+                          <div className="text-blue-600 dark:text-blue-400 text-xs">
+                            {Math.round((magazineStats.total * magazineStats.deviceStats.mobile) / 100)} okuma
+                          </div>
                         </div>
                         <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
                           <div className="font-semibold text-green-800 dark:text-green-300">🖥️ Masaüstü Okuyucular</div>
-                          <div className="text-2xl font-bold text-green-600 dark:text-green-400">24%</div>
-                          <div className="text-green-600 dark:text-green-400 text-xs">299 okuma</div>
+                          <div className="text-2xl font-bold text-green-600 dark:text-green-400">{magazineStats.deviceStats.desktop}%</div>
+                          <div className="text-green-600 dark:text-green-400 text-xs">
+                            {Math.round((magazineStats.total * magazineStats.deviceStats.desktop) / 100)} okuma
+                          </div>
                         </div>
                         <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
                           <div className="font-semibold text-purple-800 dark:text-purple-300">📟 Tablet Okuyucular</div>
-                          <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">8%</div>
-                          <div className="text-purple-600 dark:text-purple-400 text-xs">101 okuma</div>
+                          <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{magazineStats.deviceStats.tablet}%</div>
+                          <div className="text-purple-600 dark:text-purple-400 text-xs">
+                            {Math.round((magazineStats.total * magazineStats.deviceStats.tablet) / 100)} okuma
+                          </div>
                         </div>
                       </div>
                       

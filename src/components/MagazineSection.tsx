@@ -2,10 +2,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { useMagazineIssues } from '@/hooks/useSupabaseData';
+import { useMagazineIssues, useMagazineAnalytics, useMagazineContributors } from '@/hooks/useSupabaseData';
 
 const MagazineSection = () => {
   const { data: magazines = [], isLoading } = useMagazineIssues(true);
+  const { data: magazineReads = [] } = useMagazineAnalytics();
+  const { data: contributors = [] } = useMagazineContributors();
   
   // En son yayınlanan dergiyi al
   const latestMagazine = magazines
@@ -145,15 +147,15 @@ const MagazineSection = () => {
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-slate-900 dark:text-white">
-                    1.2k+
+                    {magazineReads.length > 0 ? `${magazineReads.length}` : '0'}
                   </div>
-                  <div className="text-sm text-slate-600 dark:text-slate-400">Okuyucu</div>
+                  <div className="text-sm text-slate-600 dark:text-slate-400">Okuma</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-slate-900 dark:text-white">
-                    25+
+                    {contributors.length > 0 ? `${contributors.length}` : '0'}
                   </div>
-                  <div className="text-sm text-slate-600 dark:text-slate-400">Yazar</div>
+                  <div className="text-sm text-slate-600 dark:text-slate-400">Katkıda Bulunan</div>
                 </div>
               </div>
             </div>

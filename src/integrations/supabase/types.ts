@@ -392,6 +392,154 @@ export type Database = {
           },
         ]
       }
+      magazine_reads: {
+        Row: {
+          id: string
+          magazine_issue_id: string
+          reader_ip: string | null
+          reader_location: string | null
+          device_type: string | null
+          browser_info: string | null
+          reading_duration: number | null
+          pages_read: number | null
+          completed_reading: boolean | null
+          referrer_url: string | null
+          session_id: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          magazine_issue_id: string
+          reader_ip?: string | null
+          reader_location?: string | null
+          device_type?: string | null
+          browser_info?: string | null
+          reading_duration?: number | null
+          pages_read?: number | null
+          completed_reading?: boolean | null
+          referrer_url?: string | null
+          session_id?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          magazine_issue_id?: string
+          reader_ip?: string | null
+          reader_location?: string | null
+          device_type?: string | null
+          browser_info?: string | null
+          reading_duration?: number | null
+          pages_read?: number | null
+          completed_reading?: boolean | null
+          referrer_url?: string | null
+          session_id?: string | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "magazine_reads_magazine_issue_id_fkey"
+            columns: ["magazine_issue_id"]
+            isOneToOne: false
+            referencedRelation: "magazine_issues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      magazine_contributors: {
+        Row: {
+          id: string
+          magazine_issue_id: string
+          name: string
+          role: string
+          bio: string | null
+          profile_image: string | null
+          social_links: Json | null
+          sort_order: number | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          magazine_issue_id: string
+          name: string
+          role: string
+          bio?: string | null
+          profile_image?: string | null
+          social_links?: Json | null
+          sort_order?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          magazine_issue_id?: string
+          name?: string
+          role?: string
+          bio?: string | null
+          profile_image?: string | null
+          social_links?: Json | null
+          sort_order?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "magazine_contributors_magazine_issue_id_fkey"
+            columns: ["magazine_issue_id"]
+            isOneToOne: false
+            referencedRelation: "magazine_issues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      magazine_page_reads: {
+        Row: {
+          id: string
+          magazine_read_id: string
+          magazine_issue_id: string
+          page_number: number
+          time_spent: number | null
+          scroll_percentage: number | null
+          zoom_level: number | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          magazine_read_id: string
+          magazine_issue_id: string
+          page_number: number
+          time_spent?: number | null
+          scroll_percentage?: number | null
+          zoom_level?: number | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          magazine_read_id?: string
+          magazine_issue_id?: string
+          page_number?: number
+          time_spent?: number | null
+          scroll_percentage?: number | null
+          zoom_level?: number | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "magazine_page_reads_magazine_read_id_fkey"
+            columns: ["magazine_read_id"]
+            isOneToOne: false
+            referencedRelation: "magazine_reads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "magazine_page_reads_magazine_issue_id_fkey"
+            columns: ["magazine_issue_id"]
+            isOneToOne: false
+            referencedRelation: "magazine_issues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       news: {
         Row: {
           author_id: string | null

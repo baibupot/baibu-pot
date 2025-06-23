@@ -906,3 +906,78 @@ export const useDeleteProduct = () => {
     },
   });
 };
+
+// Magazine analytics hooks - GERÇEk İSTATİSTİKLER
+export const useMagazineAnalytics = () => {
+  return useQuery({
+    queryKey: ['magazine_analytics'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('magazine_reads')
+        .select('*');
+      if (error) throw error;
+      return data || [];
+    },
+  });
+};
+
+export const useMagazineReadsByIssue = (magazineId?: string) => {
+  return useQuery({
+    queryKey: ['magazine_reads', magazineId],
+    queryFn: async () => {
+      let query = supabase
+        .from('magazine_reads')
+        .select('*');
+      
+      if (magazineId) {
+        query = query.eq('magazine_issue_id', magazineId);
+      }
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+  });
+};
+
+// Dergi katkıda bulunanları
+export const useMagazineContributors = (magazineId?: string) => {
+  return useQuery({
+    queryKey: ['magazine_contributors', magazineId],
+    queryFn: async () => {
+      let query = supabase
+        .from('magazine_contributors')
+        .select('*')
+        .order('sort_order', { ascending: true });
+      
+      if (magazineId) {
+        query = query.eq('magazine_issue_id', magazineId);
+      }
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+  });
+};
+
+// Dergi okuma istatistiği kaydetme
+export const useCreateMagazineRead = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (readData: Tables['magazine_reads']['Insert']) => {
+      const { data, error } = await supabase
+        .from('magazine_reads')
+        .insert([readData])
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['magazine_analytics'] });
+      queryClient.invalidateQueries({ queryKey: ['magazine_reads'] });
+    },
+  });
+};
