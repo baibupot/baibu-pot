@@ -1,477 +1,570 @@
-import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
+import { Badge } from '../ui/badge';
+import { Progress } from '../ui/progress';
 import { 
-  Save, 
-  X, 
-  Link,
-  FileText,
-  Eye,
-  AlertCircle,
-  CheckCircle,
-  ExternalLink,
-  CloudDownload
+  X, Upload, Image, FileText, Save,
+  CheckCircle, AlertCircle, Loader2, Link, FileCheck, Folder 
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { validateDriveUrl, formatDriveUrlForUser, SAMPLE_DRIVE_URLS } from '@/utils/googleDriveHelper';
+import { supabase } from '../../integrations/supabase/client';
+import { 
+  uploadFileObjectToGitHub, 
+  createMagazinePaths,
+  type GitHubUploadResult 
+} from '../../utils/githubStorageHelper';
+import { 
+  getGitHubStorageConfig, 
+  isGitHubStorageConfigured,
+  getGitHubConfigStatus 
+} from '../../integrations/github/config';
 
-// Simple toast replacement
-const toast = {
-  success: (message: string) => alert(`✅ ${message}`),
-  error: (message: string) => alert(`❌ ${message}`)
-};
+interface Magazine {
+  id?: string;
+  title: string;
+  description: string;
+  issue_number: number;
+  publication_date: string;
+  cover_image: string;
+  pdf_file: string;
+  slug: string;
+  published: boolean;
+}
 
 interface MagazineModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
-  initialData?: any;
+  onSave: (magazineData: Magazine) => void;
+  initialData?: Magazine | null;
 }
 
-const MagazineModal: React.FC<MagazineModalProps> = ({
-  isOpen,
-  onClose,
-  onSuccess,
-  initialData
-}) => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string>('');
-  const [urlValidation, setUrlValidation] = useState<{
-    isValidating: boolean;
-    isValid: boolean;
-    message: string;
-  }>({
-    isValidating: false,
-    isValid: false,
-    message: ''
-  });
-
-  // Form verileri
-  const [formData, setFormData] = useState({
-    issue_number: '',
+const MagazineModal = ({ isOpen, onClose, onSave, initialData }: MagazineModalProps) => {
+  const [formData, setFormData] = useState<Magazine>({
     title: '',
-    theme: '',
     description: '',
+    issue_number: 1,
+    publication_date: new Date().toISOString().split('T')[0],
     cover_image: '',
     pdf_file: '',
-    publication_date: '',
+    slug: '',
     published: true
   });
+  
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  // Upload State
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [githubConfigured, setGithubConfigured] = useState(false);
+  const [githubConfig, setGithubConfig] = useState<any>(null);
+  const [selectedPdfFile, setSelectedPdfFile] = useState<File | null>(null);
+  const [selectedCoverFile, setSelectedCoverFile] = useState<File | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<{pdf?: string, cover?: string}>({});
 
-  // Form resetleme
   useEffect(() => {
-    if (isOpen) {
-      if (initialData) {
-        setFormData({
-          issue_number: initialData.issue_number || '',
-          title: initialData.title || '',
-          theme: initialData.theme || '',
-          description: initialData.description || '',
-          cover_image: initialData.cover_image || '',
-          pdf_file: initialData.pdf_file || '',
-          publication_date: initialData.publication_date || '',
-          published: initialData.published ?? true
-        });
+    if (initialData) {
+      setFormData(initialData);
+    } else {
+      const newData = {
+        title: '',
+        description: '',
+        issue_number: 1,
+        publication_date: new Date().toISOString().split('T')[0],
+        cover_image: '',
+        pdf_file: '',
+        slug: '',
+        published: true
+      };
+      setFormData(newData);
+    }
+    setErrors({});
+    setUploadedFiles({});
+    setSelectedPdfFile(null);
+    setSelectedCoverFile(null);
+    setUploadProgress(0);
+    setUploadStatus('');
+    
+    // Storage config kontrol et (arka planda)
+    const configured = isGitHubStorageConfigured();
+    const config = getGitHubStorageConfig();
+    
+    setGithubConfigured(configured);
+    setGithubConfig(config);
+  }, [initialData, isOpen]);
+
+  const handleInputChange = (field: keyof Magazine, value: any) => {
+    // Issue number için özel kontrol
+    if (field === 'issue_number') {
+      const numValue = parseInt(value, 10);
+      if (isNaN(numValue) || numValue < 1) {
+        setFormData(prev => ({ ...prev, [field]: 1 }));
       } else {
-        // Yeni dergi için varsayılan değerler
-        const nextIssueNumber = Date.now().toString().slice(-2); // Son 2 rakam
-        const currentDate = new Date().toISOString().split('T')[0];
-        
-        setFormData({
-          issue_number: nextIssueNumber,
-          title: '',
-          theme: '',
-          description: '',
-          cover_image: '',
-          pdf_file: '',
-          publication_date: currentDate,
-          published: true
-        });
+        setFormData(prev => ({ ...prev, [field]: numValue }));
       }
-      setError('');
-      setUrlValidation({ isValidating: false, isValid: false, message: '' });
+    } else {
+      setFormData(prev => ({ ...prev, [field]: value }));
     }
-  }, [isOpen, initialData]);
-
-  // Google Drive URL validasyonu
-  const validatePdfUrl = async (url: string) => {
-    if (!url.trim()) {
-      setUrlValidation({ isValidating: false, isValid: false, message: '' });
-      return;
+    
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
     }
-
-    setUrlValidation({ isValidating: true, isValid: false, message: 'Kontrol ediliyor...' });
-
-    try {
-      if (url.includes('drive.google.com')) {
-        const result = await validateDriveUrl(url);
-        if (result.isValid) {
-          setUrlValidation({
-            isValidating: false,
-            isValid: true,
-            message: '✅ Google Drive URL geçerli! Otomatik olarak PDF okuyucuda açılacak.'
-          });
-          // URL'yi düzenli formata çevir
-          setFormData(prev => ({ ...prev, pdf_file: formatDriveUrlForUser(url) }));
-        } else {
-          setUrlValidation({
-            isValidating: false,
-            isValid: false,
-            message: `❌ ${result.error || 'Google Drive URL geçersiz'}`
-          });
-        }
-      } else {
-        // Normal PDF URL'si
-        setUrlValidation({
-          isValidating: false,
-          isValid: true,
-          message: '📄 Normal PDF URL olarak kaydedilecek.'
-        });
-      }
-    } catch (error) {
-      setUrlValidation({
-        isValidating: false,
-        isValid: false,
-        message: '❌ URL kontrol edilemedi'
-      });
+    
+    // Başlıktan otomatik slug oluştur
+    if (field === 'title') {
+      const slug = value.toLowerCase()
+        .replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's')
+        .replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c')
+        .replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
+      setFormData(prev => ({ ...prev, slug }));
     }
   };
 
-  // PDF URL değişikliği
-  const handlePdfUrlChange = (url: string) => {
-    setFormData(prev => ({ ...prev, pdf_file: url }));
-    
-    // Debounce validation
-    const timeoutId = setTimeout(() => {
-      validatePdfUrl(url);
-    }, 500);
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
 
-    return () => clearTimeout(timeoutId);
-  };
-
-  // Slug oluştur
-  const generateSlug = (title: string, issueNumber: string) => {
-    const cleanTitle = title
-      .toLowerCase()
-      .replace(/[^a-z0-9ğüşıöçĞÜŞİÖÇ\s]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/ğ/g, 'g')
-      .replace(/ü/g, 'u')
-      .replace(/ş/g, 's')
-      .replace(/ı/g, 'i')
-      .replace(/ö/g, 'o')
-      .replace(/ç/g, 'c');
-    
-    return `sayi-${issueNumber}-${cleanTitle}`.substring(0, 50);
-  };
-
-  // Form gönderimi
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
     if (!formData.title.trim()) {
-      setError('Dergi başlığı gereklidir');
-      return;
+      newErrors.title = 'Dergi başlığı gerekli';
+    }
+    if (!formData.description.trim()) {
+      newErrors.description = 'Açıklama gerekli';
+    }
+    if (!formData.cover_image.trim() && !selectedCoverFile) {
+      newErrors.cover_image = 'Kapak resmi URL\'si veya dosyası gerekli';
+    }
+    if (!formData.pdf_file.trim() && !selectedPdfFile) {
+      newErrors.pdf_file = 'PDF dosya URL\'si veya dosyası gerekli';
+    }
+    if (!formData.issue_number || formData.issue_number < 1) {
+      newErrors.issue_number = 'Sayı numarası 1\'den büyük olmalı';
     }
 
-    if (!formData.issue_number) {
-      setError('Dergi sayı numarası gereklidir');
-      return;
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Dosya yükleme fonksiyonu (GitHub arka planda)
+  const uploadFile = async (file: File, type: 'pdf' | 'cover'): Promise<string> => {
+    if (!githubConfig) {
+      throw new Error('Dosya depolama sistemi yapılandırılmamış');
     }
 
-    if (!formData.pdf_file.trim()) {
-      setError('PDF dosyası URL\'si gereklidir');
-      return;
+    const paths = createMagazinePaths(formData.issue_number);
+    const targetPath = type === 'pdf' ? paths.pdfPath : paths.coverPath;
+    
+    const result = await uploadFileObjectToGitHub(githubConfig, file, targetPath);
+    
+    if (result.success && result.rawUrl) {
+      return result.rawUrl;
+    } else {
+      throw new Error(result.error || 'Dosya yükleme başarısız');
     }
+  };
 
-    if (!urlValidation.isValid && formData.pdf_file.trim()) {
-      setError('Lütfen geçerli bir PDF URL\'si girin');
-      return;
-    }
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
 
     setLoading(true);
-    setError('');
+    setIsUploading(true);
+    setUploadProgress(0);
+    setUploadStatus('İşlem başlıyor...');
 
     try {
-      const slug = generateSlug(formData.title, formData.issue_number);
-      
-      const magazineData = {
-        ...formData,
-        slug,
-        issue_number: parseInt(formData.issue_number),
-        publication_date: formData.publication_date
-      };
+      let finalFormData = { ...formData };
+      let currentProgress = 0;
 
-      if (initialData) {
-        // Güncelleme
-        const { error: updateError } = await supabase
-          .from('magazine_issues')
-          .update(magazineData)
-          .eq('id', initialData.id);
+      // Dosya yükleme işlemleri
+      if (githubConfigured && githubConfig) {
+        // Kapak resmi yükleme
+        if (selectedCoverFile) {
+          setUploadStatus('📷 Kapak resmi yükleniyor...');
+          setUploadProgress(25);
+          
+          const coverUrl = await uploadFile(selectedCoverFile, 'cover');
+          finalFormData.cover_image = coverUrl;
+          setUploadedFiles(prev => ({ ...prev, cover: coverUrl }));
+          
+          currentProgress = 50;
+          setUploadProgress(currentProgress);
+        }
 
-        if (updateError) throw updateError;
-      } else {
-        // Yeni ekleme
-        const { error: insertError } = await supabase
-          .from('magazine_issues')
-          .insert(magazineData);
-
-        if (insertError) throw insertError;
+        // PDF dosyası yükleme
+        if (selectedPdfFile) {
+          setUploadStatus('📄 PDF dosyası yükleniyor...');
+          setUploadProgress(currentProgress + 25);
+          
+          const pdfUrl = await uploadFile(selectedPdfFile, 'pdf');
+          finalFormData.pdf_file = pdfUrl;
+          setUploadedFiles(prev => ({ ...prev, pdf: pdfUrl }));
+          
+          setUploadProgress(75);
+        }
       }
 
-      alert(`✅ Dergi başarıyla ${initialData ? 'güncellendi' : 'eklendi'}!`);
-      onSuccess();
-      onClose();
+      // Veritabanına kaydetme
+      setUploadStatus('💾 Veritabanına kaydediliyor...');
+      setUploadProgress(85);
+
+      const cleanedData = {
+        title: finalFormData.title.trim(),
+        description: finalFormData.description.trim(),
+        issue_number: Number(finalFormData.issue_number), 
+        publication_date: finalFormData.publication_date,
+        cover_image: finalFormData.cover_image.trim(),
+        pdf_file: finalFormData.pdf_file.trim(),
+        slug: finalFormData.slug.trim(),
+        published: Boolean(finalFormData.published),
+        updated_at: new Date().toISOString()
+      };
+
+      if (initialData?.id) {
+        // Güncelleme
+        const { error } = await supabase
+          .from('magazine_issues')
+          .update(cleanedData)
+          .eq('id', initialData.id);
+
+        if (error) throw error;
+        setUploadStatus('✅ Dergi başarıyla güncellendi!');
+      } else {
+        // Yeni kayıt
+        const { error } = await supabase
+          .from('magazine_issues')
+          .insert([{
+            ...cleanedData,
+            created_by: null 
+          }]);
+
+        if (error) throw error;
+        setUploadStatus('✅ Yeni dergi başarıyla eklendi!');
+      }
+
+      setUploadProgress(100);
+      onSave(cleanedData);
+      
+      // Success mesajını göster ve modal'ı kapat
+      setTimeout(() => {
+        onClose();
+        setUploadStatus('');
+        setUploadProgress(0);
+      }, 1500);
+      
     } catch (error: any) {
-      console.error('Magazine save error:', error);
-      setError(error.message || 'Dergi kaydedilirken hata oluştu');
+      const errorMessage = error.message || 'Kaydetme işlemi başarısız';
+      setUploadStatus(`❌ Hata: ${errorMessage}`);
+      setUploadProgress(0);
+      
+      setTimeout(() => {
+        setUploadStatus('');
+      }, 5000);
     } finally {
       setLoading(false);
+      setIsUploading(false);
     }
   };
 
-  const handleClose = () => {
-    if (!loading) {
-      onClose();
-    }
+  const getFileTypeIcon = (url: string) => {
+    return <Folder className="w-4 h-4" />;
   };
 
-  // Örnek URL'yi kullan
-  const useSampleUrl = () => {
-    const sampleUrl = SAMPLE_DRIVE_URLS.valid[0];
-    handlePdfUrlChange(sampleUrl);
+  const getFileTypeBadge = (url: string) => {
+    return <Badge variant="outline" className="text-xs">Yüklendi</Badge>;
+  };
+
+  const hasSelectedFiles = selectedPdfFile || selectedCoverFile;
+  
+  // Form validasyonunu sadece burada kontrol et (infinite loop'u önlemek için)
+  const canSubmit = () => {
+    return formData.title.trim() !== '' && 
+           formData.description.trim() !== '' &&
+           (formData.cover_image.trim() !== '' || selectedCoverFile) &&
+           (formData.pdf_file.trim() !== '' || selectedPdfFile) &&
+           formData.issue_number && formData.issue_number >= 1;
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl">
-            <FileText className="w-6 h-6 text-purple-600" />
-            {initialData ? 'Dergi Düzenle' : 'Yeni Dergi Sayısı Ekle'}
+          <DialogTitle className="flex items-center gap-3">
+            <FileText className="w-6 h-6 text-primary" />
+            {initialData ? 'Dergi Düzenle' : 'Yeni Dergi Ekle'}
           </DialogTitle>
+          <DialogDescription>
+            {initialData ? 'Mevcut dergi sayısını düzenleyin' : 'Yeni bir dergi sayısı ekleyin'}
+          </DialogDescription>
         </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-              <span className="text-red-700 dark:text-red-300">{error}</span>
+        
+        <div className="space-y-6 py-4">
+          
+          {/* Upload Progress & Status */}
+          {(uploadStatus || isUploading) && (
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <div className="flex items-center gap-3 mb-3">
+                {isUploading ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                ) : uploadStatus.includes('✅') ? (
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                ) : uploadStatus.includes('❌') ? (
+                  <AlertCircle className="w-4 h-4 text-red-600" />
+                ) : (
+                  <Upload className="w-4 h-4 text-blue-600" />
+                )}
+                <p className="text-sm font-medium">{uploadStatus}</p>
+              </div>
+              {uploadProgress > 0 && (
+                <Progress value={uploadProgress} className="h-2" />
+              )}
             </div>
           )}
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Sol Kolon: Temel Bilgiler */}
-            <div className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">📝 Temel Bilgiler</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="issue_number">Sayı Numarası *</Label>
-                      <Input
-                        id="issue_number"
-                        type="number"
-                        value={formData.issue_number}
-                        onChange={(e) => setFormData(prev => ({ ...prev, issue_number: e.target.value }))}
-                        placeholder="12"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="publication_date">Yayın Tarihi *</Label>
-                      <Input
-                        id="publication_date"
-                        type="date"
-                        value={formData.publication_date}
-                        onChange={(e) => setFormData(prev => ({ ...prev, publication_date: e.target.value }))}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="title">Dergi Başlığı *</Label>
-                    <Input
-                      id="title"
-                      value={formData.title}
-                      onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                      placeholder="Travma ve İyileşme"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="theme">Tema</Label>
-                    <Input
-                      id="theme"
-                      value={formData.theme}
-                      onChange={(e) => setFormData(prev => ({ ...prev, theme: e.target.value }))}
-                      placeholder="Post-travmatik Stres Bozukluğu"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="description">Açıklama</Label>
-                    <Textarea
-                      id="description"
-                      value={formData.description}
-                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Bu sayıda travma ve iyileşme süreçleri..."
-                      rows={3}
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="cover_image">Kapak Görseli URL</Label>
-                    <Input
-                      id="cover_image"
-                      value={formData.cover_image}
-                      onChange={(e) => setFormData(prev => ({ ...prev, cover_image: e.target.value }))}
-                      placeholder="https://example.com/cover.jpg"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+          
+          {/* Temel Bilgiler */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="title">Dergi Başlığı *</Label>
+              <Input
+                id="title"
+                value={formData.title}
+                onChange={(e) => handleInputChange('title', e.target.value)}
+                placeholder="Ör: BAİBÜ PÖT Dergisi"
+                className={errors.title ? 'border-red-500' : ''}
+                disabled={isUploading}
+              />
+              {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
             </div>
 
-            {/* Sağ Kolon: PDF ve Ayarlar */}
-            <div className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <CloudDownload className="w-5 h-5 text-blue-500" />
-                    📄 PDF Dosyası
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="pdf_file" className="flex items-center gap-2">
-                      PDF URL * 
-                      <Badge variant="outline" className="text-xs">Google Drive Destekli</Badge>
-                    </Label>
-                    <Input
-                      id="pdf_file"
-                      value={formData.pdf_file}
-                      onChange={(e) => handlePdfUrlChange(e.target.value)}
-                      placeholder="https://drive.google.com/file/d/xxx/view"
-                      required
-                    />
-                    
-                    {/* URL Validation Status */}
-                    {urlValidation.message && (
-                      <div className={`mt-2 p-3 rounded-lg text-sm flex items-center gap-2 ${
-                        urlValidation.isValidating ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' :
-                        urlValidation.isValid ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300' :
-                        'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
-                      }`}>
-                        {urlValidation.isValidating && <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>}
-                        {!urlValidation.isValidating && urlValidation.isValid && <CheckCircle className="w-4 h-4" />}
-                        {!urlValidation.isValidating && !urlValidation.isValid && urlValidation.message && <AlertCircle className="w-4 h-4" />}
-                        <span>{urlValidation.message}</span>
-                      </div>
-                    )}
+            <div>
+              <Label htmlFor="issue_number">Sayı Numarası *</Label>
+              <Input
+                id="issue_number"
+                type="number"
+                min="1"
+                step="1"
+                value={formData.issue_number}
+                onChange={(e) => handleInputChange('issue_number', e.target.value)}
+                className={errors.issue_number ? 'border-red-500' : ''}
+                placeholder="1"
+                disabled={isUploading}
+              />
+              {errors.issue_number && <p className="text-red-500 text-xs mt-1">{errors.issue_number}</p>}
+            </div>
+          </div>
 
-                    <div className="flex gap-2 mt-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={useSampleUrl}
-                        className="text-xs"
-                      >
-                        <Link className="w-3 h-3 mr-1" />
-                        Örnek URL Kullan
-                      </Button>
-                      
-                      {formData.pdf_file && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          asChild
-                          className="text-xs"
-                        >
-                          <a href={formData.pdf_file} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="w-3 h-3 mr-1" />
-                            Test Et
-                          </a>
-                        </Button>
-                      )}
-                    </div>
-                  </div>
+          <div>
+            <Label htmlFor="description">Açıklama *</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => handleInputChange('description', e.target.value)}
+              placeholder="Dergi hakkında kısa açıklama..."
+              rows={3}
+              className={errors.description ? 'border-red-500' : ''}
+              disabled={isUploading}
+            />
+            {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description}</p>}
+          </div>
 
-                  {/* Google Drive Yardım */}
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                    <h4 className="font-semibold text-blue-700 dark:text-blue-300 mb-2 flex items-center gap-2">
-                      <CloudDownload className="w-4 h-4" />
-                      Google Drive Kullanımı
-                    </h4>
-                    <ul className="text-sm text-blue-600 dark:text-blue-400 space-y-1">
-                      <li>• PDF'yi Drive'a yükleyin</li>
-                      <li>• "Paylaş" > "Bağlantı alan herkes görüntüleyebilir"</li>
-                      <li>• URL'yi kopyalayıp buraya yapıştırın</li>
-                      <li>• Sistem otomatik olarak uygun formata çevirecek</li>
-                    </ul>
-                  </div>
-                </CardContent>
-              </Card>
+          <div>
+            <Label htmlFor="publication_date">Yayın Tarihi</Label>
+            <Input
+              id="publication_date"
+              type="date"
+              value={formData.publication_date}
+              onChange={(e) => handleInputChange('publication_date', e.target.value)}
+              disabled={isUploading}
+            />
+          </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">⚙️ Yayın Ayarları</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="published"
-                      checked={formData.published}
-                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, published: checked }))}
-                    />
-                    <Label htmlFor="published">Dergisi yayınla</Label>
-                  </div>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                    Yayınlanan dergiler sitede görünür olacak
+          {/* Kapak Resmi */}
+          <div className="space-y-4">
+            <Label className="flex items-center gap-2 text-base font-medium">
+              <Image className="w-5 h-5" />
+              Kapak Resmi *
+            </Label>
+            
+            {/* Dosya Seç Seçeneği */}
+            {githubConfigured && (
+              <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 space-y-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Upload className="w-4 h-4" />
+                  <span className="text-sm font-medium">Bilgisayarımdan Seç</span>
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setSelectedCoverFile(e.target.files?.[0] || null)}
+                  className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                  disabled={isUploading}
+                />
+                {selectedCoverFile && (
+                  <p className="text-xs text-green-600 dark:text-green-400">
+                    ✓ {selectedCoverFile.name} seçildi ({(selectedCoverFile.size / 1024 / 1024).toFixed(2)} MB)
                   </p>
-                </CardContent>
-              </Card>
+                )}
+              </div>
+            )}
+            
+            {/* Manuel URL Girişi */}
+            <div className="space-y-2">
+              <Label className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                <Link className="w-3 h-3" />
+                {githubConfigured ? 'Veya İnternet Adresini Gir' : 'Resim İnternet Adresi'}
+              </Label>
+              <Input
+                value={formData.cover_image}
+                onChange={(e) => handleInputChange('cover_image', e.target.value)}
+                placeholder="https://example.com/image.jpg"
+                className={errors.cover_image ? 'border-red-500' : ''}
+                disabled={isUploading}
+              />
+              {errors.cover_image && <p className="text-red-500 text-xs mt-1">{errors.cover_image}</p>}
             </div>
+            
+            {/* Kapak Önizleme */}
+            {formData.cover_image && (
+              <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
+                <div className="flex items-center gap-2 mb-3">
+                  {getFileTypeIcon(formData.cover_image)}
+                  {getFileTypeBadge(formData.cover_image)}
+                  {uploadedFiles.cover === formData.cover_image && (
+                    <Badge variant="outline" className="text-xs text-green-600 border-green-600">
+                      <FileCheck className="w-3 h-3 mr-1" />
+                      Bu oturumda yüklendi
+                    </Badge>
+                  )}
+                </div>
+                <img 
+                  src={formData.cover_image} 
+                  alt="Kapak önizleme"
+                  className="max-w-40 h-auto rounded border shadow-sm"
+                  onError={(e) => {
+                    e.currentTarget.src = '/placeholder.svg';
+                  }}
+                />
+              </div>
+            )}
           </div>
 
-          {/* Alt Butonlar */}
-          <div className="flex items-center justify-between pt-4 border-t">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleClose}
-              disabled={loading}
-            >
-              <X className="w-4 h-4 mr-2" />
-              İptal
-            </Button>
-
-            <Button
-              type="submit"
-              disabled={loading || (formData.pdf_file.trim() && !urlValidation.isValid)}
-              className="bg-purple-600 hover:bg-purple-700"
-            >
-              {loading ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-              ) : (
-                <Save className="w-4 h-4 mr-2" />
-              )}
-              {loading ? 'Kaydediliyor...' : (initialData ? 'Güncelle' : 'Kaydet')}
-            </Button>
+          {/* PDF Dosyası */}
+          <div className="space-y-4">
+            <Label className="flex items-center gap-2 text-base font-medium">
+              <FileText className="w-5 h-5" />
+              PDF Dosyası *
+            </Label>
+            
+            {/* Dosya Seç Seçeneği */}
+            {githubConfigured && (
+              <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 space-y-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Upload className="w-4 h-4" />
+                  <span className="text-sm font-medium">Bilgisayarımdan Seç</span>
+                </div>
+                <input
+                  type="file"
+                  accept=".pdf"
+                  onChange={(e) => setSelectedPdfFile(e.target.files?.[0] || null)}
+                  className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                  disabled={isUploading}
+                />
+                {selectedPdfFile && (
+                  <p className="text-xs text-green-600 dark:text-green-400">
+                    ✓ {selectedPdfFile.name} seçildi ({(selectedPdfFile.size / 1024 / 1024).toFixed(2)} MB)
+                  </p>
+                )}
+              </div>
+            )}
+            
+            {/* Manuel URL Girişi */}
+            <div className="space-y-2">
+              <Label className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                <Link className="w-3 h-3" />
+                {githubConfigured ? 'Veya İnternet Adresini Gir' : 'PDF İnternet Adresi'}
+              </Label>
+              <Input
+                value={formData.pdf_file}
+                onChange={(e) => handleInputChange('pdf_file', e.target.value)}
+                placeholder="https://example.com/document.pdf"
+                className={errors.pdf_file ? 'border-red-500' : ''}
+                disabled={isUploading}
+              />
+              {errors.pdf_file && <p className="text-red-500 text-xs mt-1">{errors.pdf_file}</p>}
+            </div>
+            
+            {/* PDF Bilgi */}
+            {formData.pdf_file && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  {getFileTypeIcon(formData.pdf_file)}
+                  {getFileTypeBadge(formData.pdf_file)}
+                  {uploadedFiles.pdf === formData.pdf_file && (
+                    <Badge variant="outline" className="text-xs text-green-600 border-green-600">
+                      <FileCheck className="w-3 h-3 mr-1" />
+                      Bu oturumda yüklendi
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  📖 PDF dosyası flipbook okuma için hazır
+                </p>
+              </div>
+            )}
           </div>
-        </form>
+
+          {/* Yayın Durumu */}
+          <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+            <input
+              type="checkbox"
+              id="published"
+              checked={formData.published}
+              onChange={(e) => handleInputChange('published', e.target.checked)}
+              className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary focus:ring-2"
+              disabled={isUploading}
+            />
+            <Label htmlFor="published" className="text-sm font-medium">
+              Hemen yayınla
+            </Label>
+          </div>
+
+          {/* Bilgi Notu */}
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">💡 İpuçları:</h4>
+            <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+              <li>• Dosyalar seçildikten sonra "Kaydet" butonuna basın</li>
+              <li>• Dosyalar güvenli bir şekilde saklanır ve organize edilir</li>
+              <li>• PDF'ler modern flipbook formatında okuyuculara sunulur</li>
+              <li>• Yayınlanan dergiler anında web sitesinde görünür</li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Alt Butonlar */}
+        <div className="flex gap-3 pt-6 border-t">
+          <Button 
+            variant="outline" 
+            onClick={onClose} 
+            disabled={loading || isUploading}
+            className="flex-1"
+          >
+            <X className="w-4 h-4 mr-2" />
+            İptal
+          </Button>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={loading || isUploading || !canSubmit()} 
+            className="flex-1"
+          >
+            {isUploading ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4 mr-2" />
+            )}
+            {isUploading ? 'İşleniyor...' : (initialData ? 'Güncelle' : 'Kaydet')}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

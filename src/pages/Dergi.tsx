@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,26 +17,7 @@ const Dergi = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const { data: magazines = [], isLoading, error } = useMagazineIssues(true);
 
-  const mockPdfDemo = {
-    id: 'google-drive-demo',
-    title: 'Google Drive PDF Demo',
-    issue_number: 1,
-    publication_date: '2024-01-01',
-    cover_image: '/kampus.jpg',
-    description: 'Google Drive destekli modern PDF okuyucu deneyimi!',
-    pdf_file: 'https://drive.google.com/file/d/1RSRb8JqCx6g4kWE2QStERkGFuOqB-Xsw/view?usp=sharing',
-    featured: false,
-    published: true,
-    theme: 'Google Drive Entegrasyonu',
-    slug: 'google-drive-demo',
-    created_by: null,
-    created_at: '',
-    updated_at: ''
-  };
-
-  const allMagazines = [mockPdfDemo, ...magazines];
-
-  const filteredIssues = allMagazines.filter(issue =>
+  const filteredIssues = magazines.filter(issue =>
     issue.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (issue.description && issue.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (issue.theme && issue.theme.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -108,138 +88,133 @@ const Dergi = () => {
         )}
       </PageHero>
 
-          {/* Search Section */}
-          <div className="mb-8">
-            <div className="relative max-w-md mx-auto">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
-              <Input
-                type="text"
-                placeholder="Dergi sayılarında ara..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </div>
+      {/* Search Section */}
+      <div className="mb-8">
+        <div className="relative max-w-md mx-auto">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+          <Input
+            type="text"
+            placeholder="Dergi sayılarında ara..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+      </div>
 
-          {/* Statistics */}
-          {magazines.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">
-                    {magazines.length}
-                  </div>
-                  <div className="text-sm text-slate-600 dark:text-slate-400">Toplam Sayı</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">
-                    {new Date().getFullYear() - 2020 + 1}
-                  </div>
-                  <div className="text-sm text-slate-600 dark:text-slate-400">Yıl</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                    1.2k+
-                  </div>
-                  <div className="text-sm text-slate-600 dark:text-slate-400">Okuyucu</div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+      {/* Statistics */}
+      {magazines.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">
+                {magazines.length}
+              </div>
+              <div className="text-sm text-slate-600 dark:text-slate-400">Toplam Sayı</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">
+                {new Date().getFullYear() - 2020 + 1}
+              </div>
+              <div className="text-sm text-slate-600 dark:text-slate-400">Yıl</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                1.2k+
+              </div>
+              <div className="text-sm text-slate-600 dark:text-slate-400">Okuyucu</div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
-          {/* All Issues Grid */}
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">
-              Tüm Sayılar ({filteredIssues.length})
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredIssues.map((issue) => (
-                <Card key={issue.id} className="card-hover group overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-                  <CardHeader>
-                    <div className="h-48 bg-slate-200 dark:bg-slate-700 rounded-lg flex items-center justify-center mb-4 overflow-hidden">
-                      {issue.cover_image ? (
-                        <LazyImage
-                          src={issue.cover_image}
-                          alt={issue.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          fallback={
-                            <Book className="h-12 w-12 text-slate-400" />
-                          }
-                        />
-                      ) : (
-                        <Book className="h-12 w-12 text-slate-400 group-hover:scale-110 transition-transform duration-300" />
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge className="bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">
-                        Sayı {issue.issue_number}
-                      </Badge>
-                      {issue.id === 'pdf-demo' && (
-                        <Badge variant="outline" className="border-amber-300 text-amber-600 dark:text-amber-400">
-                          Demo
-                        </Badge>
-                      )}
-                    </div>
-                    <CardTitle className="text-lg line-clamp-2">{issue.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 mb-3">
-                      <Calendar className="h-4 w-4" />
-                      <span>{formatDate(issue.publication_date)}</span>
-                    </div>
-                    {issue.theme && (
-                      <div className="mb-3">
-                        <Badge variant="outline" className="text-xs">
-                          {issue.theme}
-                        </Badge>
-                      </div>
-                    )}
-                    {issue.description && (
-                      <p className="text-slate-600 dark:text-slate-400 mb-4 line-clamp-3 text-sm">
-                        {issue.description}
-                      </p>
-                    )}
-                    <div className="flex flex-col gap-2">
-                      <Button 
-                        asChild
-                        variant="outline" 
-                        className="w-full flex items-center gap-2"
-                      >
-                        <Link to={`/dergi/${issue.slug}`}>
-                          <Eye className="h-4 w-4" />
-                          Detayları Gör
-                        </Link>
-                      </Button>
-                      {issue.pdf_file && (
-                        <Button variant="outline" className="w-full flex items-center gap-2" asChild>
-                          <a href={issue.pdf_file} target="_blank" rel="noopener noreferrer">
-                            <Download className="h-4 w-4" />
-                            PDF İndir
-                          </a>
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
+      {/* All Issues Grid */}
+      <div>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">
+          Tüm Sayılar ({filteredIssues.length})
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredIssues.map((issue) => (
+            <Card key={issue.id} className="card-hover group overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+              <CardHeader>
+                <div className="h-48 bg-slate-200 dark:bg-slate-700 rounded-lg flex items-center justify-center mb-4 overflow-hidden">
+                  {issue.cover_image ? (
+                    <LazyImage
+                      src={issue.cover_image}
+                      alt={issue.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      fallback={
+                        <Book className="h-12 w-12 text-slate-400" />
+                      }
+                    />
+                  ) : (
+                    <Book className="h-12 w-12 text-slate-400 group-hover:scale-110 transition-transform duration-300" />
+                  )}
+                </div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge className="bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">
+                    Sayı {issue.issue_number}
+                  </Badge>
+                </div>
+                <CardTitle className="text-lg line-clamp-2">{issue.title}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 mb-3">
+                  <Calendar className="h-4 w-4" />
+                  <span>{formatDate(issue.publication_date)}</span>
+                </div>
+                {issue.theme && (
+                  <div className="mb-3">
+                    <Badge variant="outline" className="text-xs">
+                      {issue.theme}
+                    </Badge>
+                  </div>
+                )}
+                {issue.description && (
+                  <p className="text-slate-600 dark:text-slate-400 mb-4 line-clamp-3 text-sm">
+                    {issue.description}
+                  </p>
+                )}
+                <div className="flex flex-col gap-2">
+                  <Button 
+                    asChild
+                    variant="outline" 
+                    className="w-full flex items-center gap-2"
+                  >
+                    <Link to={`/dergi/${issue.slug}`}>
+                      <Eye className="h-4 w-4" />
+                      Detayları Gör
+                    </Link>
+                  </Button>
+                  {issue.pdf_file && (
+                    <Button variant="outline" className="w-full flex items-center gap-2" asChild>
+                      <a href={issue.pdf_file} target="_blank" rel="noopener noreferrer">
+                        <Download className="h-4 w-4" />
+                        PDF İndir
+                      </a>
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
 
-          {filteredIssues.length === 0 && (
-            <EmptyState
-              icon={Book}
-              title={searchTerm ? 'Aradığınız dergi sayısı bulunamadı' : 'Henüz dergi sayısı yok'}
-              description={searchTerm ? 'Lütfen farklı arama terimleri deneyin.' : 'Yakında yeni sayılar eklenecek.'}
-              variant={searchTerm ? 'search' : 'default'}
-              actionLabel={searchTerm ? 'Tüm Sayıları Göster' : undefined}
-              onAction={searchTerm ? () => setSearchTerm('') : undefined}
-            />
-          )}
+      {filteredIssues.length === 0 && (
+        <EmptyState
+          icon={Book}
+          title={searchTerm ? 'Aradığınız dergi sayısı bulunamadı' : 'Henüz dergi sayısı yok'}
+          description={searchTerm ? 'Lütfen farklı arama terimleri deneyin.' : 'Yakında yeni sayılar eklenecek.'}
+          variant={searchTerm ? 'search' : 'default'}
+          actionLabel={searchTerm ? 'Tüm Sayıları Göster' : undefined}
+          onAction={searchTerm ? () => setSearchTerm('') : undefined}
+        />
+      )}
     </PageContainer>
   );
 };
