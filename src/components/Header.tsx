@@ -24,7 +24,7 @@ const Header = () => {
     { name: 'Ekipler', href: '/ekipler' },
     { name: 'Ürünler', href: '/urunler' },
     { name: 'Akademik Belgeler', href: '/akademik-belgeler' },
-    { name: 'Staj', href: '/staj' },
+    { name: 'Stajlar', href: '/stajlar' },
     { name: 'İletişim', href: '/iletisim' },
   ];
 

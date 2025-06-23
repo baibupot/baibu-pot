@@ -6,28 +6,30 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Book, Download, Eye, Search, Calendar } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import { ThemeProvider } from '@/components/ThemeProvider';
 import { useMagazineIssues } from '@/hooks/useSupabaseData';
 import LazyImage from '@/components/LazyImage';
+import PageContainer from '@/components/ui/page-container';
+import PageHero from '@/components/ui/page-hero';
+import LoadingPage from '@/components/ui/loading-page';
+import ErrorState from '@/components/ui/error-state';
+import EmptyState from '@/components/ui/empty-state';
 
 const Dergi = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const { data: magazines = [], isLoading, error } = useMagazineIssues(true);
 
   const mockPdfDemo = {
-    id: 'pdf-demo',
-    title: 'PDF Flipbook Demo Dergisi',
-    issue_number: 99,
-    publication_date: '2024-06-01',
-    cover_image: '/pdf-demo-cover.jpg',
-    description: 'Gerçek PDF dosyasını flipbook olarak deneyimleyin!',
-    pdf_file: '/ornek.pdf',
+    id: 'google-drive-demo',
+    title: 'Google Drive PDF Demo',
+    issue_number: 1,
+    publication_date: '2024-01-01',
+    cover_image: '/kampus.jpg',
+    description: 'Google Drive destekli modern PDF okuyucu deneyimi!',
+    pdf_file: 'https://drive.google.com/file/d/1RSRb8JqCx6g4kWE2QStERkGFuOqB-Xsw/view?usp=sharing',
     featured: false,
     published: true,
-    theme: 'Demo',
-    slug: 'pdf-demo',
+    theme: 'Google Drive Entegrasyonu',
+    slug: 'google-drive-demo',
     created_by: null,
     created_at: '',
     updated_at: ''
@@ -50,61 +52,61 @@ const Dergi = () => {
 
   if (isLoading) {
     return (
-      <ThemeProvider>
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
-          <Header />
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600 mx-auto mb-4"></div>
-              <p className="text-slate-600 dark:text-slate-400">Dergi sayıları yükleniyor...</p>
-            </div>
-          </main>
-          <Footer />
-        </div>
-      </ThemeProvider>
+      <PageContainer background="slate">
+        <LoadingPage 
+          title="Dergi Sayıları Yükleniyor"
+          message="Psikolojiİbu dergi arşivini hazırlıyoruz..."
+          icon={Book}
+        />
+      </PageContainer>
     );
   }
 
   if (error) {
     return (
-      <ThemeProvider>
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
-          <Header />
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="text-center py-12">
-              <Book className="h-16 w-16 text-red-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
-                Hata Oluştu
-              </h3>
-              <p className="text-red-500 mb-4">Dergi sayıları yüklenirken bir hata oluştu.</p>
-              <Button onClick={() => window.location.reload()}>
-                Tekrar Dene
-              </Button>
-            </div>
-          </main>
-          <Footer />
-        </div>
-      </ThemeProvider>
+      <PageContainer background="slate">
+        <ErrorState 
+          title="Dergi Sayıları Yüklenemedi"
+          message="Dergi arşivini yüklerken bir hata oluştu. Lütfen daha sonra tekrar deneyin."
+          onRetry={() => window.location.reload()}
+          variant="network"
+        />
+      </PageContainer>
     );
   }
 
   return (
-    <ThemeProvider>
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
-        <Header />
-        
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Hero Section */}
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">
-              Psikolojiİbu Dergi Arşivi
-            </h1>
-            <p className="text-lg text-slate-600 dark:text-slate-400 max-w-3xl mx-auto">
-              BAİBÜ Psikoloji Öğrencileri Topluluğu'nun akademik dergisi "Psikolojiİbu"nun 
-              tüm sayılarına buradan ulaşabilirsiniz. Psikoloji alanındaki güncel konular, 
-              araştırmalar ve makaleler ile bilginizi genişletin.
-            </p>
+    <PageContainer background="slate">
+      {/* Hero Section */}
+      <PageHero
+        title="Psikolojiİbu Dergi Arşivi"
+        description="BAİBÜ Psikoloji Öğrencileri Topluluğu'nun akademik dergisi 'Psikolojiİbu'nun tüm sayılarına buradan ulaşabilirsiniz. Psikoloji alanındaki güncel konular, araştırmalar ve makaleler ile bilginizi genişletin."
+        icon={Book}
+        gradient="teal"
+      >
+        {magazines.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-8">
+            <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
+              <div className="text-3xl font-bold text-slate-900 dark:text-white">
+                {magazines.length}
+              </div>
+              <div className="text-sm text-slate-600 dark:text-slate-300">Toplam Sayı</div>
+            </div>
+            <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
+              <div className="text-3xl font-bold text-slate-900 dark:text-white">
+                {new Date().getFullYear() - 2020 + 1}
+              </div>
+              <div className="text-sm text-slate-600 dark:text-slate-300">Yıl</div>
+            </div>
+            <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
+              <div className="text-3xl font-bold text-slate-900 dark:text-white">
+                1.2k+
+              </div>
+              <div className="text-sm text-slate-600 dark:text-slate-300">Okuyucu</div>
+            </div>
           </div>
+        )}
+      </PageHero>
 
           {/* Search Section */}
           <div className="mb-8">
@@ -157,7 +159,7 @@ const Dergi = () => {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredIssues.map((issue) => (
-                <Card key={issue.id} className="hover:shadow-lg transition-all duration-300 group">
+                <Card key={issue.id} className="card-hover group overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
                   <CardHeader>
                     <div className="h-48 bg-slate-200 dark:bg-slate-700 rounded-lg flex items-center justify-center mb-4 overflow-hidden">
                       {issue.cover_image ? (
@@ -229,30 +231,16 @@ const Dergi = () => {
           </div>
 
           {filteredIssues.length === 0 && (
-            <div className="text-center py-12">
-              <Book className="h-16 w-16 text-slate-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
-                {searchTerm ? 'Aradığınız dergi sayısı bulunamadı' : 'Henüz dergi sayısı yok'}
-              </h3>
-              <p className="text-slate-600 dark:text-slate-400">
-                {searchTerm ? 'Lütfen farklı arama terimleri deneyin.' : 'Yakında yeni sayılar eklenecek.'}
-              </p>
-              {searchTerm && (
-                <Button 
-                  variant="outline" 
-                  onClick={() => setSearchTerm('')}
-                  className="mt-4"
-                >
-                  Tüm Sayıları Göster
-                </Button>
-              )}
-            </div>
+            <EmptyState
+              icon={Book}
+              title={searchTerm ? 'Aradığınız dergi sayısı bulunamadı' : 'Henüz dergi sayısı yok'}
+              description={searchTerm ? 'Lütfen farklı arama terimleri deneyin.' : 'Yakında yeni sayılar eklenecek.'}
+              variant={searchTerm ? 'search' : 'default'}
+              actionLabel={searchTerm ? 'Tüm Sayıları Göster' : undefined}
+              onAction={searchTerm ? () => setSearchTerm('') : undefined}
+            />
           )}
-        </main>
-
-        <Footer />
-      </div>
-    </ThemeProvider>
+    </PageContainer>
   );
 };
 

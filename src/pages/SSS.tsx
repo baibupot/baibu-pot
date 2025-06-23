@@ -1,21 +1,21 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Search, ChevronDown, Mail } from 'lucide-react';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import { ThemeProvider } from '@/components/ThemeProvider';
+import { Search, Mail, HelpCircle, MessageCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import PageContainer from '@/components/ui/page-container';
+import PageHero from '@/components/ui/page-hero';
+import EmptyState from '@/components/ui/empty-state';
 
 const SSS = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const faqCategories = [
     {
-      title: "Genel Sorular",
+      title: "🌟 Genel Sorular",
+      emoji: "🌟",
       questions: [
         {
           question: "BAİBÜ Psikoloji Öğrencileri Topluluğu nedir?",
@@ -32,7 +32,8 @@ const SSS = () => {
       ]
     },
     {
-      title: "Etkinlikler",
+      title: "🎉 Etkinlikler",
+      emoji: "🎉",
       questions: [
         {
           question: "Etkinliklere nasıl kayıt olabilirim?",
@@ -49,7 +50,8 @@ const SSS = () => {
       ]
     },
     {
-      title: "Dergi",
+      title: "📖 Dergi",
+      emoji: "📖",
       questions: [
         {
           question: "Psikolojiİbu dergisine nasıl makale gönderebilirim?",
@@ -66,7 +68,8 @@ const SSS = () => {
       ]
     },
     {
-      title: "Stajlar",
+      title: "💼 Stajlar",
+      emoji: "💼",
       questions: [
         {
           question: "Staj fırsatları nereden takip edebilirim?",
@@ -83,7 +86,8 @@ const SSS = () => {
       ]
     },
     {
-      title: "Üyelik ve Roller",
+      title: "👥 Üyelik ve Roller",
+      emoji: "👥",
       questions: [
         {
           question: "Toplulukta aktif rol almak için ne yapmalıyım?",
@@ -109,51 +113,72 @@ const SSS = () => {
     )
   })).filter(category => category.questions.length > 0);
 
+  const totalQuestions = faqCategories.reduce((total, category) => total + category.questions.length, 0);
+
   return (
-    <ThemeProvider>
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
-        <Header />
-        
-        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Hero Section */}
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">
-              Sıkça Sorulan Sorular
-            </h1>
-            <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-              Topluluk hakkında merak ettiğiniz soruların yanıtlarını burada bulabilirsiniz. 
-              Aradığınızı bulamadıysanız bizimle iletişime geçin.
-            </p>
-          </div>
-
-          {/* Search */}
-          <div className="mb-8">
-            <div className="relative max-w-md mx-auto">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
-              <Input
-                placeholder="Soru ara..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+    <PageContainer background="slate">
+      {/* Hero Section */}
+      <PageHero
+        title="Sıkça Sorulan Sorular"
+        description="Topluluk hakkında merak ettiğiniz soruların yanıtlarını burada bulabilirsiniz. Aradığınızı bulamadıysanız bizimle iletişime geçin."
+        icon={HelpCircle}
+        gradient="emerald"
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-8">
+          <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
+            <div className="text-3xl font-bold text-slate-900 dark:text-white">
+              {totalQuestions}
             </div>
+            <div className="text-sm text-slate-600 dark:text-slate-300">Toplam Soru</div>
           </div>
+          <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
+            <div className="text-3xl font-bold text-slate-900 dark:text-white">
+              {faqCategories.length}
+            </div>
+            <div className="text-sm text-slate-600 dark:text-slate-300">Kategori</div>
+          </div>
+          <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
+            <div className="text-3xl font-bold text-slate-900 dark:text-white">
+              24
+            </div>
+            <div className="text-sm text-slate-600 dark:text-slate-300">Saat Yanıt</div>
+          </div>
+        </div>
+      </PageHero>
 
-          {/* FAQ Categories */}
-          <div className="space-y-8">
-            {filteredCategories.map((category, categoryIndex) => (
-              <Card key={categoryIndex}>
-                <CardContent className="p-6">
-                  <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-4">
+      {/* Search */}
+      <section className="py-8">
+        <div className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg">
+          <div className="relative max-w-md mx-auto">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+            <Input
+              placeholder="Soru ara..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 bg-white/80 dark:bg-slate-700/80 h-12 text-base"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Categories */}
+      <section className="pb-12">
+        <div className="space-y-8">
+          {filteredCategories.length > 0 ? (
+            filteredCategories.map((category, categoryIndex) => (
+              <Card key={categoryIndex} className="card-hover overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+                <CardContent className="p-8">
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-3">
+                    <span className="text-3xl">{category.emoji}</span>
                     {category.title}
                   </h2>
                   <Accordion type="single" collapsible className="w-full">
                     {category.questions.map((faq, faqIndex) => (
-                      <AccordionItem key={faqIndex} value={`item-${categoryIndex}-${faqIndex}`}>
-                        <AccordionTrigger className="text-left hover:text-cyan-600 dark:hover:text-cyan-400">
+                      <AccordionItem key={faqIndex} value={`item-${categoryIndex}-${faqIndex}`} className="border-slate-200 dark:border-slate-700">
+                        <AccordionTrigger className="text-left hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors duration-200 text-lg font-medium py-6">
                           {faq.question}
                         </AccordionTrigger>
-                        <AccordionContent className="text-slate-600 dark:text-slate-400">
+                        <AccordionContent className="text-slate-600 dark:text-slate-400 leading-relaxed text-base pb-6">
                           {faq.answer}
                         </AccordionContent>
                       </AccordionItem>
@@ -161,47 +186,56 @@ const SSS = () => {
                   </Accordion>
                 </CardContent>
               </Card>
-            ))}
-          </div>
+            ))
+          ) : (
+            <EmptyState
+              icon={Search}
+              title="Aradığınız Soru Bulunamadı"
+              description="Farklı kelimeler deneyebilir veya bizimle iletişime geçebilirsiniz."
+              actionLabel="İletişime Geç"
+              onAction={() => window.location.href = '/iletisim'}
+              variant="search"
+            />
+          )}
+        </div>
+      </section>
 
-          {filteredCategories.length === 0 && (
-            <div className="text-center py-12">
-              <Search className="h-16 w-16 text-slate-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
-                Aradığınız soru bulunamadı
-              </h3>
-              <p className="text-slate-600 dark:text-slate-400 mb-6">
-                Farklı kelimeler deneyebilir veya bizimle iletişime geçebilirsiniz.
-              </p>
-              <Button asChild>
-                <Link to="/iletisim" className="flex items-center gap-2">
-                  <Mail className="h-4 w-4" />
-                  İletişime Geç
+      {/* Contact CTA */}
+      <section className="py-16">
+        <div className="bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-emerald-950 dark:via-teal-950 dark:to-cyan-950 rounded-2xl p-12 text-center relative overflow-hidden">
+          {/* Background decoration */}
+          <div className="absolute inset-0 opacity-20">
+            <div className="absolute top-0 left-1/4 w-72 h-72 bg-emerald-300 rounded-full mix-blend-multiply filter blur-xl animate-pulse"></div>
+            <div className="absolute bottom-0 right-1/4 w-72 h-72 bg-teal-300 rounded-full mix-blend-multiply filter blur-xl animate-pulse animation-delay-2000"></div>
+          </div>
+          
+          <div className="relative z-10 max-w-2xl mx-auto space-y-8">
+            <div className="text-6xl mb-6">🤔</div>
+            <h3 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white">
+              Sorunuzun Yanıtını Bulamadınız mı?
+            </h3>
+            <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
+              Size yardımcı olmaktan mutluluk duyarız. Sorularınızı bizimle paylaşın, 
+              en kısa sürede size geri dönüş yapalım.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button asChild size="lg" className="group">
+                <Link to="/iletisim" className="flex items-center gap-3">
+                  <Mail className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
+                  Soru Sor
+                </Link>
+              </Button>
+              <Button asChild variant="outline" size="lg" className="group">
+                <Link to="/iletisim" className="flex items-center gap-3">
+                  <MessageCircle className="h-5 w-5 group-hover:rotate-12 transition-transform duration-200" />
+                  Canlı Destek
                 </Link>
               </Button>
             </div>
-          )}
-
-          {/* Contact CTA */}
-          <div className="mt-12 bg-gradient-to-r from-cyan-50 to-teal-50 dark:from-cyan-950 dark:to-teal-950 rounded-xl p-8 text-center">
-            <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-4">
-              Sorunuzun yanıtını bulamadınız mı?
-            </h3>
-            <p className="text-slate-600 dark:text-slate-400 mb-6">
-              Size yardımcı olmaktan mutluluk duyarız. Sorularınızı bizimle paylaşın.
-            </p>
-            <Button asChild size="lg">
-              <Link to="/iletisim" className="flex items-center gap-2">
-                <Mail className="h-4 w-4" />
-                Soru Sor
-              </Link>
-            </Button>
           </div>
-        </main>
-
-        <Footer />
-      </div>
-    </ThemeProvider>
+        </div>
+      </section>
+    </PageContainer>
   );
 };
 

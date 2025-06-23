@@ -1,8 +1,4 @@
-
 import React, { useState } from 'react';
-import { ThemeProvider } from '@/components/ThemeProvider';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +8,11 @@ import { Calendar, List, Search, Filter, MapPin, Clock, Users } from 'lucide-rea
 import EventCard from '@/components/events/EventCard';
 import EventCalendar from '@/components/events/EventCalendar';
 import { useEvents } from '@/hooks/useSupabaseData';
+import PageContainer from '@/components/ui/page-container';
+import PageHero from '@/components/ui/page-hero';
+import LoadingPage from '@/components/ui/loading-page';
+import ErrorState from '@/components/ui/error-state';
+import EmptyState from '@/components/ui/empty-state';
 
 const Etkinlikler = () => {
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
@@ -51,77 +52,101 @@ const Etkinlikler = () => {
     return statuses[status] || status;
   };
 
+  // Loading state
   if (isLoading) {
     return (
-      <ThemeProvider>
-        <div className="min-h-screen bg-white dark:bg-slate-900 transition-colors duration-300">
-          <Header />
-          <main className="container mx-auto px-4 py-8">
-            <div className="text-center">Yükleniyor...</div>
-          </main>
-          <Footer />
-        </div>
-      </ThemeProvider>
+      <PageContainer>
+        <LoadingPage 
+          title="Etkinlikler Yükleniyor"
+          message="Topluluk etkinliklerimizi hazırlıyoruz..."
+          icon={Calendar}
+        />
+      </PageContainer>
     );
   }
 
+  // Error state
   if (error) {
     return (
-      <ThemeProvider>
-        <div className="min-h-screen bg-white dark:bg-slate-900 transition-colors duration-300">
-          <Header />
-          <main className="container mx-auto px-4 py-8">
-            <div className="text-center text-red-500">Etkinlikler yüklenirken bir hata oluştu.</div>
-          </main>
-          <Footer />
-        </div>
-      </ThemeProvider>
+      <PageContainer>
+        <ErrorState 
+          title="Etkinlikler Yüklenemedi"
+          message="Etkinlik takvimini yüklerken bir hata oluştu. Lütfen daha sonra tekrar deneyin."
+          onRetry={() => window.location.reload()}
+          variant="network"
+        />
+      </PageContainer>
     );
   }
 
   return (
-    <ThemeProvider>
-      <div className="min-h-screen bg-white dark:bg-slate-900 transition-colors duration-300">
-        <Header />
-        <main className="container mx-auto px-4 py-8">
-          {/* Page Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">
-              Etkinlik Takvimimiz
-            </h1>
-            <p className="text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
-              Topluluğumuzun düzenlediği tüm etkinlikleri keşfedin. Atölyeler, konferanslar, 
-              sosyal etkinlikler ve daha fazlası için takipte kalın.
-            </p>
+    <PageContainer background="gradient">
+      {/* Hero Section */}
+      <PageHero
+        title="Etkinlik Takvimimiz"
+        description="Topluluğumuzun düzenlediği tüm etkinlikleri keşfedin. Atölyeler, konferanslar, sosyal etkinlikler ve daha fazlası için takipte kalın."
+        icon={Calendar}
+        gradient="purple"
+      >
+        {events.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 mt-8">
+            <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
+              <div className="text-3xl font-bold text-slate-900 dark:text-white">
+                {events.length}
+              </div>
+              <div className="text-sm text-slate-600 dark:text-slate-300">Toplam Etkinlik</div>
+            </div>
+            <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
+              <div className="text-3xl font-bold text-slate-900 dark:text-white">
+                {events.filter(e => e.status === 'upcoming').length}
+              </div>
+              <div className="text-sm text-slate-600 dark:text-slate-300">Yaklaşan</div>
+            </div>
+            <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
+              <div className="text-3xl font-bold text-slate-900 dark:text-white">
+                {events.filter(e => e.status === 'ongoing').length}
+              </div>
+              <div className="text-sm text-slate-600 dark:text-slate-300">Devam Eden</div>
+            </div>
+            <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
+              <div className="text-3xl font-bold text-slate-900 dark:text-white">
+                {new Set(events.map(e => e.event_type)).size}
+              </div>
+              <div className="text-sm text-slate-600 dark:text-slate-300">Etkinlik Türü</div>
+            </div>
+          </div>
+        )}
+      </PageHero>
+
+      {/* Controls */}
+      <section className="py-8">
+        <div className="space-y-6">
+          {/* View Mode Toggle */}
+          <div className="flex justify-center">
+            <div className="inline-flex rounded-lg border bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm p-1 shadow-lg">
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('list')}
+                className="flex items-center gap-2"
+              >
+                <List className="h-4 w-4" />
+                Liste Görünümü
+              </Button>
+              <Button
+                variant={viewMode === 'calendar' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('calendar')}
+                className="flex items-center gap-2"
+              >
+                <Calendar className="h-4 w-4" />
+                Takvim Görünümü
+              </Button>
+            </div>
           </div>
 
-          {/* Controls */}
-          <div className="mb-8 space-y-4">
-            {/* View Mode Toggle */}
-            <div className="flex justify-center">
-              <div className="inline-flex rounded-lg border bg-muted p-1">
-                <Button
-                  variant={viewMode === 'list' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                  className="flex items-center gap-2"
-                >
-                  <List className="h-4 w-4" />
-                  Liste Görünümü
-                </Button>
-                <Button
-                  variant={viewMode === 'calendar' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('calendar')}
-                  className="flex items-center gap-2"
-                >
-                  <Calendar className="h-4 w-4" />
-                  Takvim Görünümü
-                </Button>
-              </div>
-            </div>
-
-            {/* Search and Filters */}
+          {/* Search and Filters */}
+          <div className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
@@ -129,12 +154,12 @@ const Etkinlikler = () => {
                   placeholder="Etkinlik ara..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 bg-white/80 dark:bg-slate-700/80"
                 />
               </div>
               
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-white/80 dark:bg-slate-700/80">
                   <SelectValue placeholder="Durum" />
                 </SelectTrigger>
                 <SelectContent>
@@ -147,7 +172,7 @@ const Etkinlikler = () => {
               </Select>
 
               <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-white/80 dark:bg-slate-700/80">
                   <SelectValue placeholder="Tür" />
                 </SelectTrigger>
                 <SelectContent>
@@ -160,39 +185,73 @@ const Etkinlikler = () => {
                 </SelectContent>
               </Select>
 
-              <Button variant="outline" className="flex items-center gap-2" onClick={() => {
-                setSearchTerm('');
-                setStatusFilter('all');
-                setTypeFilter('all');
-              }}>
+              <Button 
+                variant="outline" 
+                className="flex items-center gap-2 bg-white/80 dark:bg-slate-700/80 hover:bg-white dark:hover:bg-slate-600" 
+                onClick={() => {
+                  setSearchTerm('');
+                  setStatusFilter('all');
+                  setTypeFilter('all');
+                }}
+              >
                 <Filter className="h-4 w-4" />
                 Filtreleri Temizle
               </Button>
             </div>
           </div>
+        </div>
+      </section>
 
-          {/* Content */}
-          {viewMode === 'list' ? (
-            <div className="space-y-6">
-              {filteredEvents.length > 0 ? (
-                filteredEvents.map((event) => (
-                  <EventCard key={event.id} event={event} />
-                ))
-              ) : (
-                <Card className="p-8 text-center">
-                  <p className="text-slate-500 dark:text-slate-400">
-                    Aramanızla eşleşen etkinlik bulunamadı.
-                  </p>
-                </Card>
-              )}
-            </div>
-          ) : (
+      {/* Content */}
+      <section className="pb-12">
+        {viewMode === 'list' ? (
+          <div className="space-y-6">
+            {filteredEvents.length > 0 ? (
+              filteredEvents.map((event) => (
+                <div key={event.id} className="transform transition-all duration-300 hover:scale-[1.02]">
+                  <EventCard event={event} />
+                </div>
+              ))
+            ) : (
+              <EmptyState
+                icon={Calendar}
+                title="Etkinlik Bulunamadı"
+                description="Aradığınız kriterlere uygun etkinlik bulunmuyor. Lütfen farklı filtreler deneyin."
+                variant="search"
+                actionLabel="Filtreleri Temizle"
+                onAction={() => {
+                  setSearchTerm('');
+                  setStatusFilter('all');
+                  setTypeFilter('all');
+                }}
+              />
+            )}
+          </div>
+        ) : (
+          <div className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg">
             <EventCalendar events={filteredEvents} />
-          )}
-        </main>
-        <Footer />
-      </div>
-    </ThemeProvider>
+          </div>
+        )}
+      </section>
+
+      {/* Call to Action */}
+      {events.length > 0 && (
+        <section className="py-16 text-center">
+          <div className="max-w-2xl mx-auto space-y-6">
+            <h2 className="text-3xl font-bold text-slate-900 dark:text-white">
+              Etkinlik Önerisi
+            </h2>
+            <p className="text-lg text-slate-600 dark:text-slate-400">
+              Aklınızda bir etkinlik fikri mi var? Bizimle paylaşın, birlikte gerçekleştirelim!
+            </p>
+            <Button size="lg" variant="outline" className="group">
+              <Users className="h-5 w-5 mr-2 group-hover:rotate-12 transition-transform duration-200" />
+              Etkinlik Öner
+            </Button>
+          </div>
+        </section>
+      )}
+    </PageContainer>
   );
 };
 

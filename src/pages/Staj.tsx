@@ -12,11 +12,12 @@ import {
   ExternalLink,
   BookOpen,
   FileText,
-  Users
+  Users,
+  Briefcase
 } from 'lucide-react';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import { ThemeProvider } from '@/components/ThemeProvider';
+import PageContainer from '@/components/ui/page-container';
+import PageHero from '@/components/ui/page-hero';
+import EmptyState from '@/components/ui/empty-state';
 
 // Mock data - bu veriler Supabase'den gelecek
 const mockInternships = [
@@ -140,249 +141,301 @@ const Staj = () => {
     return colors[type] || 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
   };
 
+  const totalInternships = mockInternships.length;
+  const totalExperiences = mockExperiences.length;
+  const totalGuides = guides.length;
+
   return (
-    <ThemeProvider>
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
-        <Header />
-        
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Hero Section */}
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">
-              Staj Fırsatları ve Rehberi
-            </h1>
-            <p className="text-lg text-slate-600 dark:text-slate-400 max-w-3xl mx-auto">
-              Psikoloji eğitiminizi pratik deneyimlerle destekleyin. Güncel staj ilanları, 
-              deneyim paylaşımları ve başvuru rehberleri ile staj sürecinizde size yardımcı oluyoruz.
-            </p>
-          </div>
-
-          {/* Tab Navigation */}
-          <div className="flex flex-wrap gap-2 mb-8 border-b border-slate-200 dark:border-slate-700">
-            <Button
-              variant={activeTab === 'ilanlar' ? 'default' : 'ghost'}
-              onClick={() => setActiveTab('ilanlar')}
-              className="mb-2"
-            >
-              <Building className="h-4 w-4 mr-2" />
-              Staj İlanları
-            </Button>
-            <Button
-              variant={activeTab === 'deneyimler' ? 'default' : 'ghost'}
-              onClick={() => setActiveTab('deneyimler')}
-              className="mb-2"
-            >
-              <Users className="h-4 w-4 mr-2" />
-              Deneyim Paylaşımları
-            </Button>
-            <Button
-              variant={activeTab === 'rehber' ? 'default' : 'ghost'}
-              onClick={() => setActiveTab('rehber')}
-              className="mb-2"
-            >
-              <BookOpen className="h-4 w-4 mr-2" />
-              Staj Rehberi
-            </Button>
-          </div>
-
-          {/* Staj İlanları Tab */}
-          {activeTab === 'ilanlar' && (
-            <div>
-              {/* Search and Filter Section */}
-              <div className="mb-8 space-y-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
-                  <Input
-                    type="text"
-                    placeholder="Staj ilanlarında ara..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                <div className="flex flex-wrap gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Şehir
-                    </label>
-                    <div className="flex gap-2">
-                      {locations.map((location) => (
-                        <Button
-                          key={location}
-                          variant={selectedLocation === location ? "default" : "outline"}
-                          onClick={() => setSelectedLocation(location)}
-                          size="sm"
-                        >
-                          {location}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Çalışma Türü
-                    </label>
-                    <div className="flex gap-2">
-                      {types.map((type) => (
-                        <Button
-                          key={type}
-                          variant={selectedType === type ? "default" : "outline"}
-                          onClick={() => setSelectedType(type)}
-                          size="sm"
-                        >
-                          {type}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Internship Listings */}
-              <div className="space-y-6">
-                {filteredInternships.map((internship) => (
-                  <Card key={internship.id} className="hover:shadow-lg transition-shadow duration-300">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Badge className={getTypeColor(internship.type)}>
-                              {internship.type}
-                            </Badge>
-                            <Badge variant="outline">
-                              {internship.duration}
-                            </Badge>
-                          </div>
-                          <CardTitle className="text-xl mb-2">{internship.title}</CardTitle>
-                          <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
-                            <div className="flex items-center gap-1">
-                              <Building className="h-4 w-4" />
-                              <span>{internship.company}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <MapPin className="h-4 w-4" />
-                              <span>{internship.location === 'Bolu' ? 'BAİBÜ Gölköy Kampüsü, Psikoloji Bölümü, Bolu (40.71388, 31.51442)' : internship.location}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Clock className="h-4 w-4" />
-                              <span>Son başvuru: {formatDate(internship.application_deadline)}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <Button className="flex items-center gap-2">
-                          Detaylar ve Başvuru
-                          <ExternalLink className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-slate-600 dark:text-slate-400 mb-4">
-                        {internship.description}
-                      </p>
-                      <div className="mb-4">
-                        <h4 className="font-medium text-slate-900 dark:text-white mb-2">Gereksinimler:</h4>
-                        <ul className="list-disc list-inside space-y-1 text-sm text-slate-600 dark:text-slate-400">
-                          {internship.requirements.map((req, index) => (
-                            <li key={index}>{req}</li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-500">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          <span>Başlangıç: {formatDate(internship.start_date)}</span>
-                        </div>
-                        <span>•</span>
-                        <span>İletişim: {internship.contact_email}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-
-              {filteredInternships.length === 0 && (
-                <div className="text-center py-12">
-                  <Building className="h-16 w-16 text-slate-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
-                    Aradığınız kriterlerde staj ilanı bulunamadı
-                  </h3>
-                  <p className="text-slate-600 dark:text-slate-400">
-                    Lütfen farklı arama terimleri deneyin veya filtreleri değiştirin.
-                  </p>
-                </div>
-              )}
+    <PageContainer background="slate">
+      {/* Hero Section */}
+      <PageHero
+        title="Staj Fırsatları ve Rehberi"
+        description="Psikoloji eğitiminizi pratik deneyimlerle destekleyin. Güncel staj ilanları, deneyim paylaşımları ve başvuru rehberleri ile staj sürecinizde size yardımcı oluyoruz."
+        icon={Briefcase}
+        gradient="blue"
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-8">
+          <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
+            <div className="text-3xl font-bold text-slate-900 dark:text-white">
+              {totalInternships}
             </div>
-          )}
+            <div className="text-sm text-slate-600 dark:text-slate-300">Aktif Staj İlanı</div>
+          </div>
+          <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
+            <div className="text-3xl font-bold text-slate-900 dark:text-white">
+              {totalExperiences}
+            </div>
+            <div className="text-sm text-slate-600 dark:text-slate-300">Deneyim Paylaşımı</div>
+          </div>
+          <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
+            <div className="text-3xl font-bold text-slate-900 dark:text-white">
+              {totalGuides}
+            </div>
+            <div className="text-sm text-slate-600 dark:text-slate-300">Rehber Doküman</div>
+          </div>
+        </div>
+      </PageHero>
 
-          {/* Deneyim Paylaşımları Tab */}
-          {activeTab === 'deneyimler' && (
-            <div className="space-y-6">
-              {mockExperiences.map((experience) => (
-                <Card key={experience.id}>
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <h3 className="font-semibold text-slate-900 dark:text-white">
-                          {experience.student_name}
-                        </h3>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">
-                          {experience.internship_place} - {experience.year}
-                        </p>
-                      </div>
-                      <div className="flex">
-                        {[...Array(5)].map((_, i) => (
-                          <span 
-                            key={i} 
-                            className={`text-sm ${i < experience.rating ? 'text-yellow-400' : 'text-gray-300'}`}
+      {/* Tab Navigation */}
+      <section className="py-8">
+        <div className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg">
+          <div className="flex flex-wrap gap-3 justify-center">
+            <Button
+              variant={activeTab === 'ilanlar' ? 'default' : 'outline'}
+              onClick={() => setActiveTab('ilanlar')}
+              className="group h-12 px-6"
+            >
+              <Building className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform duration-200" />
+              💼 Staj İlanları
+            </Button>
+            <Button
+              variant={activeTab === 'deneyimler' ? 'default' : 'outline'}
+              onClick={() => setActiveTab('deneyimler')}
+              className="group h-12 px-6"
+            >
+              <Users className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform duration-200" />
+              👥 Deneyim Paylaşımları
+            </Button>
+            <Button
+              variant={activeTab === 'rehber' ? 'default' : 'outline'}
+              onClick={() => setActiveTab('rehber')}
+              className="group h-12 px-6"
+            >
+              <BookOpen className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform duration-200" />
+              📚 Staj Rehberi
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Staj İlanları Tab */}
+      {activeTab === 'ilanlar' && (
+        <section className="pb-12">
+          {/* Search and Filter Section */}
+          <div className="mb-8 space-y-6">
+            <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
+                    <Input
+                      type="text"
+                      placeholder="Staj ilanlarında ara... (şirket, pozisyon, açıklama)"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-12 h-12 text-base bg-white/80 dark:bg-slate-700/80"
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
+                        🌍 Şehir Seçin
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {locations.map((location) => (
+                          <Button
+                            key={location}
+                            variant={selectedLocation === location ? "default" : "outline"}
+                            onClick={() => setSelectedLocation(location)}
+                            size="sm"
+                            className="h-10"
                           >
-                            ★
-                          </span>
+                            {location}
+                          </Button>
                         ))}
                       </div>
                     </div>
-                    <p className="text-slate-600 dark:text-slate-400">
-                      {experience.experience}
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
+                        ⏰ Çalışma Türü
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {types.map((type) => (
+                          <Button
+                            key={type}
+                            variant={selectedType === type ? "default" : "outline"}
+                            onClick={() => setSelectedType(type)}
+                            size="sm"
+                            className="h-10"
+                          >
+                            {type}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Internship Listings */}
+          <div className="space-y-6">
+            {filteredInternships.length > 0 ? (
+              filteredInternships.map((internship) => (
+                <Card key={internship.id} className="card-hover border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm overflow-hidden">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-3">
+                          <Badge className={getTypeColor(internship.type)}>
+                            {internship.type}
+                          </Badge>
+                          <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/20">
+                            ⏱️ {internship.duration}
+                          </Badge>
+                        </div>
+                        <CardTitle className="text-2xl mb-3 text-slate-900 dark:text-white">
+                          {internship.title}
+                        </CardTitle>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-slate-600 dark:text-slate-400">
+                          <div className="flex items-center gap-2">
+                            <Building className="h-4 w-4 text-blue-500" />
+                            <span className="font-medium">{internship.company}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4 text-green-500" />
+                            <span>{internship.location}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-4 w-4 text-red-500" />
+                            <span>Son: {formatDate(internship.application_deadline)}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <Button className="group bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300">
+                        <span className="mr-2">Detaylar ve Başvuru</span>
+                        <ExternalLink className="h-4 w-4 group-hover:scale-110 transition-transform duration-200" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
+                      {internship.description}
                     </p>
+                    <div className="mb-6">
+                      <h4 className="font-semibold text-slate-900 dark:text-white mb-3 text-lg">
+                        📋 Gereksinimler:
+                      </h4>
+                      <ul className="space-y-2">
+                        {internship.requirements.map((req, index) => (
+                          <li key={index} className="flex items-start gap-3 text-slate-600 dark:text-slate-400">
+                            <span className="text-blue-500 font-bold mt-1">•</span>
+                            <span>{req}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="flex items-center gap-6 text-sm text-slate-500 dark:text-slate-500 bg-slate-50 dark:bg-slate-700/30 rounded-lg p-4">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-green-500" />
+                        <span className="font-medium">Başlangıç: {formatDate(internship.start_date)}</span>
+                      </div>
+                      <span className="text-slate-300 dark:text-slate-600">•</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">İletişim: {internship.contact_email}</span>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
-              ))}
-              
-              <div className="text-center">
-                <Button variant="outline">
-                  Deneyimini Paylaş
-                </Button>
-              </div>
-            </div>
-          )}
+              ))
+            ) : (
+              <EmptyState
+                icon={Building}
+                title="Aradığınız Kriterlerde Staj İlanı Bulunamadı"
+                description="Lütfen farklı arama terimleri deneyin veya filtreleri değiştirin."
+                actionLabel="Filtreleri Temizle"
+                onAction={() => {
+                  setSearchTerm('');
+                  setSelectedLocation('Tümü');
+                  setSelectedType('Tümü');
+                }}
+                variant="search"
+              />
+            )}
+          </div>
+        </section>
+      )}
 
-          {/* Staj Rehberi Tab */}
-          {activeTab === 'rehber' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {guides.map((guide) => (
-                  <Card key={guide.id} className="hover:shadow-lg transition-shadow duration-300">
-                    <CardHeader>
-                      <FileText className="h-8 w-8 text-cyan-500 mb-2" />
-                      <CardTitle className="text-lg">{guide.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-slate-600 dark:text-slate-400 mb-4">
-                        {guide.description}
+      {/* Deneyim Paylaşımları Tab */}
+      {activeTab === 'deneyimler' && (
+        <section className="pb-12">
+          <div className="space-y-6">
+            {mockExperiences.map((experience) => (
+              <Card key={experience.id} className="card-hover border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+                <CardContent className="p-8">
+                  <div className="flex items-start justify-between mb-6">
+                    <div>
+                      <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                        👤 {experience.student_name}
+                      </h3>
+                      <p className="text-slate-600 dark:text-slate-400 font-medium">
+                        🏥 {experience.internship_place} - {experience.year}
                       </p>
-                      <Button variant="outline" className="w-full">
-                        İndir
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {[...Array(5)].map((_, i) => (
+                        <span 
+                          key={i} 
+                          className={`text-lg ${i < experience.rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                        >
+                          ⭐
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-base">
+                    💭 "{experience.experience}"
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+            
+            <div className="text-center mt-12">
+              <Button 
+                variant="outline" 
+                size="lg"
+                className="group h-12 px-8 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-2 border-blue-200 dark:border-blue-700 hover:shadow-lg"
+              >
+                <Users className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform duration-200" />
+                Deneyimini Paylaş
+              </Button>
             </div>
-          )}
-        </main>
+          </div>
+        </section>
+      )}
 
-        <Footer />
-      </div>
-    </ThemeProvider>
+      {/* Staj Rehberi Tab */}
+      {activeTab === 'rehber' && (
+        <section className="pb-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {guides.map((guide) => (
+              <Card key={guide.id} className="card-hover border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm overflow-hidden">
+                <CardHeader className="text-center">
+                  <div className="mx-auto mb-4 p-4 bg-blue-100 dark:bg-blue-900/30 rounded-full w-fit">
+                    <FileText className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <CardTitle className="text-xl">{guide.title}</CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <p className="text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
+                    {guide.description}
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    className="w-full group h-12 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-2 border-blue-200 dark:border-blue-700 hover:shadow-lg"
+                  >
+                    <FileText className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform duration-200" />
+                    İndir
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
+    </PageContainer>
   );
 };
 

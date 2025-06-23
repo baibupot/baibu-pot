@@ -1,16 +1,18 @@
 
 import React, { useState } from 'react';
-import { ThemeProvider } from '@/components/ThemeProvider';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Search, Calendar, User, Eye } from 'lucide-react';
+import { Search, Calendar, User, Eye, Newspaper } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useNews } from '@/hooks/useSupabaseData';
+import PageContainer from '@/components/ui/page-container';
+import PageHero from '@/components/ui/page-hero';
+import LoadingPage from '@/components/ui/loading-page';
+import ErrorState from '@/components/ui/error-state';
+import EmptyState from '@/components/ui/empty-state';
 
 const Haberler = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -55,47 +57,67 @@ const Haberler = () => {
 
   if (isLoading) {
     return (
-      <ThemeProvider>
-        <div className="min-h-screen bg-white dark:bg-slate-900 transition-colors duration-300">
-          <Header />
-          <main className="container mx-auto px-4 py-8">
-            <div className="text-center">Yükleniyor...</div>
-          </main>
-          <Footer />
-        </div>
-      </ThemeProvider>
+      <PageContainer>
+        <LoadingPage 
+          title="Haberler Yükleniyor"
+          message="Güncel haberler ve duyurular hazırlanıyor..."
+          icon={Newspaper}
+        />
+      </PageContainer>
     );
   }
 
   if (error) {
     return (
-      <ThemeProvider>
-        <div className="min-h-screen bg-white dark:bg-slate-900 transition-colors duration-300">
-          <Header />
-          <main className="container mx-auto px-4 py-8">
-            <div className="text-center text-red-500">Haberler yüklenirken bir hata oluştu.</div>
-          </main>
-          <Footer />
-        </div>
-      </ThemeProvider>
+      <PageContainer>
+        <ErrorState 
+          title="Haberler Yüklenemedi"
+          message="Haberleri yüklerken bir hata oluştu. Lütfen daha sonra tekrar deneyin."
+          onRetry={() => window.location.reload()}
+          variant="network"
+        />
+      </PageContainer>
     );
   }
 
   return (
-    <ThemeProvider>
-      <div className="min-h-screen bg-white dark:bg-slate-900 transition-colors duration-300">
-        <Header />
-        <main className="container mx-auto px-4 py-8">
-          {/* Page Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">
-              Haberler ve Duyurular
-            </h1>
-            <p className="text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
-              BAİBÜ Psikoloji Öğrencileri Topluluğu'nun güncel haberlerini ve duyurularını 
-              takip edin. Etkinlikler, akademik gelişmeler ve topluluk haberleri burada.
-            </p>
+    <PageContainer>
+      {/* Hero Section */}
+      <PageHero
+        title="Haberler ve Duyurular"
+        description="BAİBÜ Psikoloji Öğrencileri Topluluğu'nun güncel haberlerini ve duyurularını takip edin. Etkinlikler, akademik gelişmeler ve topluluk haberleri burada."
+        icon={Newspaper}
+        gradient="blue"
+      >
+        {news.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 mt-8">
+            <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
+              <div className="text-3xl font-bold text-slate-900 dark:text-white">
+                {news.length}
+              </div>
+              <div className="text-sm text-slate-600 dark:text-slate-300">Toplam Haber</div>
+            </div>
+            <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
+              <div className="text-3xl font-bold text-slate-900 dark:text-white">
+                {news.filter((n) => n.category === 'duyuru').length}
+              </div>
+              <div className="text-sm text-slate-600 dark:text-slate-300">Duyuru</div>
+            </div>
+            <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
+              <div className="text-3xl font-bold text-slate-900 dark:text-white">
+                {news.filter((n) => n.category === 'etkinlik').length}
+              </div>
+              <div className="text-sm text-slate-600 dark:text-slate-300">Etkinlik</div>
+            </div>
+            <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
+              <div className="text-3xl font-bold text-slate-900 dark:text-white">
+                {new Date().getMonth() + 1}
+              </div>
+              <div className="text-sm text-slate-600 dark:text-slate-300">Bu Ay</div>
+            </div>
           </div>
+        )}
+      </PageHero>
 
           {/* Search and Filters */}
           <div className="mb-8 space-y-4">
@@ -135,7 +157,7 @@ const Haberler = () => {
           {/* News Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredNews.map((article) => (
-              <Card key={article.id} className="hover:shadow-lg transition-shadow duration-300">
+              <Card key={article.id} className="card-hover group overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
                 <CardHeader>
                   {article.featured_image && (
                     <div className="h-48 bg-slate-200 dark:bg-slate-700 rounded-lg mb-4 overflow-hidden">
@@ -177,19 +199,19 @@ const Haberler = () => {
           </div>
 
           {filteredNews.length === 0 && (
-            <div className="text-center py-12">
-              <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
-                Haber bulunamadı
-              </h3>
-              <p className="text-slate-600 dark:text-slate-400">
-                Aradığınız kriterlere uygun haber bulunmuyor.
-              </p>
-            </div>
+            <EmptyState
+              icon={Newspaper}
+              title="Haber Bulunamadı"
+              description="Aradığınız kriterlere uygun haber bulunmuyor. Lütfen farklı filtreler deneyin."
+              variant="search"
+              actionLabel="Filtreleri Temizle"
+              onAction={() => {
+                setSearchTerm('');
+                setCategoryFilter('all');
+              }}
+            />
           )}
-        </main>
-        <Footer />
-      </div>
-    </ThemeProvider>
+    </PageContainer>
   );
 };
 

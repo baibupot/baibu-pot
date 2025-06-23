@@ -1,13 +1,14 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { User, Mail, Linkedin, Users } from 'lucide-react';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import { ThemeProvider } from '@/components/ThemeProvider';
 import { useTeamMembers } from '@/hooks/useSupabaseData';
+import PageContainer from '@/components/ui/page-container';
+import PageHero from '@/components/ui/page-hero';
+import LoadingPage from '@/components/ui/loading-page';
+import ErrorState from '@/components/ui/error-state';
+import EmptyState from '@/components/ui/empty-state';
 
 const Ekipler = () => {
   const { data: teamMembers = [], isLoading, error } = useTeamMembers(true);
@@ -21,26 +22,36 @@ const Ekipler = () => {
   };
 
   const getTeamInfo = (teamKey: string) => {
-    const teamInfo: Record<string, { name: string; description: string }> = {
+    const teamInfo: Record<string, { name: string; description: string; color: string; emoji: string }> = {
       yonetim: {
         name: 'Yönetim Kurulu',
-        description: 'Topluluğun genel yönetimi ve stratejik kararlarından sorumlu ekip'
+        description: 'Topluluğun genel yönetimi ve stratejik kararlarından sorumlu ekip',
+        color: 'cyan',
+        emoji: '👑'
       },
       teknik: {
         name: 'Teknik İşler',
-        description: 'Web sitesi, sosyal medya ve teknik altyapı yönetimi'
+        description: 'Web sitesi, sosyal medya ve teknik altyapı yönetimi',
+        color: 'blue',
+        emoji: '💻'
       },
       etkinlik: {
         name: 'Etkinlik Organizasyonu',
-        description: 'Tüm etkinliklerin planlanması ve yürütülmesi'
+        description: 'Tüm etkinliklerin planlanması ve yürütülmesi',
+        color: 'purple',
+        emoji: '🎉'
       },
       iletisim: {
         name: 'İletişim ve Medya',
-        description: 'Dış iletişim, basın ilişkileri ve içerik üretimi'
+        description: 'Dış iletişim, basın ilişkileri ve içerik üretimi',
+        color: 'emerald',
+        emoji: '📢'
       },
       dergi: {
         name: 'Dergi Ekibi',
-        description: 'Psikolojiİbu dergisinin hazırlanması ve yayınlanması'
+        description: 'Psikolojiİbu dergisinin hazırlanması ve yayınlanması',
+        color: 'pink',
+        emoji: '📚'
       }
     };
     return teamInfo[teamKey];
@@ -53,162 +64,201 @@ const Ekipler = () => {
     return 'bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-300';
   };
 
+  // Loading state
   if (isLoading) {
     return (
-      <ThemeProvider>
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
-          <Header />
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="text-center">Yükleniyor...</div>
-          </main>
-          <Footer />
-        </div>
-      </ThemeProvider>
+      <PageContainer background="slate">
+        <LoadingPage 
+          title="Ekip Bilgileri Yükleniyor"
+          message="Takım üyelerimizi tanıtmaya hazırlanıyoruz..."
+          icon={Users}
+        />
+      </PageContainer>
     );
   }
 
+  // Error state
   if (error) {
     return (
-      <ThemeProvider>
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
-          <Header />
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="text-center text-red-500">Ekip bilgileri yüklenirken bir hata oluştu.</div>
-          </main>
-          <Footer />
-        </div>
-      </ThemeProvider>
+      <PageContainer background="slate">
+        <ErrorState 
+          title="Ekip Bilgileri Yüklenemedi"
+          message="Ekip üyelerini yüklerken bir hata oluştu. Lütfen daha sonra tekrar deneyin."
+          onRetry={() => window.location.reload()}
+          variant="network"
+        />
+      </PageContainer>
     );
   }
 
   return (
-    <ThemeProvider>
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
-        <Header />
-        
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Hero Section */}
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">
-              Topluluk Yönetimi ve Ekiplerimiz
-            </h1>
-            <p className="text-lg text-slate-600 dark:text-slate-400 max-w-3xl mx-auto">
-              BAİBÜ Psikoloji Öğrencileri Topluluğu'nun başarılı çalışmalarının arkasında 
-              bulunan değerli ekip üyelerimizi tanıyın. Her bir ekip üyemiz, topluluğumuzun 
-              misyonunu gerçekleştirmek için gönüllü olarak çalışmaktadır.
-            </p>
+    <PageContainer background="slate">
+      {/* Hero Section */}
+      <PageHero
+        title="Topluluk Yönetimi ve Ekiplerimiz"
+        description="BAİBÜ Psikoloji Öğrencileri Topluluğu'nun başarılı çalışmalarının arkasında bulunan değerli ekip üyelerimizi tanıyın. Her bir ekip üyemiz, topluluğumuzun misyonunu gerçekleştirmek için gönüllü olarak çalışmaktadır."
+        icon={Users}
+        gradient="blue"
+      >
+        {teamMembers.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 mt-8">
+            <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
+              <div className="text-3xl font-bold text-slate-900 dark:text-white">
+                {teamMembers.length}
+              </div>
+              <div className="text-sm text-slate-600 dark:text-slate-300">Toplam Üye</div>
+            </div>
+            <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
+              <div className="text-3xl font-bold text-slate-900 dark:text-white">
+                {Object.keys(teamsByGroup).filter(key => teamsByGroup[key as keyof typeof teamsByGroup].length > 0).length}
+              </div>
+              <div className="text-sm text-slate-600 dark:text-slate-300">Aktif Ekip</div>
+            </div>
+            <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
+              <div className="text-3xl font-bold text-slate-900 dark:text-white">
+                {teamMembers.filter(m => m.role.includes('Koordinatör') || m.role.includes('Başkan')).length}
+              </div>
+              <div className="text-sm text-slate-600 dark:text-slate-300">Lider</div>
+            </div>
+            <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
+              <div className="text-3xl font-bold text-slate-900 dark:text-white">
+                5+
+              </div>
+              <div className="text-sm text-slate-600 dark:text-slate-300">Çalışma Alanı</div>
+            </div>
           </div>
+        )}
+      </PageHero>
 
-          {/* Teams */}
-          <div className="space-y-12">
-            {Object.entries(teamsByGroup).map(([teamKey, members]) => {
-              if (members.length === 0) return null;
-              const teamInfo = getTeamInfo(teamKey);
-              
-              return (
-                <div key={teamKey}>
-                  <div className="mb-8">
-                    <div className="flex items-center gap-3 mb-4">
-                      <Users className="h-6 w-6 text-cyan-500" />
-                      <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                        {teamInfo.name}
-                      </h2>
-                    </div>
-                    <p className="text-slate-600 dark:text-slate-400 max-w-3xl">
+      {/* Teams */}
+      <div className="space-y-16 py-12">
+        {Object.entries(teamsByGroup).map(([teamKey, members]) => {
+          if (members.length === 0) return null;
+          const teamInfo = getTeamInfo(teamKey);
+          
+          return (
+            <section key={teamKey}>
+              <div className="mb-12">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="text-4xl">{teamInfo.emoji}</div>
+                  <div>
+                    <h2 className="text-3xl font-bold text-slate-900 dark:text-white">
+                      {teamInfo.name}
+                    </h2>
+                    <p className="text-slate-600 dark:text-slate-400 mt-2 max-w-3xl">
                       {teamInfo.description}
                     </p>
                   </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {members.map((member) => (
-                      <Card key={member.id} className="hover:shadow-lg transition-shadow duration-300">
-                        <CardHeader className="text-center">
-                          <div className="w-24 h-24 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mb-4 flex items-center justify-center overflow-hidden">
-                            {member.profile_image ? (
-                              <img 
-                                src={member.profile_image} 
-                                alt={member.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <User className="h-12 w-12 text-slate-400" />
-                            )}
-                          </div>
-                          <Badge className={getRoleColor(member.role)} style={{ marginBottom: '8px' }}>
-                            {member.role}
-                          </Badge>
-                          <CardTitle className="text-lg">{member.name}</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          {member.bio && (
-                            <p className="text-slate-600 dark:text-slate-400 text-sm mb-4 line-clamp-3">
-                              {member.bio}
-                            </p>
-                          )}
-                          <div className="flex items-center justify-center gap-2">
-                            {member.email && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => window.open(`mailto:${member.email}`, '_blank')}
-                              >
-                                <Mail className="h-4 w-4" />
-                              </Button>
-                            )}
-                            {member.linkedin_url && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => window.open(member.linkedin_url, '_blank')}
-                              >
-                                <Linkedin className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
                 </div>
-              );
-            })}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {members.map((member) => (
+                  <Card 
+                    key={member.id} 
+                    className="card-hover group overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm"
+                  >
+                    <CardHeader className="text-center">
+                      <div className="w-24 h-24 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 rounded-full mx-auto mb-4 flex items-center justify-center overflow-hidden relative">
+                        {member.profile_image ? (
+                          <img 
+                            src={member.profile_image} 
+                            alt={member.name}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                          />
+                        ) : (
+                          <User className="h-12 w-12 text-slate-400 group-hover:scale-110 transition-transform duration-300" />
+                        )}
+                        {/* Online indicator */}
+                        <div className="absolute bottom-1 right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-800"></div>
+                      </div>
+                      <Badge className={`${getRoleColor(member.role)} mb-3`}>
+                        {member.role}
+                      </Badge>
+                      <CardTitle className="text-lg group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">
+                        {member.name}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {member.bio && (
+                        <p className="text-slate-600 dark:text-slate-400 text-sm mb-6 line-clamp-3 leading-relaxed">
+                          {member.bio}
+                        </p>
+                      )}
+                      <div className="flex items-center justify-center gap-3">
+                        {member.email && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="group-hover:shadow-lg transition-all duration-200"
+                            onClick={() => window.open(`mailto:${member.email}`, '_blank')}
+                          >
+                            <Mail className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {member.linkedin_url && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="group-hover:shadow-lg transition-all duration-200"
+                            onClick={() => window.open(member.linkedin_url, '_blank')}
+                          >
+                            <Linkedin className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </section>
+          );
+        })}
+      </div>
+
+      {/* Empty State */}
+      {teamMembers.length === 0 && (
+        <EmptyState
+          icon={Users}
+          title="Henüz Ekip Üyesi Bulunmuyor"
+          description="Yeni ekip üyeleri eklendiğinde burada görünecek. Katılım için bizimle iletişime geçin!"
+          actionLabel="İletişim"
+          onAction={() => window.location.href = '/iletisim'}
+        />
+      )}
+
+      {/* Join Us Section */}
+      <section className="py-16">
+        <div className="bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50 dark:from-blue-950 dark:via-cyan-950 dark:to-teal-950 rounded-2xl p-12 text-center relative overflow-hidden">
+          {/* Background decoration */}
+          <div className="absolute inset-0 opacity-20">
+            <div className="absolute top-0 left-1/4 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl animate-pulse"></div>
+            <div className="absolute bottom-0 right-1/4 w-72 h-72 bg-cyan-300 rounded-full mix-blend-multiply filter blur-xl animate-pulse animation-delay-2000"></div>
           </div>
-
-          {teamMembers.length === 0 && (
-            <div className="text-center py-12">
-              <Users className="h-16 w-16 text-slate-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
-                Henüz ekip üyesi bulunmuyor
-              </h3>
-              <p className="text-slate-600 dark:text-slate-400">
-                Yeni ekip üyeleri eklendiğinde burada görünecek.
-              </p>
-            </div>
-          )}
-
-          {/* Join Us Section */}
-          <div className="mt-16 bg-gradient-to-r from-cyan-50 to-teal-50 dark:from-cyan-950 dark:to-teal-950 rounded-xl p-8 text-center">
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
+          
+          <div className="relative z-10 max-w-2xl mx-auto space-y-8">
+            <div className="text-6xl mb-6">🚀</div>
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white">
               Ekibimize Katılmak İster Misiniz?
             </h2>
-            <p className="text-slate-600 dark:text-slate-400 mb-6 max-w-2xl mx-auto">
+            <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
               Psikoloji alanında kendini geliştirmek, deneyim kazanmak ve topluluk çalışmalarına 
               katkı sağlamak istiyorsan ekibimizin bir parçası olabilirsin.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button>
+              <Button size="lg" className="group">
+                <Users className="h-5 w-5 mr-2 group-hover:rotate-12 transition-transform duration-200" />
                 Üyelik Başvurusu Yap
               </Button>
-              <Button variant="outline">
+              <Button variant="outline" size="lg" className="group">
+                <Mail className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform duration-200" />
                 Detaylı Bilgi Al
               </Button>
             </div>
           </div>
-        </main>
-
-        <Footer />
-      </div>
-    </ThemeProvider>
+        </div>
+      </section>
+    </PageContainer>
   );
 };
 

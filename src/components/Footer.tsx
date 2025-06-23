@@ -154,7 +154,7 @@ const Footer = () => {
 
         <div className="mt-8 pt-8 border-t border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-center">
           <p className="text-slate-600 dark:text-slate-400 text-sm flex items-center gap-1">
-            © 2024 BAİBÜ Psikoloji Öğrencileri Topluluğu. Tüm hakları saklıdır. <span className="text-red-500 text-lg">♥</span> aşk ile yapıldı.
+            © 2024 BAİBÜ Psikoloji Öğrencileri Topluluğu. Tüm hakları saklıdır. <span className="text-red-500 text-lg">♥</span> ile yapıldı.
           </p>
           <div className="mt-4 sm:mt-0 flex items-center space-x-4">
             <span className="text-sm text-slate-600 dark:text-slate-400">Tema:</span>

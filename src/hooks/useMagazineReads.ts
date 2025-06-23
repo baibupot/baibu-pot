@@ -1,60 +1,35 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 
 export const useMagazineReads = (magazineId: string) => {
   const [readCount, setReadCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!magazineId) return;
+    if (!magazineId || magazineId === 'unknown') {
+      setLoading(false);
+      return;
+    }
 
-    const fetchReadCount = async () => {
-      try {
-        // Get current read count from magazine_issues table
-        const { data, error } = await supabase
-          .from('magazine_issues')
-          .select('read_count')
-          .eq('id', magazineId)
-          .single();
-
-        if (error && error.code !== 'PGRST116') {
-          console.error('Error fetching read count:', error);
-          return;
-        }
-
-        setReadCount(data?.read_count || 0);
-      } catch (error) {
-        console.error('Error fetching read count:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchReadCount();
+    // localStorage'dan okunma sayısını al
+    const storageKey = `magazine_reads_${magazineId}`;
+    const savedCount = localStorage.getItem(storageKey);
+    if (savedCount) {
+      setReadCount(parseInt(savedCount, 10));
+    }
+    
+    setLoading(false);
   }, [magazineId]);
 
-  const incrementReadCount = async () => {
-    try {
-      // Update read count in magazine_issues table
-      const { data, error } = await supabase
-        .from('magazine_issues')
-        .update({
-          read_count: readCount + 1
-        })
-        .eq('id', magazineId)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error updating read count:', error);
-        return;
-      }
-
-      setReadCount(data.read_count);
-    } catch (error) {
-      console.error('Error incrementing read count:', error);
-    }
+  const incrementReadCount = () => {
+    if (!magazineId || magazineId === 'unknown') return;
+    
+    const newCount = readCount + 1;
+    setReadCount(newCount);
+    
+    // localStorage'a kaydet
+    const storageKey = `magazine_reads_${magazineId}`;
+    localStorage.setItem(storageKey, newCount.toString());
   };
 
   return { readCount, loading, incrementReadCount };
@@ -65,28 +40,34 @@ export const useAllMagazineReads = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchAllReads = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('magazine_issues')
-          .select('id, title, issue_number, read_count, updated_at')
-          .not('read_count', 'is', null)
-          .order('read_count', { ascending: false });
-
-        if (error) {
-          console.error('Error fetching all reads:', error);
-          return;
+    // localStorage'dan tüm dergi okuma verilerini topla
+    const getAllReadsFromStorage = () => {
+      const allReads: any[] = [];
+      
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('magazine_reads_')) {
+          const magazineId = key.replace('magazine_reads_', '');
+          const readCount = parseInt(localStorage.getItem(key) || '0', 10);
+          
+          if (readCount > 0) {
+            allReads.push({
+              id: magazineId,
+              title: `Dergi ${magazineId}`,
+              read_count: readCount,
+              updated_at: new Date().toISOString()
+            });
+          }
         }
-
-        setReads(data || []);
-      } catch (error) {
-        console.error('Error fetching all reads:', error);
-      } finally {
-        setLoading(false);
       }
+      
+      // Okunma sayısına göre sırala
+      allReads.sort((a, b) => b.read_count - a.read_count);
+      setReads(allReads);
+      setLoading(false);
     };
 
-    fetchAllReads();
+    getAllReadsFromStorage();
   }, []);
 
   return { reads, loading };

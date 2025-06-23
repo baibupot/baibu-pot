@@ -20,12 +20,12 @@ import {
   ClipboardList,
   GraduationCap,
   Eye,
-  Shield
+  Shield,
+  Package
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import NewsModal from '@/components/admin/NewsModal';
 import EventModal from '@/components/admin/EventModal';
 import MagazineModal from '@/components/admin/MagazineModal';
@@ -41,6 +41,13 @@ interface User {
   name?: string;
   userRoles?: string[]; // Changed from single role to array of roles
 }
+
+// Simple toast replacement with alert
+const toast = {
+  success: (message: string) => alert(`✅ ${message}`),
+  error: (message: string) => alert(`❌ ${message}`),
+  info: (message: string) => alert(`ℹ️ ${message}`)
+};
 
 const AdminDashboard = () => {
   const navigate = useNavigate();

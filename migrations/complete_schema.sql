@@ -258,6 +258,97 @@ CREATE TABLE public.products (
 );
 
 -- ====================================================================
+-- 2.1. DERGİ İSTATİSTİKLERİ VE KATKIDA BULUNANLAR TABLOLARI
+-- ====================================================================
+
+-- Magazine contributors tablosu (editör, yazar, illüstratör)
+CREATE TABLE public.magazine_contributors (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    magazine_issue_id UUID REFERENCES public.magazine_issues(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    role TEXT NOT NULL CHECK (role IN ('editor', 'author', 'illustrator', 'designer', 'translator')),
+    bio TEXT,
+    profile_image TEXT,
+    social_links JSONB, -- {linkedin: "", twitter: "", instagram: ""}
+    sort_order INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Magazine sponsors tablosu (dergi sayısına özel sponsorlar)
+CREATE TABLE public.magazine_sponsors (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    magazine_issue_id UUID REFERENCES public.magazine_issues(id) ON DELETE CASCADE,
+    sponsor_id UUID REFERENCES public.sponsors(id) ON DELETE CASCADE,
+    sponsorship_type TEXT NOT NULL DEFAULT 'sponsor' CHECK (sponsorship_type IN (
+        'main_sponsor', 'sponsor', 'supporter', 'media_partner'
+    )),
+    logo_placement TEXT DEFAULT 'back_cover' CHECK (logo_placement IN (
+        'front_cover', 'back_cover', 'inside_cover', 'content_page'
+    )),
+    sort_order INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(magazine_issue_id, sponsor_id)
+);
+
+-- Magazine reads tablosu (SADECE ADMİN İÇİN - dergi okuma istatistikleri)
+CREATE TABLE public.magazine_reads (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    magazine_issue_id UUID REFERENCES public.magazine_issues(id) ON DELETE CASCADE,
+    reader_ip TEXT, -- IP tabanlı takip (anonim)
+    reader_location TEXT, -- Ülke/şehir bilgisi (opsiyonel)
+    device_type TEXT CHECK (device_type IN ('desktop', 'mobile', 'tablet')),
+    browser_info TEXT,
+    reading_duration INTEGER, -- Saniye cinsinden okuma süresi
+    pages_read INTEGER DEFAULT 0, -- Kaç sayfa okundu
+    completed_reading BOOLEAN DEFAULT false, -- Sonuna kadar okundu mu
+    referrer_url TEXT, -- Nereden geldi
+    session_id TEXT, -- Aynı oturumda birden fazla okuma kontrolü için
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Magazine page reads tablosu (SADECE ADMİN İÇİN - sayfa bazında okuma takibi)
+CREATE TABLE public.magazine_page_reads (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    magazine_read_id UUID REFERENCES public.magazine_reads(id) ON DELETE CASCADE,
+    magazine_issue_id UUID REFERENCES public.magazine_issues(id) ON DELETE CASCADE,
+    page_number INTEGER NOT NULL,
+    time_spent INTEGER DEFAULT 0, -- Saniye cinsinden sayfada geçirilen süre
+    scroll_percentage INTEGER DEFAULT 0, -- Sayfanın yüzde kaçı görüldü
+    zoom_level DECIMAL(4,2) DEFAULT 1.0, -- Yakınlaştırma seviyesi
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Article submissions tablosu (dergi için makale başvuruları)
+CREATE TABLE public.article_submissions (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    title TEXT NOT NULL,
+    abstract TEXT NOT NULL,
+    category TEXT NOT NULL CHECK (category IN (
+        'arastirma', 'derleme', 'vaka_sunumu', 'kitap_inceleme', 'roportaj'
+    )),
+    author_name TEXT NOT NULL,
+    author_email TEXT NOT NULL,
+    author_affiliation TEXT, -- Kurum/üniversite
+    co_authors TEXT[], -- Ortak yazarlar
+    keywords TEXT[], -- Anahtar kelimeler
+    word_count INTEGER,
+    file_url TEXT, -- Makale dosyası
+    cover_letter TEXT, -- Kapak mektubu
+    status TEXT DEFAULT 'submitted' CHECK (status IN (
+        'submitted', 'under_review', 'revision_requested', 'accepted', 'rejected', 'published'
+    )),
+    reviewer_comments TEXT,
+    target_issue INTEGER, -- Hangi sayı için gönderildi
+    submission_date DATE DEFAULT CURRENT_DATE,
+    review_deadline DATE,
+    decision_date DATE,
+    assigned_reviewer UUID REFERENCES public.users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ====================================================================
 -- 3. TRİGGER FONKSİYONLARI
 -- ====================================================================
 
@@ -315,6 +406,8 @@ CREATE TRIGGER handle_updated_at_internships BEFORE UPDATE ON public.internships
 CREATE TRIGGER handle_updated_at_surveys BEFORE UPDATE ON public.surveys FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER handle_updated_at_comments BEFORE UPDATE ON public.comments FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER handle_updated_at_products BEFORE UPDATE ON public.products FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+CREATE TRIGGER handle_updated_at_magazine_contributors BEFORE UPDATE ON public.magazine_contributors FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+CREATE TRIGGER handle_updated_at_article_submissions BEFORE UPDATE ON public.article_submissions FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
 -- ====================================================================
 -- 5. RLS POLİTİKALARI - GÜVENLİ VE ESNEk
@@ -336,6 +429,11 @@ ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.form_fields ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.form_responses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.magazine_contributors ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.magazine_sponsors ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.magazine_reads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.magazine_page_reads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.article_submissions ENABLE ROW LEVEL SECURITY;
 
 -- *** ESNEk VE GÜVENLİ POLİTİKALAR ***
 
@@ -402,6 +500,29 @@ CREATE POLICY "form_responses_all_policy" ON public.form_responses FOR ALL USING
 CREATE POLICY "products_select_policy" ON public.products FOR SELECT USING (true);
 CREATE POLICY "products_all_policy" ON public.products FOR ALL USING (auth.uid() IS NOT NULL);
 
+-- Magazine contributors politikaları
+CREATE POLICY "magazine_contributors_select_policy" ON public.magazine_contributors FOR SELECT USING (true);
+CREATE POLICY "magazine_contributors_all_policy" ON public.magazine_contributors FOR ALL USING (auth.uid() IS NOT NULL);
+
+-- Magazine sponsors politikaları
+CREATE POLICY "magazine_sponsors_select_policy" ON public.magazine_sponsors FOR SELECT USING (true);
+CREATE POLICY "magazine_sponsors_all_policy" ON public.magazine_sponsors FOR ALL USING (auth.uid() IS NOT NULL);
+
+-- Magazine reads politikaları (SADECE ADMİN ERİŞİMİ)
+CREATE POLICY "magazine_reads_insert_anonymous" ON public.magazine_reads FOR INSERT WITH CHECK (true);
+CREATE POLICY "magazine_reads_select_admin_only" ON public.magazine_reads FOR SELECT USING (auth.uid() IS NOT NULL);
+CREATE POLICY "magazine_reads_all_admin_only" ON public.magazine_reads FOR ALL USING (auth.uid() IS NOT NULL);
+
+-- Magazine page reads politikaları (SADECE ADMİN ERİŞİMİ)
+CREATE POLICY "magazine_page_reads_insert_anonymous" ON public.magazine_page_reads FOR INSERT WITH CHECK (true);
+CREATE POLICY "magazine_page_reads_select_admin_only" ON public.magazine_page_reads FOR SELECT USING (auth.uid() IS NOT NULL);
+CREATE POLICY "magazine_page_reads_all_admin_only" ON public.magazine_page_reads FOR ALL USING (auth.uid() IS NOT NULL);
+
+-- Article submissions politikaları
+CREATE POLICY "article_submissions_insert_policy" ON public.article_submissions FOR INSERT WITH CHECK (true);
+CREATE POLICY "article_submissions_select_own" ON public.article_submissions FOR SELECT USING (auth.uid() IS NOT NULL);
+CREATE POLICY "article_submissions_all_policy" ON public.article_submissions FOR ALL USING (auth.uid() IS NOT NULL);
+
 -- ====================================================================
 -- 6. YETKİLERİ AYARLA
 -- ====================================================================
@@ -442,6 +563,16 @@ INSERT INTO public.products (name, description, category, price, currency, featu
 ('BAİBÜ PÖT Bardak', 'Termal içecek bardağı', 'aksesuar', 35.00, 'TL', ARRAY['Termal özellik', 'BPA içermez', 'Kapak dahil'], true, 'available', 4),
 ('BAİBÜ PÖT Defter', 'A5 boyutunda çizgili defter', 'kirtasiye', 25.00, 'TL', ARRAY['120 sayfa', 'Kaliteli kağıt', 'Sert kapak'], true, 'available', 5);
 
+-- Örnek dergi katkıda bulunanları
+INSERT INTO public.magazine_contributors (magazine_issue_id, name, role, bio, sort_order) VALUES
+((SELECT id FROM public.magazine_issues WHERE issue_number = 12), 'Dr. Ayşe Demir', 'editor', 'Klinik Psikoloji Uzmanı, BAİBÜ Öğretim Üyesi', 1),
+((SELECT id FROM public.magazine_issues WHERE issue_number = 12), 'Mehmet Yılmaz', 'author', 'Psikoloji 4. sınıf öğrencisi', 2),
+((SELECT id FROM public.magazine_issues WHERE issue_number = 12), 'Zeynep Kaya', 'illustrator', 'Grafik Tasarım Uzmanı', 3);
+
+-- Örnek makale başvurusu
+INSERT INTO public.article_submissions (title, abstract, category, author_name, author_email, author_affiliation, keywords, status, target_issue) VALUES
+('Üniversite Öğrencilerinde Stres ve Başa Çıkma Yöntemleri', 'Bu çalışma üniversite öğrencilerinin stres düzeyleri ve başa çıkma stratejileri arasındaki ilişkiyi incelemektedir.', 'arastirma', 'Fatma Özkan', 'fatma.ozkan@email.com', 'BAİBÜ Psikoloji Bölümü', ARRAY['stres', 'başa çıkma', 'üniversite öğrencileri'], 'submitted', 13);
+
 -- ====================================================================
 -- 8. DEBUG FONKSİYONU
 -- ====================================================================
@@ -479,6 +610,29 @@ $$;
 -- 4. Artık tüm CRUD işlemleri çalışacak!
 
 -- Son kontrol: Tablo sayısını göster
-SELECT 'Schema kurulumu tamamlandı! Toplam tablo sayısı: ' || count(*) as message
+SELECT 'Schema kurulumu tamamlandı! Toplam tablo sayısı: ' || count(*) || ' (Dergi istatistikleri dahil)' as message
 FROM information_schema.tables 
-WHERE table_schema = 'public' AND table_type = 'BASE TABLE'; 
+WHERE table_schema = 'public' AND table_type = 'BASE TABLE';
+
+-- ====================================================================
+-- 10. YENİ ÖZELLIKLER HAKKINDA
+-- ====================================================================
+
+-- ✅ Yeni eklenen dergi sistemi tabloları:
+-- 1. magazine_contributors: Editör, yazar, illüstratör bilgileri
+-- 2. magazine_sponsors: Dergi sayısına özel sponsor sistemi
+-- 3. magazine_reads: Dergi okuma istatistikleri (SADECE ADMİN)
+-- 4. magazine_page_reads: Sayfa bazında okuma takibi (SADECE ADMİN)
+-- 5. article_submissions: Makale gönderim ve değerlendirme sistemi
+
+-- 📊 İstatistik özellikleri:
+-- - IP tabanlı anonim takip
+-- - Cihaz tipi, tarayıcı, konum bilgisi
+-- - Okuma süresi ve sayfa sayısı
+-- - Tamamlama oranları
+-- - Sayfa bazında detaylı analiz
+
+-- 🔒 Güvenlik:
+-- - İstatistik tabloları sadece giriş yapmış kullanıcılar tarafından görülebilir
+-- - Normal okuyucular istatistikleri göremez
+-- - Admin panelinde detaylı raporlar sunulacak 
