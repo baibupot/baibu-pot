@@ -180,14 +180,16 @@ const MagazineModal = ({ isOpen, onClose, onSave, initialData }: MagazineModalPr
   }, [initialData, isOpen]);
 
   const handleInputChange = (field: keyof Magazine, value: any) => {
-    // Issue number için özel kontrol
+    // Issue number için özel kontrol - sadece pozitif sayılara izin ver
     if (field === 'issue_number') {
       const numValue = parseInt(value, 10);
-      if (isNaN(numValue) || numValue < 1) {
+      // Boş değer ise 1 yap, geçerli sayı ise o sayıyı kullan
+      if (value === '' || value === null || value === undefined) {
         setFormData(prev => ({ ...prev, [field]: 1 }));
-      } else {
+      } else if (!isNaN(numValue) && numValue > 0) {
         setFormData(prev => ({ ...prev, [field]: numValue }));
       }
+      // Geçersiz değer ise hiçbir şey yapma (önceki değer korunur)
     } else {
       setFormData(prev => ({ ...prev, [field]: value }));
     }
@@ -248,7 +250,6 @@ const MagazineModal = ({ isOpen, onClose, onSave, initialData }: MagazineModalPr
     }
 
     const fileSizeMB = (pdfFile.size / 1024 / 1024).toFixed(2);
-    console.log(`🔄 PDF sayfa sayfa işlenecek: ${pdfFile.name} (${fileSizeMB}MB)`);
 
     // PDF'i sayfa sayfa GitHub'a yükle
     const result = await processPdfToGitHubPages(
@@ -266,7 +267,6 @@ const MagazineModal = ({ isOpen, onClose, onSave, initialData }: MagazineModalPr
     if (result.success && result.uploadedPages.length > 0) {
       // Metadata URL'ini return et (frontend bundan sayfa URL'lerini okuyacak)
       const metadataUrl = `https://raw.githubusercontent.com/${githubConfig.owner}/${githubConfig.repo}/${githubConfig.branch}/magazines/issue-${formData.issue_number}/metadata.json`;
-      console.log(`✅ PDF sayfa sayfa yüklendi: ${result.totalPages} sayfa, metadata: ${metadataUrl}`);
       return metadataUrl;
     } else {
       throw new Error(result.error || 'PDF sayfa ayırma başarısız');

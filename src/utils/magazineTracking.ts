@@ -53,24 +53,18 @@ export const trackMagazineRead = async (
       session_id: sessionId,
     };
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('magazine_reads')
-      .insert([readData]);
+      .insert([readData])
+      .select()
+      .single();
 
     if (error) {
-      console.error('Dergi okuma istatistiği kaydedilemedi:', error);
       return false;
     }
 
-    console.log('📊 Dergi okuma istatistiği kaydedildi:', {
-      magazineId: magazineIssueId,
-      device: getDeviceType(),
-      duration: readingDuration ? `${Math.round(readingDuration / 60)}dk` : 'Belirtilmedi'
-    });
-
     return true;
   } catch (error) {
-    console.error('Tracking hatası:', error);
     return false;
   }
 };
@@ -126,18 +120,18 @@ export const trackSimplePageRead = async (
       zoom_level: 1.0,
     };
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('magazine_page_reads')
-      .insert([pageReadData]);
+      .insert([pageReadData])
+      .select()
+      .single();
 
     if (error) {
-      console.error('Basit sayfa tracking hatası:', error);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Basit sayfa tracking hatası:', error);
     return false;
   }
 };

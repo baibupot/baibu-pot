@@ -122,7 +122,6 @@ const DergiDetay = () => {
 
         // Gizli istatistik tracking başlat (sayfa yüklendiğinde)
         if (data.pdf_file) {
-          // Hiç ses çıkarmadan tracking başlat
           startReadingSession(data.id);
         }
 
@@ -148,12 +147,15 @@ const DergiDetay = () => {
     const handleBeforeUnload = () => {
       if (readingStartTime) {
         const duration = Date.now() - readingStartTime;
-        // Async olmayan şekilde hızlıca kaydet
-        navigator.sendBeacon('/api/magazine-read', JSON.stringify({
-          magazineId,
-          duration,
-          completed: false
-        }));
+        // Beacon API ile tracking (sync)
+        const payload = JSON.stringify({
+          magazine_issue_id: magazineId,
+          reading_duration: duration,
+          completed_reading: false,
+          session_id: sessionId,
+          device_type: navigator.userAgent.includes('Mobile') ? 'mobile' : 'desktop'
+        });
+        navigator.sendBeacon('/api/magazine-read', payload);
       }
     };
 
@@ -171,7 +173,9 @@ const DergiDetay = () => {
   
   // Okuma sonu tracking
   const endReadingSession = async (pagesRead?: number, completed = false) => {
-    if (!readingStartTime || !magazine?.id) return;
+    if (!readingStartTime || !magazine?.id) {
+      return;
+    }
     
     const duration = Date.now() - readingStartTime;
     
@@ -184,8 +188,7 @@ const DergiDetay = () => {
         completed
       );
     } catch (error) {
-      // Sessizce hata yakala, kullanıcıya gösterme
-      console.debug('Analytics error:', error);
+      // Sessizce hata yakala
     }
     
     setReadingStartTime(null);
@@ -238,7 +241,7 @@ const DergiDetay = () => {
           setPdfProcessProgress(100);
           setPdfProcessing(false);
           
-          console.log(`✅ Sayfa sayfa dergi yüklendi: ${pageUrls.length} sayfa (metadata sistemi)`);
+
           
         } else {
           throw new Error('Sayfa URL\'leri yüklenemedi');
@@ -252,8 +255,7 @@ const DergiDetay = () => {
         setPdfProcessProgress(100);
         setPdfProcessing(false);
         
-        console.log('⚠️ Legacy PDF sistemi: Tek dosya olarak görüntülenecek');
-        console.log('💡 Daha iyi deneyim için admin panelinden sayfa sayfa yükleyin');
+
       }
       // 🌐 DİREKT URL: Harici PDF linkler
       else {
@@ -332,7 +334,6 @@ const DergiDetay = () => {
           onPageChange={(page) => {
             // 🆕 Yeni sistemde preload gereksiz - tüm sayfalar zaten hazır!
             // Sadece analytics için sayfa tracking yapılıyor
-            console.debug(`📖 Sayfa ${page + 1} görüntüleniyor`);
           }}
         />
       </div>

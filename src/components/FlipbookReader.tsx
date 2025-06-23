@@ -76,10 +76,10 @@ const FlipbookReader: React.FC<FlipbookReaderProps> = ({ pages, title, magazineI
       
       // En az 2 saniye bakılmışsa gerçek okuma sayılır
       if (readingDuration >= 2000) {
-                 // Gizlice veritabanına kaydet
-         trackSimplePageRead(magazineId, prevPage + 1, readingDuration).catch(() => {
-           // Hata olursa sessizce geç, kullanıcıya gösterme
-         });
+        // Gizlice veritabanına kaydet
+        trackSimplePageRead(magazineId, prevPage + 1, readingDuration).catch(() => {
+          // Hata olursa sessizce geç
+        });
         
         // Bu sayfayı gerçekten okumuş olarak işaretle
         setViewedPages(prev => new Set([...prev, prevPage]));
@@ -120,7 +120,7 @@ const FlipbookReader: React.FC<FlipbookReaderProps> = ({ pages, title, magazineI
         const readingDuration = Date.now() - pageStartTimes[currentPage];
         if (readingDuration >= 2000) {
           trackSimplePageRead(magazineId, currentPage + 1, readingDuration).catch(() => {
-            // Sessizce geç
+            // Sessizce hata yakala
           });
         }
       }
