@@ -527,65 +527,104 @@ const DergiDetay = () => {
               </CardContent>
             </Card>
 
-            {/* Contributors Bölümü - YENİ ÖZELLİK */}
+            {/* Contributors Bölümü - GELİŞMİŞ PROFIL SİSTEMİ */}
             {contributors.length > 0 && (
               <Card className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-purple-200 dark:border-purple-800">
                 <CardContent className="p-4">
-                  <h4 className="font-medium text-purple-800 dark:text-purple-200 mb-3 flex items-center">
-                    👥 Katkıda Bulunanlar ({contributors.length})
+                  <h4 className="font-medium text-purple-800 dark:text-purple-200 mb-4 flex items-center">
+                    👥 Bu Sayıda Katkıda Bulunanlar ({contributors.length})
                   </h4>
-                  <div className="space-y-3">
+                  <div className="grid grid-cols-1 gap-4">
                     {contributors.map((contributor) => (
-                      <div key={contributor.id} className="flex items-start gap-3 p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                        {contributor.profile_image ? (
-                          <img 
-                            src={contributor.profile_image} 
-                            alt={contributor.name}
-                            className="w-10 h-10 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
-                            <span className="text-purple-600 dark:text-purple-300 font-medium text-sm">
-                              {contributor.name.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                        )}
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium text-gray-900 dark:text-gray-100">
-                              {contributor.name}
-                            </span>
-                            <Badge variant="outline" className="text-xs">
-                              {contributor.role === 'editor' ? 'Editör' :
-                               contributor.role === 'author' ? 'Yazar' :
-                               contributor.role === 'illustrator' ? 'İllüstratör' :
-                               contributor.role === 'designer' ? 'Tasarımcı' :
-                               contributor.role === 'translator' ? 'Çevirmen' : contributor.role}
-                            </Badge>
-                          </div>
-                          {contributor.bio && (
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                              {contributor.bio}
-                            </p>
-                          )}
-                          {contributor.social_links && Object.keys(contributor.social_links as any).length > 0 && (
-                            <div className="flex gap-2 text-xs">
-                              {Object.entries(contributor.social_links as any).map(([platform, link]) => (
-                                <a 
-                                  key={platform}
-                                  href={link as string}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-purple-600 dark:text-purple-400 hover:underline"
-                                >
-                                  {platform === 'linkedin' ? '💼 LinkedIn' :
-                                   platform === 'twitter' ? '🐦 Twitter' :
-                                   platform === 'instagram' ? '📷 Instagram' : 
-                                   platform === 'email' ? '✉️ Email' : platform}
-                                </a>
-                              ))}
+                      <div key={contributor.id} className="bg-white/70 dark:bg-gray-800/70 rounded-lg p-4 border border-purple-200 dark:border-purple-700 hover:shadow-md transition-all duration-200">
+                        {/* Profil Başlığı */}
+                        <div className="flex items-start gap-4 mb-3">
+                          {contributor.profile_image ? (
+                            <div className="relative">
+                              <img 
+                                src={contributor.profile_image} 
+                                alt={contributor.name}
+                                className="w-16 h-16 rounded-full object-cover border-3 border-purple-300 dark:border-purple-600"
+                                onError={(e) => {
+                                  // Fallback to initials if image fails to load
+                                  e.currentTarget.style.display = 'none';
+                                  const fallback = e.currentTarget.nextElementSibling;
+                                  if (fallback) fallback.classList.remove('hidden');
+                                }}
+                              />
+                              <div className="hidden w-16 h-16 bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-800 dark:to-purple-700 rounded-full flex items-center justify-center border-3 border-purple-300 dark:border-purple-600">
+                                <span className="text-purple-700 dark:text-purple-300 font-bold text-xl">
+                                  {contributor.name.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-800 dark:to-purple-700 rounded-full flex items-center justify-center border-3 border-purple-300 dark:border-purple-600">
+                              <span className="text-purple-700 dark:text-purple-300 font-bold text-xl">
+                                {contributor.name.charAt(0).toUpperCase()}
+                              </span>
                             </div>
                           )}
+                          
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              <h5 className="font-semibold text-lg text-purple-800 dark:text-purple-200">
+                                {contributor.name}
+                              </h5>
+                              <Badge variant="secondary" className="bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-200">
+                                {contributor.role === 'editor' ? '✏️ Editör' :
+                                 contributor.role === 'author' ? '📝 Yazar' :
+                                 contributor.role === 'illustrator' ? '🎨 İllüstratör' :
+                                 contributor.role === 'designer' ? '🖌️ Tasarımcı' :
+                                 contributor.role === 'translator' ? '🌐 Çevirmen' : contributor.role}
+                              </Badge>
+                            </div>
+                            
+                            {contributor.bio && (
+                              <div className="mb-3">
+                                <p className="text-sm text-purple-700 dark:text-purple-300 leading-relaxed">
+                                  {contributor.bio.length > 150 ? 
+                                    `${contributor.bio.substring(0, 150)}...` : 
+                                    contributor.bio}
+                                </p>
+                              </div>
+                            )}
+
+                            {/* Sosyal Medya Linkleri - Gelişmiş */}
+                            {contributor.social_links && Object.keys(contributor.social_links as any).length > 0 && (
+                              <div className="flex flex-wrap gap-2">
+                                {Object.entries(contributor.social_links as any).map(([platform, link]) => {
+                                  if (!link || link === '') return null;
+                                  
+                                  const socialConfig = {
+                                    linkedin: { icon: '💼', label: 'LinkedIn', bgColor: 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700' },
+                                    twitter: { icon: '🐦', label: 'Twitter', bgColor: 'bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-700' },
+                                    instagram: { icon: '📷', label: 'Instagram', bgColor: 'bg-pink-50 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 border-pink-200 dark:border-pink-700' },
+                                    github: { icon: '💻', label: 'GitHub', bgColor: 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700' },
+                                    email: { icon: '📧', label: 'Email', bgColor: 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-700' },
+                                    website: { icon: '🌐', label: 'Website', bgColor: 'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-700' }
+                                  };
+                                  
+                                  const config = socialConfig[platform as keyof typeof socialConfig] || 
+                                    { icon: '🔗', label: platform, bgColor: 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700' };
+                                  
+                                  return (
+                                    <a
+                                      key={platform}
+                                      href={platform === 'email' ? `mailto:${link}` : link as string}
+                                      target={platform !== 'email' ? '_blank' : undefined}
+                                      rel={platform !== 'email' ? 'noopener noreferrer' : undefined}
+                                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-200 hover:scale-105 hover:shadow-sm ${config.bgColor}`}
+                                      title={`${contributor.name} - ${config.label}`}
+                                    >
+                                      <span className="text-sm">{config.icon}</span>
+                                      <span className="capitalize font-medium">{config.label}</span>
+                                    </a>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}

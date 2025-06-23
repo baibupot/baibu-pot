@@ -1060,6 +1060,134 @@ const AdminDashboard = () => {
                           ))}
                         </div>
                       </div>
+
+                      {/* GELİŞMİŞ ANALYTICS - YENİ ÖZELLIK */}
+                      <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                        <h4 className="font-semibold mb-3 text-gray-900 dark:text-gray-100">📊 Gelişmiş Okuma Analitiği</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Konum Bazlı İstatistikler */}
+                          <div className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                            <h5 className="font-medium text-blue-800 dark:text-blue-300 mb-2">🌍 En Çok Okuyan Ülkeler</h5>
+                            <div className="space-y-1 text-sm">
+                              {(() => {
+                                const locations = magazineReads
+                                  ?.filter(read => read.reader_location)
+                                  .reduce((acc, read) => {
+                                    const loc = read.reader_location || 'Bilinmiyor';
+                                    acc[loc] = (acc[loc] || 0) + 1;
+                                    return acc;
+                                  }, {} as Record<string, number>) || {};
+                                
+                                return Object.entries(locations)
+                                  .sort(([,a], [,b]) => b - a)
+                                  .slice(0, 3)
+                                  .map(([location, count], index) => (
+                                    <div key={location} className="flex justify-between">
+                                      <span className="text-blue-700 dark:text-blue-300">#{index + 1} {location}</span>
+                                      <span className="font-medium text-blue-800 dark:text-blue-200">{count} okuma</span>
+                                    </div>
+                                  ));
+                              })()}
+                              {magazineReads?.filter(read => read.reader_location).length === 0 && (
+                                <div className="text-blue-600 dark:text-blue-400 text-xs">Henüz konum verisi yok</div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Tarayıcı Dağılımı */}
+                          <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+                            <h5 className="font-medium text-green-800 dark:text-green-300 mb-2">🌐 Tarayıcı Tercihleri</h5>
+                            <div className="space-y-1 text-sm">
+                              {(() => {
+                                const browsers = magazineReads
+                                  ?.filter(read => read.browser_info)
+                                  .reduce((acc, read) => {
+                                    const browser = read.browser_info?.includes('Chrome') ? 'Chrome' :
+                                                   read.browser_info?.includes('Firefox') ? 'Firefox' :
+                                                   read.browser_info?.includes('Safari') ? 'Safari' :
+                                                   read.browser_info?.includes('Edge') ? 'Edge' : 'Diğer';
+                                    acc[browser] = (acc[browser] || 0) + 1;
+                                    return acc;
+                                  }, {} as Record<string, number>) || {};
+                                
+                                return Object.entries(browsers)
+                                  .sort(([,a], [,b]) => b - a)
+                                  .slice(0, 3)
+                                  .map(([browser, count]) => (
+                                    <div key={browser} className="flex justify-between">
+                                      <span className="text-green-700 dark:text-green-300">{browser}</span>
+                                      <span className="font-medium text-green-800 dark:text-green-200">{count} okuma</span>
+                                    </div>
+                                  ));
+                              })()}
+                              {magazineReads?.filter(read => read.browser_info).length === 0 && (
+                                <div className="text-green-600 dark:text-green-400 text-xs">Henüz tarayıcı verisi yok</div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Trafik Kaynakları */}
+                          <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
+                            <h5 className="font-medium text-purple-800 dark:text-purple-300 mb-2">🔗 Trafik Kaynakları</h5>
+                            <div className="space-y-1 text-sm">
+                              {(() => {
+                                const referrers = magazineReads
+                                  ?.filter(read => read.referrer_url)
+                                  .reduce((acc, read) => {
+                                    const ref = read.referrer_url?.includes('ibu.edu.tr') ? 'İBU Web Sitesi' :
+                                               read.referrer_url?.includes('google') ? 'Google' :
+                                               read.referrer_url?.includes('instagram') ? 'Instagram' :
+                                               read.referrer_url?.includes('facebook') ? 'Facebook' : 'Diğer';
+                                    acc[ref] = (acc[ref] || 0) + 1;
+                                    return acc;
+                                  }, {} as Record<string, number>) || {};
+                                
+                                return Object.entries(referrers)
+                                  .sort(([,a], [,b]) => b - a)
+                                  .slice(0, 3)
+                                  .map(([referrer, count]) => (
+                                    <div key={referrer} className="flex justify-between">
+                                      <span className="text-purple-700 dark:text-purple-300">{referrer}</span>
+                                      <span className="font-medium text-purple-800 dark:text-purple-200">{count} okuma</span>
+                                    </div>
+                                  ));
+                              })()}
+                              {magazineReads?.filter(read => read.referrer_url).length === 0 && (
+                                <div className="text-purple-600 dark:text-purple-400 text-xs">Henüz referans verisi yok</div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Okuma Kalitesi */}
+                          <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800">
+                            <h5 className="font-medium text-orange-800 dark:text-orange-300 mb-2">📈 Okuma Kalitesi</h5>
+                            <div className="space-y-1 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-orange-700 dark:text-orange-300">Tamamlama Oranı</span>
+                                <span className="font-medium text-orange-800 dark:text-orange-200">
+                                  {magazineReads?.length > 0 ? 
+                                    Math.round((magazineReads.filter(read => read.completed_reading).length / magazineReads.length) * 100)
+                                    : 0}%
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-orange-700 dark:text-orange-300">Ortalama Sayfa</span>
+                                <span className="font-medium text-orange-800 dark:text-orange-200">
+                                  {magazineReads?.length > 0 ? 
+                                    Math.round(magazineReads.reduce((sum, read) => sum + (read.pages_read || 0), 0) / magazineReads.length)
+                                    : 0} sayfa
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-orange-700 dark:text-orange-300">Aktif Session</span>
+                                <span className="font-medium text-orange-800 dark:text-orange-200">
+                                  {new Set(magazineReads?.map(read => read.session_id).filter(Boolean)).size} benzersiz
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -1470,65 +1598,193 @@ const AdminDashboard = () => {
           initialData={editingItem}
         />
         
-        {/* Article Modals - YENİ */}
+        {/* Article Modals - GELİŞMİŞ DETAY MODAL */}
         <Dialog open={articleDetailModalOpen} onOpenChange={setArticleDetailModalOpen}>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-xl font-bold flex items-center gap-2">
                 <Eye className="h-5 w-5" />
-                Makale Detayları
+                📄 Makale Detayları - {selectedArticle?.title}
               </DialogTitle>
             </DialogHeader>
             
             {selectedArticle && (
               <div className="space-y-6 mt-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Başlık</label>
-                    <p className="text-lg font-semibold">{selectedArticle.title}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Yazar</label>
-                    <p className="text-lg">{selectedArticle.author_name}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Email</label>
-                    <p className="text-lg">{selectedArticle.author_email}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Kategori</label>
-                    <p className="text-lg">{selectedArticle.category}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Makale Tipi</label>
-                    <p className="text-lg">{selectedArticle.submission_type}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Kelime Sayısı</label>
-                    <p className="text-lg">{selectedArticle.word_count || 'Hesaplanmamış'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Gönderim Tarihi</label>
-                    <p className="text-lg">{selectedArticle.created_at && new Date(selectedArticle.created_at).toLocaleDateString('tr-TR')}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Durum</label>
-                    <p className="text-lg">Beklemede</p>
+                {/* Temel Bilgiler */}
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <h3 className="font-semibold text-blue-800 dark:text-blue-300 mb-3">📝 Temel Bilgiler</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-blue-600 dark:text-blue-400">Başlık</label>
+                      <p className="text-lg font-semibold text-blue-900 dark:text-blue-100">{selectedArticle.title}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-blue-600 dark:text-blue-400">Kategori</label>
+                      <Badge variant="outline" className="text-blue-800 border-blue-300">{selectedArticle.category}</Badge>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-blue-600 dark:text-blue-400">Durum</label>
+                      <Badge variant={selectedArticle.status === 'submitted' ? 'default' : 'secondary'}>
+                        {selectedArticle.status === 'submitted' ? '⏳ Beklemede' : 
+                         selectedArticle.status === 'accepted' ? '✅ Kabul' : 
+                         selectedArticle.status === 'rejected' ? '❌ Red' : '📝 İnceleniyor'}
+                      </Badge>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-blue-600 dark:text-blue-400">Kelime Sayısı</label>
+                      <p className="text-lg text-blue-900 dark:text-blue-100">{selectedArticle.word_count || 'Hesaplanmamış'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-blue-600 dark:text-blue-400">Gönderim Tarihi</label>
+                      <p className="text-lg text-blue-900 dark:text-blue-100">
+                        {selectedArticle.submission_date ? new Date(selectedArticle.submission_date).toLocaleDateString('tr-TR') :
+                         selectedArticle.created_at ? new Date(selectedArticle.created_at).toLocaleDateString('tr-TR') : 'Bilinmiyor'}
+                      </p>
+                    </div>
+                    {selectedArticle.target_issue && (
+                      <div>
+                        <label className="text-sm font-medium text-blue-600 dark:text-blue-400">Hedef Sayı</label>
+                        <p className="text-lg text-blue-900 dark:text-blue-100">Sayı {selectedArticle.target_issue}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
-                
-                {selectedArticle.author_bio && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Yazar Bio</label>
-                    <p className="text-sm bg-gray-50 dark:bg-gray-800 p-3 rounded">{selectedArticle.author_bio}</p>
+
+                {/* Yazar Bilgileri */}
+                <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+                  <h3 className="font-semibold text-green-800 dark:text-green-300 mb-3">👤 Yazar Bilgileri</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-green-600 dark:text-green-400">Yazar Adı</label>
+                      <p className="text-lg text-green-900 dark:text-green-100">{selectedArticle.author_name}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-green-600 dark:text-green-400">Email</label>
+                      <p className="text-lg text-green-900 dark:text-green-100">{selectedArticle.author_email}</p>
+                    </div>
+                    {selectedArticle.author_affiliation && (
+                      <div>
+                        <label className="text-sm font-medium text-green-600 dark:text-green-400">Kurum/Üniversite</label>
+                        <p className="text-lg text-green-900 dark:text-green-100">{selectedArticle.author_affiliation}</p>
+                      </div>
+                    )}
+                    {selectedArticle.co_authors && selectedArticle.co_authors.length > 0 && (
+                      <div>
+                        <label className="text-sm font-medium text-green-600 dark:text-green-400">Ortak Yazarlar</label>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {selectedArticle.co_authors.map((author: string, index: number) => (
+                            <Badge key={index} variant="outline" className="text-green-800 border-green-300">
+                              {author}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-                
-                <div>
-                  <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Makale İçeriği</label>
-                  <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg max-h-96 overflow-y-auto">
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed">{selectedArticle.content || selectedArticle.abstract || 'İçerik mevcut değil'}</p>
+                </div>
+
+                {/* Makale İçeriği */}
+                <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <h3 className="font-semibold text-gray-800 dark:text-gray-300 mb-3">📖 Makale İçeriği</h3>
+                  
+                  {selectedArticle.abstract && (
+                    <div className="mb-4">
+                      <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Özet</label>
+                      <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border mt-1">
+                        <p className="text-sm leading-relaxed">{selectedArticle.abstract}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedArticle.keywords && selectedArticle.keywords.length > 0 && (
+                    <div className="mb-4">
+                      <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Anahtar Kelimeler</label>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {selectedArticle.keywords.map((keyword: string, index: number) => (
+                          <Badge key={index} variant="secondary" className="text-xs">
+                            #{keyword}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedArticle.cover_letter && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Kapak Mektubu</label>
+                      <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border mt-1 max-h-32 overflow-y-auto">
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{selectedArticle.cover_letter}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* İnceleme Bilgileri */}
+                <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
+                  <h3 className="font-semibold text-purple-800 dark:text-purple-300 mb-3">🔍 İnceleme Bilgileri</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {selectedArticle.assigned_reviewer && (
+                      <div>
+                        <label className="text-sm font-medium text-purple-600 dark:text-purple-400">Atanan Hakem</label>
+                        <p className="text-lg text-purple-900 dark:text-purple-100">{selectedArticle.assigned_reviewer}</p>
+                      </div>
+                    )}
+                    {selectedArticle.review_deadline && (
+                      <div>
+                        <label className="text-sm font-medium text-purple-600 dark:text-purple-400">İnceleme Süresi</label>
+                        <p className="text-lg text-purple-900 dark:text-purple-100">
+                          {new Date(selectedArticle.review_deadline).toLocaleDateString('tr-TR')}
+                        </p>
+                      </div>
+                    )}
+                    {selectedArticle.decision_date && (
+                      <div>
+                        <label className="text-sm font-medium text-purple-600 dark:text-purple-400">Karar Tarihi</label>
+                        <p className="text-lg text-purple-900 dark:text-purple-100">
+                          {new Date(selectedArticle.decision_date).toLocaleDateString('tr-TR')}
+                        </p>
+                      </div>
+                    )}
+                    {selectedArticle.file_url && (
+                      <div>
+                        <label className="text-sm font-medium text-purple-600 dark:text-purple-400">Dosya</label>
+                        <Button variant="outline" size="sm" className="mt-1" onClick={() => window.open(selectedArticle.file_url, '_blank')}>
+                          <FileText className="h-4 w-4 mr-2" />
+                          Dosyayı Görüntüle
+                        </Button>
+                      </div>
+                    )}
                   </div>
+
+                  {selectedArticle.reviewer_comments && (
+                    <div className="mt-4">
+                      <label className="text-sm font-medium text-purple-600 dark:text-purple-400">Hakem Yorumları</label>
+                      <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border mt-1 max-h-32 overflow-y-auto">
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{selectedArticle.reviewer_comments}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer Buttons */}
+                <div className="flex justify-end gap-3 pt-4 border-t">
+                  <Button variant="outline" onClick={() => setArticleDetailModalOpen(false)}>
+                    ❌ Kapat
+                  </Button>
+                  <Button variant="outline" className="bg-blue-600 text-white hover:bg-blue-700">
+                    <Edit className="h-4 w-4 mr-2" />
+                    ✏️ Düzenle
+                  </Button>
+                  <Button 
+                    variant="destructive" 
+                    onClick={() => {
+                      setArticleDetailModalOpen(false);
+                      handleDeleteArticle(selectedArticle);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    🗑️ Sil
+                  </Button>
                 </div>
               </div>
             )}

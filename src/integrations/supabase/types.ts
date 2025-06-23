@@ -12,78 +12,77 @@ export type Database = {
       article_submissions: {
         Row: {
           id: string
-          magazine_issue_id: string | null
           title: string
+          abstract: string
+          category: string
           author_name: string
           author_email: string
-          author_bio: string | null
-          submission_type: string
-          category: string
-          content: string
+          author_affiliation: string | null
+          co_authors: string[] | null
           keywords: string[] | null
-          file_attachments: string[] | null
-          submission_status: string
-          reviewer_notes: string | null
-          reviewed_by: string | null
-          reviewed_at: string | null
-          submission_deadline: string | null
           word_count: number | null
+          file_url: string | null
+          cover_letter: string | null
+          status: string
+          reviewer_comments: string | null
+          target_issue: number | null
+          submission_date: string | null
+          review_deadline: string | null
+          decision_date: string | null
+          assigned_reviewer: string | null
           created_at: string | null
           updated_at: string | null
         }
         Insert: {
           id?: string
-          magazine_issue_id?: string | null
           title: string
+          abstract: string
+          category: string
           author_name: string
           author_email: string
-          author_bio?: string | null
-          submission_type: string
-          category: string
-          content: string
+          author_affiliation?: string | null
+          co_authors?: string[] | null
           keywords?: string[] | null
-          file_attachments?: string[] | null
-          submission_status?: string
-          reviewer_notes?: string | null
-          reviewed_by?: string | null
-          reviewed_at?: string | null
-          submission_deadline?: string | null
           word_count?: number | null
+          file_url?: string | null
+          cover_letter?: string | null
+          status?: string
+          reviewer_comments?: string | null
+          target_issue?: number | null
+          submission_date?: string | null
+          review_deadline?: string | null
+          decision_date?: string | null
+          assigned_reviewer?: string | null
           created_at?: string | null
           updated_at?: string | null
         }
         Update: {
           id?: string
-          magazine_issue_id?: string | null
           title?: string
+          abstract?: string
+          category?: string
           author_name?: string
           author_email?: string
-          author_bio?: string | null
-          submission_type?: string
-          category?: string
-          content?: string
+          author_affiliation?: string | null
+          co_authors?: string[] | null
           keywords?: string[] | null
-          file_attachments?: string[] | null
-          submission_status?: string
-          reviewer_notes?: string | null
-          reviewed_by?: string | null
-          reviewed_at?: string | null
-          submission_deadline?: string | null
           word_count?: number | null
+          file_url?: string | null
+          cover_letter?: string | null
+          status?: string
+          reviewer_comments?: string | null
+          target_issue?: number | null
+          submission_date?: string | null
+          review_deadline?: string | null
+          decision_date?: string | null
+          assigned_reviewer?: string | null
           created_at?: string | null
           updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "article_submissions_magazine_issue_id_fkey"
-            columns: ["magazine_issue_id"]
-            isOneToOne: false
-            referencedRelation: "magazine_issues"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "article_submissions_reviewed_by_fkey"
-            columns: ["reviewed_by"]
+            foreignKeyName: "article_submissions_assigned_reviewer_fkey"
+            columns: ["assigned_reviewer"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -576,7 +575,7 @@ export type Database = {
       magazine_page_reads: {
         Row: {
           id: string
-          magazine_read_id: string
+          magazine_read_id: string | null
           magazine_issue_id: string
           page_number: number
           time_spent: number | null
@@ -586,7 +585,7 @@ export type Database = {
         }
         Insert: {
           id?: string
-          magazine_read_id: string
+          magazine_read_id?: string | null
           magazine_issue_id: string
           page_number: number
           time_spent?: number | null
@@ -596,7 +595,7 @@ export type Database = {
         }
         Update: {
           id?: string
-          magazine_read_id?: string
+          magazine_read_id?: string | null
           magazine_issue_id?: string
           page_number?: number
           time_spent?: number | null
@@ -625,29 +624,32 @@ export type Database = {
         Row: {
           id: string
           magazine_issue_id: string
-          sponsor_id: string
+          sponsor_name: string
           sponsorship_type: string
-          logo_placement: string
+          logo_url: string | null
+          website_url: string | null
+          sort_order: number | null
           created_at: string | null
-          updated_at: string | null
         }
         Insert: {
           id?: string
           magazine_issue_id: string
-          sponsor_id: string
+          sponsor_name: string
           sponsorship_type: string
-          logo_placement: string
+          logo_url?: string | null
+          website_url?: string | null
+          sort_order?: number | null
           created_at?: string | null
-          updated_at?: string | null
         }
         Update: {
           id?: string
           magazine_issue_id?: string
-          sponsor_id?: string
+          sponsor_name?: string
           sponsorship_type?: string
-          logo_placement?: string
+          logo_url?: string | null
+          website_url?: string | null
+          sort_order?: number | null
           created_at?: string | null
-          updated_at?: string | null
         }
         Relationships: [
           {
@@ -655,13 +657,6 @@ export type Database = {
             columns: ["magazine_issue_id"]
             isOneToOne: false
             referencedRelation: "magazine_issues"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "magazine_sponsors_sponsor_id_fkey"
-            columns: ["sponsor_id"]
-            isOneToOne: false
-            referencedRelation: "sponsors"
             referencedColumns: ["id"]
           },
         ]
