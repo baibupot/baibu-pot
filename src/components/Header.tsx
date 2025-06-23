@@ -113,26 +113,26 @@ const Header = () => {
               variant="ghost"
               size="sm"
               onClick={toggleTheme}
-              className="p-1 sm:p-2"
+              className="p-2 sm:p-3"
             >
               {theme === 'light' ? (
-                <Moon className="h-3 w-3 sm:h-4 sm:w-4" />
+                <Moon className="h-4 w-4 sm:h-5 sm:w-5" />
               ) : (
-                <Sun className="h-3 w-3 sm:h-4 sm:w-4" />
+                <Sun className="h-4 w-4 sm:h-5 sm:w-5" />
               )}
             </Button>
 
             {/* Mobile menu button */}
             <Button
               variant="ghost"
-              size="sm"
+              size="icon"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="lg:hidden p-1 sm:p-2"
+              className="lg:hidden p-3 sm:p-4"
             >
               {isMenuOpen ? (
-                <X className="h-4 w-4 sm:h-5 sm:w-5" />
+                <X className="h-5 w-5 sm:h-6 sm:w-6" />
               ) : (
-                <Menu className="h-4 w-4 sm:h-5 sm:w-5" />
+                <Menu className="h-5 w-5 sm:h-6 sm:w-6" />
               )}
             </Button>
           </div>

@@ -17,6 +17,10 @@ import {
   type GitHubUploadResult 
 } from '../../utils/githubStorageHelper';
 import { 
+  processPdfToGitHubPages,
+  type PageUploadResult 
+} from '../../utils/pdfProcessor';
+import { 
   getGitHubStorageConfig, 
   isGitHubStorageConfigured,
   getGitHubConfigStatus 
@@ -89,6 +93,8 @@ const MagazineModal = ({ isOpen, onClose, onSave, initialData }: MagazineModalPr
   const [selectedPdfFile, setSelectedPdfFile] = useState<File | null>(null);
   const [selectedCoverFile, setSelectedCoverFile] = useState<File | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<{pdf?: string, cover?: string}>({});
+  
+  // 🆕 PDF her zaman sayfa sayfa yüklenir - 25MB limit yok, gerçek lazy loading
 
   useEffect(() => {
     const loadData = async () => {
@@ -210,7 +216,7 @@ const MagazineModal = ({ isOpen, onClose, onSave, initialData }: MagazineModalPr
       newErrors.description = 'Açıklama gerekli';
     }
     if (!formData.cover_image.trim() && !selectedCoverFile) {
-      newErrors.cover_image = 'Kapak resmi URL\'si veya dosyası gerekli';
+      newErrors.cover_image = 'Kapak resmi gerekli';
     }
     if (!formData.pdf_file.trim() && !selectedPdfFile) {
       newErrors.pdf_file = 'PDF dosya URL\'si veya dosyası gerekli';
@@ -219,29 +225,71 @@ const MagazineModal = ({ isOpen, onClose, onSave, initialData }: MagazineModalPr
       newErrors.issue_number = 'Sayı numarası 1\'den büyük olmalı';
     }
 
+    // Sponsor validasyonu - Eğer sponsor eklenmiş ise zorunlu alanları kontrol et
+    magazineSponsors.forEach((sponsor, index) => {
+      if (sponsor.sponsor_name.trim() && !sponsor.sponsorship_type.trim()) {
+        newErrors[`sponsor_${index}_type`] = `Sponsor ${index + 1} için sponsorluk türü seçin`;
+      }
+    });
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // Dosya yükleme fonksiyonu (GitHub arka planda)
-  const uploadFile = async (file: File, type: 'pdf' | 'cover'): Promise<string> => {
+  // PDF sayfa sayfa yükleme fonksiyonu
+  const uploadPdfAsPages = async (pdfFile: File): Promise<string> => {
     if (!githubConfig) {
       throw new Error('Dosya depolama sistemi yapılandırılmamış');
     }
 
-    const paths = createMagazinePaths(formData.issue_number);
-    const targetPath = type === 'pdf' ? paths.pdfPath : paths.coverPath;
-    
-    const result = await uploadFileObjectToGitHub(githubConfig, file, targetPath);
+    // PDF özel kontrolü
+    if (!pdfFile.type.includes('pdf')) {
+      throw new Error('Sadece PDF dosyaları kabul edilir');
+    }
+
+    const fileSizeMB = (pdfFile.size / 1024 / 1024).toFixed(2);
+    console.log(`🔄 PDF sayfa sayfa işlenecek: ${pdfFile.name} (${fileSizeMB}MB)`);
+
+    // PDF'i sayfa sayfa GitHub'a yükle
+    const result = await processPdfToGitHubPages(
+      pdfFile,
+      formData.issue_number,
+      formData.title || 'Dergi',
+      githubConfig,
+      uploadFileObjectToGitHub,
+      (progress, status) => {
+        setUploadProgress(25 + (progress * 0.5)); // %25-75 arası
+        setUploadStatus(status);
+      }
+    );
+
+    if (result.success && result.uploadedPages.length > 0) {
+      // Metadata URL'ini return et (frontend bundan sayfa URL'lerini okuyacak)
+      const metadataUrl = `https://raw.githubusercontent.com/${githubConfig.owner}/${githubConfig.repo}/${githubConfig.branch}/magazines/issue-${formData.issue_number}/metadata.json`;
+      console.log(`✅ PDF sayfa sayfa yüklendi: ${result.totalPages} sayfa, metadata: ${metadataUrl}`);
+      return metadataUrl;
+    } else {
+      throw new Error(result.error || 'PDF sayfa ayırma başarısız');
+    }
+  };
+
+  // Kapak resmi yükleme fonksiyonu  
+  const uploadCoverImage = async (file: File): Promise<string> => {
+    if (!githubConfig) {
+      throw new Error('Dosya depolama sistemi yapılandırılmamış');
+    }
+
+    const safePath = createMagazinePaths(formData.issue_number);
+    const result = await uploadFileObjectToGitHub(githubConfig, file, safePath.coverPath);
     
     if (result.success && result.rawUrl) {
       return result.rawUrl;
     } else {
-      throw new Error(result.error || 'Dosya yükleme başarısız');
+      throw new Error(result.error || 'Kapak resmi yükleme başarısız');
     }
   };
 
-  // Sponsor logo yükleme fonksiyonu - YENİ
+  // Sponsor logo yükleme fonksiyonu
   const uploadSponsorLogo = async (file: File, sponsorIndex: number): Promise<string> => {
     if (!githubConfig) {
       throw new Error('Dosya depolama sistemi yapılandırılmamış');
@@ -277,24 +325,22 @@ const MagazineModal = ({ isOpen, onClose, onSave, initialData }: MagazineModalPr
         // Kapak resmi yükleme
         if (selectedCoverFile) {
           setUploadStatus('📷 Kapak resmi yükleniyor...');
-          setUploadProgress(25);
+          setUploadProgress(10);
           
-          const coverUrl = await uploadFile(selectedCoverFile, 'cover');
+          const coverUrl = await uploadCoverImage(selectedCoverFile);
           finalFormData.cover_image = coverUrl;
           setUploadedFiles(prev => ({ ...prev, cover: coverUrl }));
           
-          currentProgress = 50;
-          setUploadProgress(currentProgress);
+          setUploadProgress(25);
         }
 
-        // PDF dosyası yükleme
+        // PDF sayfa sayfa yükleme - YENİ SİSTEM!
         if (selectedPdfFile) {
-          setUploadStatus('📄 PDF dosyası yükleniyor...');
-          setUploadProgress(currentProgress + 25);
+          setUploadStatus('📄 PDF sayfa sayfa işleniyor...');
           
-          const pdfUrl = await uploadFile(selectedPdfFile, 'pdf');
-          finalFormData.pdf_file = pdfUrl;
-          setUploadedFiles(prev => ({ ...prev, pdf: pdfUrl }));
+          const metadataUrl = await uploadPdfAsPages(selectedPdfFile);
+          finalFormData.pdf_file = metadataUrl; // Metadata URL'ini saklıyoruz
+          setUploadedFiles(prev => ({ ...prev, pdf: metadataUrl }));
           
           setUploadProgress(75);
         }
@@ -419,7 +465,7 @@ const MagazineModal = ({ isOpen, onClose, onSave, initialData }: MagazineModalPr
 
         // Yeni sponsors'ları ekle
         const sponsorsData = magazineSponsors
-          .filter(s => s.sponsor_name.trim()) // Boş sponsor_name'li olanları filtrele
+          .filter(s => s.sponsor_name.trim() && s.sponsorship_type.trim()) // Boş sponsor_name VE sponsorship_type olanları filtrele
           .map((sponsor, index) => ({
             magazine_issue_id: magazineId,
             sponsor_name: sponsor.sponsor_name.trim(),
@@ -606,15 +652,27 @@ const MagazineModal = ({ isOpen, onClose, onSave, initialData }: MagazineModalPr
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={(e) => setSelectedCoverFile(e.target.files?.[0] || null)}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    if (file && file.size > 25 * 1024 * 1024) {
+                      alert(`Dosya çok büyük! Maksimum 25MB olmalı. Seçilen dosya: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+                      e.target.value = '';
+                      return;
+                    }
+                    setSelectedCoverFile(file);
+                  }}
                   className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
                   disabled={isUploading}
                 />
                 {selectedCoverFile && (
-                  <p className="text-xs text-green-600 dark:text-green-400">
+                  <p className={`text-xs ${selectedCoverFile.size > 25 * 1024 * 1024 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                     ✓ {selectedCoverFile.name} seçildi ({(selectedCoverFile.size / 1024 / 1024).toFixed(2)} MB)
+                    {selectedCoverFile.size > 25 * 1024 * 1024 && ' ⚠️ Çok büyük!'}
                   </p>
                 )}
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  💡 Maksimum dosya boyutu: 25MB
+                </p>
               </div>
             )}
             
@@ -676,15 +734,28 @@ const MagazineModal = ({ isOpen, onClose, onSave, initialData }: MagazineModalPr
                 <input
                   type="file"
                   accept=".pdf"
-                  onChange={(e) => setSelectedPdfFile(e.target.files?.[0] || null)}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    // Sayfa-sayfa upload sisteminde boyut sınırı yok!
+                    // GitHub'a her sayfa ayrı küçük dosya olarak yükleniyor
+                    setSelectedPdfFile(file);
+                  }}
                   className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
                   disabled={isUploading}
                 />
                 {selectedPdfFile && (
                   <p className="text-xs text-green-600 dark:text-green-400">
                     ✓ {selectedPdfFile.name} seçildi ({(selectedPdfFile.size / 1024 / 1024).toFixed(2)} MB)
+                    <span className="block text-blue-600 dark:text-blue-400 mt-1">
+                      📄 Sayfa sayfa işlenecek (boyut sınırı yok!)
+                    </span>
                   </p>
                 )}
+                <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                  <p>💡 <strong>Yeni Sistem:</strong> PDF sayfa sayfa işlenir</p>
+                  <p>🚀 Avantajlar: Boyut sınırı yok, hızlı yükleme, çok daha iyi performans</p>
+                  <p>⚡ Her sayfa ayrı resim olarak yüklenir ve anında görüntülenir</p>
+                </div>
               </div>
             )}
             
@@ -935,17 +1006,25 @@ const MagazineModal = ({ isOpen, onClose, onSave, initialData }: MagazineModalPr
                   
                   <div>
                     <Label className="text-xs">Sponsorluk Tipi *</Label>
-                    <Input
+                    <select
                       value={sponsor.sponsorship_type}
                       onChange={(e) => {
                         const updated = [...magazineSponsors];
                         updated[index].sponsorship_type = e.target.value;
                         setMagazineSponsors(updated);
                       }}
-                      placeholder="Ana Sponsor, Destekçi, vs..."
-                      className="text-sm"
+                      className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-800"
                       disabled={isUploading}
-                    />
+                    >
+                      <option value="">Sponsorluk türü seçin...</option>
+                      <option value="main_sponsor">Ana Sponsor</option>
+                      <option value="sponsor">Sponsor</option>
+                      <option value="supporter">Destekçi</option>
+                      <option value="media_partner">Medya Partneri</option>
+                    </select>
+                    {errors[`sponsor_${index}_type`] && (
+                      <p className="text-red-500 text-xs mt-1">{errors[`sponsor_${index}_type`]}</p>
+                    )}
                   </div>
                 </div>
                 
@@ -1070,7 +1149,58 @@ const MagazineModal = ({ isOpen, onClose, onSave, initialData }: MagazineModalPr
               <li>• Yayınlanan dergiler anında web sitesinde görünür</li>
             </ul>
           </div>
+
+          {/* Büyük Dosya Uyarısı - YENİ */}
+          <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+            <h4 className="font-medium text-orange-800 dark:text-orange-200 mb-2 flex items-center gap-2">
+              ⚠️ Büyük PDF Dosyaları (25MB+)
+            </h4>
+            <div className="text-sm text-orange-700 dark:text-orange-300 space-y-2">
+              <p><strong>Problem:</strong> GitHub API limiti 25MB</p>
+              <p><strong>Çözüm:</strong> PDF Sıkıştırma</p>
+              
+              <div className="bg-orange-100 dark:bg-orange-900/50 p-3 rounded border border-orange-200 dark:border-orange-700">
+                <p className="font-medium mb-1">🔧 Önerilen Araçlar:</p>
+                <div className="space-y-1">
+                  <p>• <a href="https://smallpdf.com/compress-pdf" target="_blank" className="text-blue-600 dark:text-blue-400 underline">SmallPDF</a> - En popüler</p>
+                  <p>• <a href="https://www.ilovepdf.com/compress_pdf" target="_blank" className="text-blue-600 dark:text-blue-400 underline">ILovePDF</a> - Güçlü sıkıştırma</p>
+                  <p>• <a href="https://tools.pdf24.org/compress-pdf" target="_blank" className="text-blue-600 dark:text-blue-400 underline">PDF24</a> - Ücretsiz</p>
+                </div>
+              </div>
+              
+              <p className="text-orange-600 dark:text-orange-400 font-medium">
+                ✅ 65MB → 15-20MB (Kalite kaybı yok!)
+              </p>
+            </div>
+          </div>
         </div>
+
+        {/* Progress Bar ve Status - Upload sırasında göster */}
+        {isUploading && (
+          <div className="space-y-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+              <span className="font-medium text-blue-800 dark:text-blue-200">
+                {uploadStatus || 'İşleniyor...'}
+              </span>
+            </div>
+            
+            <div className="space-y-1">
+              <div className="flex justify-between text-sm text-blue-700 dark:text-blue-300">
+                <span>İlerleme</span>
+                <span>{uploadProgress}%</span>
+              </div>
+              <Progress 
+                value={uploadProgress} 
+                className="h-2 bg-blue-100 dark:bg-blue-900/50"
+              />
+            </div>
+            
+            <div className="text-xs text-blue-600 dark:text-blue-400">
+              💡 Lütfen sayfayı kapatmayın, dosyalar yükleniyor...
+            </div>
+          </div>
+        )}
 
         {/* Alt Butonlar */}
         <div className="flex gap-3 pt-6 border-t">

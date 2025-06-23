@@ -8,7 +8,7 @@ import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { ArrowLeft, Download, BookOpen } from 'lucide-react';
 import FlipbookReader from '../components/FlipbookReader';
-import { processGitHubPdfPages, getPdfPageCount } from '../utils/pdfProcessor';
+import { processGitHubPdfPages, getPdfPageCount, loadMagazinePageUrls } from '../utils/pdfProcessor';
 import { useMagazineContributors } from '../hooks/useSupabaseData';
 import { trackMagazineRead } from '../utils/magazineTracking';
 
@@ -38,8 +38,7 @@ const DergiDetay = () => {
   const [pdfProcessing, setPdfProcessing] = useState(false);
   const [pdfProcessProgress, setPdfProcessProgress] = useState(0);
   const [totalPdfPages, setTotalPdfPages] = useState(0);
-  const [loadedPageRanges, setLoadedPageRanges] = useState<Set<string>>(new Set());
-  const [currentlyLoading, setCurrentlyLoading] = useState<Set<string>>(new Set());
+  // Legacy state'ler kaldırıldı - yeni sistemde gerek yok
   
   // Gizli istatistik tracking için state'ler
   const [readingStartTime, setReadingStartTime] = useState<number | null>(null);
@@ -206,68 +205,10 @@ const DergiDetay = () => {
     return url;
   };
 
-  // Lazy loading için sayfa aralığı yükleme - DUPLICATE PREVENTION
-  const loadPageRange = async (pdfUrl: string, startPage: number, endPage: number) => {
-    const rangeKey = `${startPage}-${endPage}`;
-    
-    // Bu aralık zaten yüklenmişse veya yükleniyorsa atla
-    if (loadedPageRanges.has(rangeKey) || currentlyLoading.has(rangeKey)) {
-      return;
-    }
+  // 🗑️ Eski lazy loading sistemi kaldırıldı - yeni sistemde gereksiz
+  // Artık sayfa sayfa JPG'ler direkt yükleniyor, range request'e gerek yok
 
-    // Yükleme başlıyor olarak işaretle
-    setCurrentlyLoading(current => new Set(current).add(rangeKey));
-
-    try {
-      const result = await processGitHubPdfPages(pdfUrl, startPage, endPage);
-
-      if (result.success && result.pages.length > 0) {
-        // Mevcut sayfalara yeni sayfaları ekle
-        setFlipbookPages(currentPages => {
-          const newPages = [...currentPages];
-          
-          // Sayfa indekslerini ayarla (0-based)
-          for (let i = 0; i < result.pages.length; i++) {
-            const pageIndex = startPage - 1 + i; // PDF sayfa numarası 1-based, array 0-based
-            if (pageIndex < newPages.length) {
-              newPages[pageIndex] = result.pages[i];
-            }
-          }
-          
-          return newPages;
-        });
-
-        // Bu aralığı yüklendi olarak işaretle
-        setLoadedPageRanges(current => new Set(current).add(rangeKey));
-      }
-    } catch (error) {
-      // Lazy loading hatası
-    } finally {
-      // Yükleme tamamlandı, loading set'inden çıkar
-      setCurrentlyLoading(current => {
-        const newSet = new Set(current);
-        newSet.delete(rangeKey);
-        return newSet;
-      });
-    }
-  };
-
-  // Sayfa değişiminde yakındaki sayfaları preload et - OPTIMIZED
-  const preloadNearbyPages = async (pdfUrl: string, currentPage: number, totalPages: number) => {
-    const preloadRange = 2; // Her yönden 2 sayfa preload (daha az)
-    
-    const startPage = Math.max(1, currentPage - preloadRange);
-    const endPage = Math.min(totalPages, currentPage + preloadRange + 1);
-    
-    // 3'er sayfalık gruplar halinde yükle (daha küçük chunk)
-    const chunkSize = 3;
-    for (let i = startPage; i <= endPage; i += chunkSize) {
-      const chunkEnd = Math.min(i + chunkSize - 1, endPage);
-      loadPageRange(pdfUrl, i, chunkEnd); // await olmadan - paralel
-    }
-  };
-
-  // PDF'i flipbook sayfalarına çevir - ULTRA FAST START
+  // PDF'i flipbook sayfalarına çevir - SAYFA SAYFA VE LEGACY SİSTEM
   const processPdfForFlipbook = async () => {
     if (!magazine?.pdf_file || pdfProcessing) return;
     
@@ -277,59 +218,53 @@ const DergiDetay = () => {
     try {
       const url = magazine.pdf_file;
       
-      if (url.includes('raw.githubusercontent.com')) {
-        // 1. PDF sayfa sayısını öğren
-        const pageCount = await getPdfPageCount(url);
-        if (pageCount > 0) {
-          setTotalPdfPages(pageCount);
-          setPdfProcessProgress(30);
-          
-          // 2. Placeholder array oluştur (anında flipbook için)
-          const placeholders = Array(pageCount).fill('/placeholder.svg');
-          setFlipbookPages(placeholders);
+      // 🆕 YENİ SİSTEM: Metadata.json formatı (sayfa sayfa yüklenmiş)
+      if (url.includes('metadata.json')) {
+        setPdfProcessProgress(20);
+        
+        // Metadata'dan sayfa URL'lerini yükle
+        const pageUrls = await loadMagazinePageUrls(magazine.issue_number, {
+          owner: 'Nadirmermer',
+          repo: 'baibu-pot-storage', 
+          branch: 'main'
+        });
+        
+        if (pageUrls.length > 0) {
+          setTotalPdfPages(pageUrls.length);
           setPdfProcessProgress(50);
           
-          // 3. SADECE İLK SAYFAYI (kapak) hemen yükle - ULTRA FAST
-          const coverResult = await processGitHubPdfPages(url, 1, 1);
+          // Tüm sayfaları direkt URL'ler olarak set et - ANINDA HAZIR!
+          setFlipbookPages(pageUrls);
+          setPdfProcessProgress(100);
+          setPdfProcessing(false);
           
-          if (coverResult.success && coverResult.pages.length > 0) {
-            // Kapağı yerleştir
-            setFlipbookPages(currentPages => {
-              const newPages = [...currentPages];
-              newPages[0] = coverResult.pages[0];
-              return newPages;
-            });
-            
-            setLoadedPageRanges(new Set(['1-1']));
-            setPdfProcessProgress(100);
-            
-            // 4. Diğer sayfalar arka planda lazy loading (100ms delay)
-            setTimeout(() => {
-              if (pageCount > 1) {
-                // 2-3. sayfalar 100ms sonra
-                loadPageRange(url, 2, 3);
-                
-                // 4-6. sayfalar 500ms sonra  
-                setTimeout(() => loadPageRange(url, 4, 6), 500);
-                
-                // 7-10. sayfalar 1000ms sonra
-                setTimeout(() => loadPageRange(url, 7, 10), 1000);
-              }
-            }, 100);
-            
-          } else {
-            throw new Error('Kapak sayfası yüklenemedi');
-          }
+          console.log(`✅ Sayfa sayfa dergi yüklendi: ${pageUrls.length} sayfa (metadata sistemi)`);
+          
         } else {
-          throw new Error('PDF sayfa sayısı alınamadı');
+          throw new Error('Sayfa URL\'leri yüklenemedi');
         }
+      }
+      // 📄 LEGACY SİSTEM: Tek PDF dosyası (eski yöntem - basitleştirildi)
+      else if (url.includes('raw.githubusercontent.com') && url.includes('.pdf')) {
+        // Eski sistemde basit fallback - tek PDF olarak göster
+        setFlipbookPages([url]);
+        setTotalPdfPages(1);
+        setPdfProcessProgress(100);
+        setPdfProcessing(false);
         
-      } else {
+        console.log('⚠️ Legacy PDF sistemi: Tek dosya olarak görüntülenecek');
+        console.log('💡 Daha iyi deneyim için admin panelinden sayfa sayfa yükleyin');
+      }
+      // 🌐 DİREKT URL: Harici PDF linkler
+      else {
         // Diğer URL'ler (direkt PDF)
         setFlipbookPages([url]);
+        setPdfProcessProgress(100);
+        setPdfProcessing(false);
       }
       
     } catch (error) {
+      console.error('PDF yükleme hatası:', error);
       // Fallback sayfalar
       setFlipbookPages([
         magazine.cover_image || '/placeholder.svg',
@@ -337,9 +272,8 @@ const DergiDetay = () => {
         '/placeholder.svg',
         '/placeholder.svg'
       ]);
-    } finally {
-      setPdfProcessing(false);
       setPdfProcessProgress(100);
+      setPdfProcessing(false);
     }
   };
 
@@ -396,10 +330,9 @@ const DergiDetay = () => {
             'PDF hazırlanıyor...'
           }
           onPageChange={(page) => {
-            // Sayfa değişiminde yakındaki sayfaları preload et
-            if (magazine.pdf_file?.includes('raw.githubusercontent.com') && totalPdfPages > 0) {
-              preloadNearbyPages(magazine.pdf_file, page + 1, totalPdfPages); // +1 çünkü flipbook 0-based, PDF 1-based
-            }
+            // 🆕 Yeni sistemde preload gereksiz - tüm sayfalar zaten hazır!
+            // Sadece analytics için sayfa tracking yapılıyor
+            console.debug(`📖 Sayfa ${page + 1} görüntüleniyor`);
           }}
         />
       </div>
@@ -417,40 +350,111 @@ const DergiDetay = () => {
         </Link>
       </div>
 
-      <div className="max-w-4xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* 📱 MOBİL ve 💻 DESKTOP OPTİMİZE LAYOUT */}
+      <div className="max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* Sol Panel - Dergi Kapağı */}
-          <div>
-            <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-              <CardHeader>
-                <div className="relative">
+          {/* Sol Panel - Dergi Kapağı ve Ana Butonlar */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Kapak Resmi - Tıklanabilir */}
+            <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div 
+                className="relative cursor-pointer group transition-all duration-300 hover:scale-[1.02]"
+                onClick={async () => {
+                  // 🎯 Kapağa tıklayınca direkt okuma başlar!
+                  if (flipbookPages.length === 0 && !pdfProcessing) {
+                    processPdfForFlipbook();
+                  }
+                  setIsReading(true);
+                }}
+                title="Dergiyi okumak için tıklayın"
+              >
                   <img
                     src={magazine.cover_image || '/placeholder.svg'}
                     alt={magazine.title}
-                    className="w-full h-auto rounded-lg shadow-lg max-w-md mx-auto"
+                  className="w-full h-auto rounded-lg shadow-lg"
                   />
                   {magazine.published && (
-                    <Badge className="absolute top-2 right-2">
+                  <Badge className="absolute top-3 right-3">
                       Yayında
                     </Badge>
                   )}
+                {/* Hover efekti */}
+                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-lg flex items-center justify-center">
+                  <div className="bg-white/90 dark:bg-gray-800/90 rounded-full p-3 shadow-lg">
+                    <BookOpen className="w-6 h-6 text-primary" />
+                  </div>
                 </div>
-              </CardHeader>
+              </div>
+              
+              {/* 📱 Kapağın Altında Ana Butonlar */}
+              <CardContent className="p-4 space-y-3">
+                {/* Ana Okuma Butonu */}
+                <Button 
+                  onClick={async () => {
+                    if (flipbookPages.length === 0 && !pdfProcessing) {
+                      processPdfForFlipbook();
+                    }
+                    setIsReading(true);
+                  }}
+                  className="w-full text-lg py-3"
+                  size="lg"
+                  disabled={!magazine.pdf_file}
+                >
+                  <BookOpen className="w-5 h-5 mr-2" />
+                  {pdfProcessing ? '⏳ Hazırlanıyor...' : '📖 Flipbook Oku'}
+                </Button>
+                
+                {/* İndirme Butonu */}
+                {getDownloadUrl() && (
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    asChild
+                  >
+                    <a
+                      href={getDownloadUrl()!}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      PDF İndir
+                    </a>
+                  </Button>
+                )}
+                
+                {!magazine.pdf_file && (
+                  <p className="text-red-500 dark:text-red-400 text-sm text-center">
+                    Bu dergi henüz yüklenmiyor
+                  </p>
+                )}
+                
+                {/* İpucu */}
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                  <p className="text-xs text-blue-700 dark:text-blue-300 text-center">
+                    💡 <strong>Kapağa tıklayarak</strong> da okumaya başlayabilirsiniz
+                  </p>
+                </div>
+              </CardContent>
             </Card>
           </div>
 
-          {/* Sağ Panel - Dergi Bilgileri */}
-          <div className="space-y-6">
+          {/* Sağ Panel - Dergi Bilgileri (2 sütun) */}
+          <div className="lg:col-span-2 space-y-6">
             <div>
               <h1 className="text-3xl font-bold mb-4 text-gray-900 dark:text-white">{magazine.title}</h1>
-              <div className="flex items-center gap-4 mb-4">
+              <div className="flex items-center gap-3 mb-4 flex-wrap">
                 <Badge variant="outline" className="text-lg px-3 py-1 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">
                   Sayı {magazine.issue_number}
                 </Badge>
                 <span className="text-gray-600 dark:text-gray-400">
                   {new Date(magazine.publication_date).toLocaleDateString('tr-TR')}
                 </span>
+                {magazine.theme && (
+                  <Badge variant="secondary" className="text-sm px-2 py-1 bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-200">
+                    🎨 {magazine.theme}
+                  </Badge>
+                )}
               </div>
               
               {magazine.description && (
@@ -460,172 +464,91 @@ const DergiDetay = () => {
               )}
             </div>
 
-            {/* Ana Okuma Butonu */}
-            <Card className="border-2 border-primary/20 dark:border-primary/30 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20">
-              <CardContent className="p-6 text-center">
-                <BookOpen className="w-12 h-12 mx-auto text-primary mb-4" />
-                <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">Dergiyi Oku</h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-4">
-                  Sayfa çevirme efektleri ile gerçek dergi okuma deneyimi
-                </p>
-                
-                <Button 
-                  onClick={async () => {
-                    // Direkt okuma moduna geç
-                    setIsReading(true);
-                    
-                    // Flipbook açılırken additional tracking yok - zaten session başlatıldı
-                    
-                    // PDF henüz işlenmemişse arka planda işle
-                    if (flipbookPages.length === 0 && !pdfProcessing) {
-                      processPdfForFlipbook(); // await olmadan arka planda çalıştır
-                    }
-                  }}
-                  className="w-full text-lg py-3"
-                  size="lg"
-                  disabled={!magazine.pdf_file}
-                >
-                  <BookOpen className="w-5 h-5 mr-2" />
-                  📖 Flipbook Oku
-                </Button>
-                
-                {!magazine.pdf_file && (
-                  <p className="text-red-500 dark:text-red-400 text-sm mt-2">
-                    Bu dergi henüz yüklenmiyor
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+            {/* 🗑️ Ana okuma butonu sol panele taşındı */}
 
-            {/* İndirme Butonu */}
-            {getDownloadUrl() && (
-              <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                <CardContent className="p-4">
-                  <a
-                    href={getDownloadUrl()!}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full"
-                  >
-                    <Button variant="outline" className="w-full border-gray-300 dark:border-gray-600">
-                      <Download className="w-4 h-4 mr-2" />
-                      PDF İndir
-                    </Button>
-                  </a>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Bilgi Kutusu */}
-            <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-              <CardContent className="p-4">
-                <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">💡 İpucu</h4>
-                <p className="text-sm text-blue-700 dark:text-blue-300">
-                  Dergiyi flipbook formatında okumak için "Flipbook Oku" butonunu kullanın. 
-                  Sayfa çevirme efektleri ile gerçek dergi okuma deneyimi yaşayın.
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Contributors Bölümü - GELİŞMİŞ PROFIL SİSTEMİ */}
+            {/* Contributors Bölümü - KOMPAKT GRİD */}
             {contributors.length > 0 && (
               <Card className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-purple-200 dark:border-purple-800">
                 <CardContent className="p-4">
                   <h4 className="font-medium text-purple-800 dark:text-purple-200 mb-4 flex items-center">
                     👥 Bu Sayıda Katkıda Bulunanlar ({contributors.length})
                   </h4>
-                  <div className="grid grid-cols-1 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {contributors.map((contributor) => (
-                      <div key={contributor.id} className="bg-white/70 dark:bg-gray-800/70 rounded-lg p-4 border border-purple-200 dark:border-purple-700 hover:shadow-md transition-all duration-200">
-                        {/* Profil Başlığı */}
-                        <div className="flex items-start gap-4 mb-3">
+                      <div key={contributor.id} className="bg-white/70 dark:bg-gray-800/70 rounded-lg p-3 border border-purple-200 dark:border-purple-700 hover:shadow-md transition-all duration-200">
+                        <div className="flex items-center gap-3 mb-2">
                           {contributor.profile_image ? (
-                            <div className="relative">
-                              <img 
-                                src={contributor.profile_image} 
-                                alt={contributor.name}
-                                className="w-16 h-16 rounded-full object-cover border-3 border-purple-300 dark:border-purple-600"
-                                onError={(e) => {
-                                  // Fallback to initials if image fails to load
-                                  e.currentTarget.style.display = 'none';
-                                  const fallback = e.currentTarget.nextElementSibling;
-                                  if (fallback) fallback.classList.remove('hidden');
-                                }}
-                              />
-                              <div className="hidden w-16 h-16 bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-800 dark:to-purple-700 rounded-full flex items-center justify-center border-3 border-purple-300 dark:border-purple-600">
-                                <span className="text-purple-700 dark:text-purple-300 font-bold text-xl">
-                                  {contributor.name.charAt(0).toUpperCase()}
-                                </span>
-                              </div>
-                            </div>
+                            <img 
+                              src={contributor.profile_image} 
+                              alt={contributor.name}
+                              className="w-12 h-12 rounded-full object-cover border-2 border-purple-300 dark:border-purple-600"
+                              onError={(e) => {
+                                e.currentTarget.src = `data:image/svg+xml;base64,${btoa(`<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="24" fill="#a855f7"/><text x="24" y="32" text-anchor="middle" fill="white" font-family="Arial" font-size="18" font-weight="bold">${contributor.name.charAt(0).toUpperCase()}</text></svg>`)}`;
+                              }}
+                            />
                           ) : (
-                            <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-800 dark:to-purple-700 rounded-full flex items-center justify-center border-3 border-purple-300 dark:border-purple-600">
-                              <span className="text-purple-700 dark:text-purple-300 font-bold text-xl">
+                            <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-800 dark:to-purple-700 rounded-full flex items-center justify-center border-2 border-purple-300 dark:border-purple-600">
+                              <span className="text-purple-700 dark:text-purple-300 font-bold text-lg">
                                 {contributor.name.charAt(0).toUpperCase()}
                               </span>
                             </div>
                           )}
                           
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1 flex-wrap">
-                              <h5 className="font-semibold text-lg text-purple-800 dark:text-purple-200">
-                                {contributor.name}
-                              </h5>
-                              <Badge variant="secondary" className="bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-200">
-                                {contributor.role === 'editor' ? '✏️ Editör' :
-                                 contributor.role === 'author' ? '📝 Yazar' :
-                                 contributor.role === 'illustrator' ? '🎨 İllüstratör' :
-                                 contributor.role === 'designer' ? '🖌️ Tasarımcı' :
-                                 contributor.role === 'translator' ? '🌐 Çevirmen' : contributor.role}
-                              </Badge>
-                            </div>
-                            
-                            {contributor.bio && (
-                              <div className="mb-3">
-                                <p className="text-sm text-purple-700 dark:text-purple-300 leading-relaxed">
-                                  {contributor.bio.length > 150 ? 
-                                    `${contributor.bio.substring(0, 150)}...` : 
-                                    contributor.bio}
-                                </p>
-                              </div>
-                            )}
-
-                            {/* Sosyal Medya Linkleri - Gelişmiş */}
-                            {contributor.social_links && Object.keys(contributor.social_links as any).length > 0 && (
-                              <div className="flex flex-wrap gap-2">
-                                {Object.entries(contributor.social_links as any).map(([platform, link]) => {
-                                  if (!link || link === '') return null;
-                                  
-                                  const socialConfig = {
-                                    linkedin: { icon: '💼', label: 'LinkedIn', bgColor: 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700' },
-                                    twitter: { icon: '🐦', label: 'Twitter', bgColor: 'bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-700' },
-                                    instagram: { icon: '📷', label: 'Instagram', bgColor: 'bg-pink-50 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 border-pink-200 dark:border-pink-700' },
-                                    github: { icon: '💻', label: 'GitHub', bgColor: 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700' },
-                                    email: { icon: '📧', label: 'Email', bgColor: 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-700' },
-                                    website: { icon: '🌐', label: 'Website', bgColor: 'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-700' }
-                                  };
-                                  
-                                  const config = socialConfig[platform as keyof typeof socialConfig] || 
-                                    { icon: '🔗', label: platform, bgColor: 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700' };
-                                  
-                                  return (
-                                    <a
-                                      key={platform}
-                                      href={platform === 'email' ? `mailto:${link}` : link as string}
-                                      target={platform !== 'email' ? '_blank' : undefined}
-                                      rel={platform !== 'email' ? 'noopener noreferrer' : undefined}
-                                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-200 hover:scale-105 hover:shadow-sm ${config.bgColor}`}
-                                      title={`${contributor.name} - ${config.label}`}
-                                    >
-                                      <span className="text-sm">{config.icon}</span>
-                                      <span className="capitalize font-medium">{config.label}</span>
-                                    </a>
-                                  );
-                                })}
-                              </div>
-                            )}
+                            <h5 className="font-semibold text-sm text-purple-800 dark:text-purple-200 truncate">
+                              {contributor.name}
+                            </h5>
+                            <Badge variant="secondary" className="bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-200 text-xs">
+                              {contributor.role === 'editor' ? '✏️ Editör' :
+                               contributor.role === 'author' ? '📝 Yazar' :
+                               contributor.role === 'illustrator' ? '🎨 İllüstratör' :
+                               contributor.role === 'designer' ? '🖌️ Tasarımcı' :
+                               contributor.role === 'translator' ? '🌐 Çevirmen' : contributor.role}
+                            </Badge>
                           </div>
                         </div>
+                        
+                        {contributor.bio && (
+                          <p className="text-xs text-purple-700 dark:text-purple-300 leading-relaxed mb-2">
+                            {contributor.bio.length > 80 ? 
+                              `${contributor.bio.substring(0, 80)}...` : 
+                              contributor.bio}
+                  </p>
+                )}
+
+                        {/* Sosyal Medya - Kompakt */}
+                        {contributor.social_links && Object.keys(contributor.social_links as any).length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {Object.entries(contributor.social_links as any).map(([platform, link]) => {
+                              if (!link || link === '') return null;
+                              
+                              const socialConfig = {
+                                linkedin: { icon: '💼', color: 'text-blue-600' },
+                                twitter: { icon: '🐦', color: 'text-sky-600' },
+                                instagram: { icon: '📷', color: 'text-pink-600' },
+                                github: { icon: '💻', color: 'text-gray-700' },
+                                email: { icon: '📧', color: 'text-green-600' },
+                                website: { icon: '🌐', color: 'text-purple-600' }
+                              };
+                              
+                              const config = socialConfig[platform as keyof typeof socialConfig] || 
+                                { icon: '🔗', color: 'text-gray-600' };
+                              
+                              return (
+                                <a
+                                  key={platform}
+                                  href={platform === 'email' ? `mailto:${link}` : link as string}
+                                  target={platform !== 'email' ? '_blank' : undefined}
+                                  rel={platform !== 'email' ? 'noopener noreferrer' : undefined}
+                                  className={`text-lg hover:scale-110 transition-transform ${config.color}`}
+                                  title={`${contributor.name} - ${platform}`}
+                                >
+                                  {config.icon}
+                                </a>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -633,107 +556,62 @@ const DergiDetay = () => {
               </Card>
             )}
 
-            {/* Sponsors Bölümü - YENİ ÖZELLİK */}
+            {/* Sponsors Bölümü - KOMPAKT GRİD */}
             {magazineSponsors.length > 0 && (
               <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-blue-200 dark:border-blue-800">
-                <CardContent className="p-4">
+              <CardContent className="p-4">
                   <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-3 flex items-center">
                     🏢 Bu Sayının Sponsorları ({magazineSponsors.length})
                   </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {magazineSponsors.map((magazineSponsor, index) => (
-                      <div key={index} className="flex items-center gap-3 p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                      <div key={index} className="flex flex-col items-center gap-2 p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg hover:shadow-md transition-all duration-200 text-center">
                         {magazineSponsor.logo_url ? (
                           <img 
                             src={magazineSponsor.logo_url} 
                             alt={magazineSponsor.sponsor_name}
-                            className="w-12 h-12 object-contain rounded border bg-white"
+                            className="w-10 h-10 object-contain rounded border bg-white"
                             onError={(e) => {
                               e.currentTarget.src = '/placeholder.svg';
                             }}
                           />
                         ) : (
-                          <div className="w-12 h-12 rounded border bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-                            <span className="text-blue-600 dark:text-blue-300 font-bold text-lg">
+                          <div className="w-10 h-10 rounded border bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                            <span className="text-blue-600 dark:text-blue-300 font-bold text-sm">
                               {magazineSponsor.sponsor_name?.charAt(0).toUpperCase() || '🏢'}
                             </span>
                           </div>
                         )}
-                        <div className="flex-1 min-w-0">
+                        <div className="min-w-0 w-full">
                           {magazineSponsor.website_url ? (
                             <a 
                               href={magazineSponsor.website_url} 
                               target="_blank" 
                               rel="noopener noreferrer"
-                              className="font-medium text-blue-900 dark:text-blue-100 hover:text-blue-700 dark:hover:text-blue-300 underline"
+                              className="font-medium text-xs text-blue-900 dark:text-blue-100 hover:text-blue-700 dark:hover:text-blue-300 underline block truncate"
+                              title={magazineSponsor.sponsor_name}
                             >
                               {magazineSponsor.sponsor_name || 'Sponsor'}
                             </a>
                           ) : (
-                            <div className="font-medium text-blue-900 dark:text-blue-100">
+                            <div className="font-medium text-xs text-blue-900 dark:text-blue-100 truncate" title={magazineSponsor.sponsor_name}>
                               {magazineSponsor.sponsor_name || 'Sponsor'}
                             </div>
                           )}
-                          <div className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                          <div className="text-xs text-blue-700 dark:text-blue-300 mt-1 truncate">
                             {magazineSponsor.sponsorship_type || 'Sponsor'}
                           </div>
-                          {magazineSponsor.website_url && (
-                            <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                              🌐 {magazineSponsor.website_url.replace(/^https?:\/\//, '')}
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                  </div>
+                  </div>
                     ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Teknik Bilgiler */}
-            <Card className="bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700">
-              <CardContent className="p-4">
-                <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-2">📋 Dergi Bilgileri</h4>
-                <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                  <div className="flex justify-between">
-                    <span>Sayı Numarası:</span>
-                    <span>{magazine.issue_number}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Yayın Tarihi:</span>
-                    <span>{new Date(magazine.publication_date).toLocaleDateString('tr-TR')}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Durum:</span>
-                    <Badge variant={magazine.published ? "default" : "secondary"} className="text-xs">
-                      {magazine.published ? 'Yayında' : 'Taslak'}
-                    </Badge>
-                  </div>
-                  {magazine.theme && (
-                    <div className="flex justify-between">
-                      <span>Tema:</span>
-                      <Badge variant="outline" className="text-xs">
-                        {magazine.theme}
-                      </Badge>
-                    </div>
-                  )}
-                  {contributors.length > 0 && (
-                    <div className="flex justify-between">
-                      <span>Katkıda Bulunanlar:</span>
-                      <span>{contributors.length} kişi</span>
-                    </div>
-                  )}
-                  {magazine.pdf_file?.includes('raw.githubusercontent.com') && (
-                    <div className="flex justify-between">
-                      <span>Format:</span>
-                      <Badge variant="outline" className="text-xs">
-                        GitHub PDF + Lazy Loading
-                      </Badge>
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>
+            )}
+
+            {/* 🗑️ Teknik butonlar sol panele taşındı */}
+
+
           </div>
         </div>
       </div>
