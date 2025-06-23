@@ -8,7 +8,7 @@ import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
 import { 
   X, Upload, Image, FileText, Save,
-  CheckCircle, AlertCircle, Loader2, Link, FileCheck, Folder 
+  CheckCircle, AlertCircle, Loader2, Link, FileCheck, Folder, Plus, Building2 
 } from 'lucide-react';
 import { supabase } from '../../integrations/supabase/client';
 import { 
@@ -21,17 +21,35 @@ import {
   isGitHubStorageConfigured,
   getGitHubConfigStatus 
 } from '../../integrations/github/config';
+import { useSponsors } from '../../hooks/useSupabaseData';
 
 interface Magazine {
   id?: string;
   title: string;
   description: string;
+  theme?: string;
   issue_number: number;
   publication_date: string;
   cover_image: string;
   pdf_file: string;
   slug: string;
   published: boolean;
+}
+
+interface Contributor {
+  name: string;
+  role: 'editor' | 'author' | 'illustrator' | 'designer' | 'translator';
+  bio?: string;
+  profile_image?: string;
+  social_links?: Record<string, string>;
+}
+
+interface MagazineSponsor {
+  sponsor_name: string;
+  sponsorship_type: string;
+  logo_url?: string;
+  website_url?: string;
+  selectedLogoFile?: File;
 }
 
 interface MagazineModalProps {
@@ -45,6 +63,7 @@ const MagazineModal = ({ isOpen, onClose, onSave, initialData }: MagazineModalPr
   const [formData, setFormData] = useState<Magazine>({
     title: '',
     description: '',
+    theme: '',
     issue_number: 1,
     publication_date: new Date().toISOString().split('T')[0],
     cover_image: '',
@@ -55,6 +74,11 @@ const MagazineModal = ({ isOpen, onClose, onSave, initialData }: MagazineModalPr
   
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [contributors, setContributors] = useState<Contributor[]>([]);
+  const [magazineSponsors, setMagazineSponsors] = useState<MagazineSponsor[]>([]);
+  
+  // Tüm sponsorları çek
+  const { data: allSponsors = [] } = useSponsors(false);
   
   // Upload State
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -67,34 +91,86 @@ const MagazineModal = ({ isOpen, onClose, onSave, initialData }: MagazineModalPr
   const [uploadedFiles, setUploadedFiles] = useState<{pdf?: string, cover?: string}>({});
 
   useEffect(() => {
-    if (initialData) {
-      setFormData(initialData);
-    } else {
-      const newData = {
-        title: '',
-        description: '',
-        issue_number: 1,
-        publication_date: new Date().toISOString().split('T')[0],
-        cover_image: '',
-        pdf_file: '',
-        slug: '',
-        published: true
-      };
-      setFormData(newData);
-    }
-    setErrors({});
-    setUploadedFiles({});
-    setSelectedPdfFile(null);
-    setSelectedCoverFile(null);
-    setUploadProgress(0);
-    setUploadStatus('');
+    const loadData = async () => {
+      if (initialData) {
+        setFormData(initialData);
+        
+        // Mevcut contributors'ları yükle
+        if (initialData.id) {
+          try {
+            const { data } = await supabase
+              .from('magazine_contributors')
+              .select('*')
+              .eq('magazine_issue_id', initialData.id)
+              .order('sort_order', { ascending: true });
+            
+            if (data) {
+              const existingContributors: Contributor[] = data.map(c => ({
+                name: c.name,
+                role: c.role as Contributor['role'],
+                bio: c.bio || undefined,
+                profile_image: c.profile_image || undefined,
+                social_links: undefined // Şimdilik undefined, ileride geliştirilebilir
+              }));
+              setContributors(existingContributors);
+            }
+          } catch (error) {
+            console.error('Contributors yüklenemedi:', error);
+          }
+          
+          // Mevcut magazine sponsors'ları yükle
+          try {
+            const { data: sponsorsData } = await supabase
+              .from('magazine_sponsors')
+              .select('*')
+              .eq('magazine_issue_id', initialData.id);
+            
+            if (sponsorsData) {
+              const existingSponsors: MagazineSponsor[] = sponsorsData.map((s: any) => ({
+                sponsor_name: s.sponsor_name || s.name || '', // Eski data için fallback
+                sponsorship_type: s.sponsorship_type || '',
+                logo_url: s.logo_url || '',
+                website_url: s.website_url || '',
+                selectedLogoFile: undefined
+              }));
+              setMagazineSponsors(existingSponsors);
+            }
+          } catch (error) {
+            console.error('Magazine sponsors yüklenemedi:', error);
+          }
+        }
+      } else {
+        const newData = {
+          title: '',
+          description: '',
+          theme: '',
+          issue_number: 1,
+          publication_date: new Date().toISOString().split('T')[0],
+          cover_image: '',
+          pdf_file: '',
+          slug: '',
+          published: true
+        };
+        setFormData(newData);
+        setContributors([]);
+        setMagazineSponsors([]);
+      }
+      setErrors({});
+      setUploadedFiles({});
+      setSelectedPdfFile(null);
+      setSelectedCoverFile(null);
+      setUploadProgress(0);
+      setUploadStatus('');
+      
+      // Storage config kontrol et (arka planda)
+      const configured = isGitHubStorageConfigured();
+      const config = getGitHubStorageConfig();
+      
+      setGithubConfigured(configured);
+      setGithubConfig(config);
+    };
     
-    // Storage config kontrol et (arka planda)
-    const configured = isGitHubStorageConfigured();
-    const config = getGitHubStorageConfig();
-    
-    setGithubConfigured(configured);
-    setGithubConfig(config);
+    loadData();
   }, [initialData, isOpen]);
 
   const handleInputChange = (field: keyof Magazine, value: any) => {
@@ -165,6 +241,25 @@ const MagazineModal = ({ isOpen, onClose, onSave, initialData }: MagazineModalPr
     }
   };
 
+  // Sponsor logo yükleme fonksiyonu - YENİ
+  const uploadSponsorLogo = async (file: File, sponsorIndex: number): Promise<string> => {
+    if (!githubConfig) {
+      throw new Error('Dosya depolama sistemi yapılandırılmamış');
+    }
+
+    // Sponsor logo için özel path oluştur
+    const fileName = `sponsor-${sponsorIndex + 1}-${Date.now()}.${file.name.split('.').pop()}`;
+    const targetPath = `magazines/issue-${formData.issue_number}/sponsors/${fileName}`;
+    
+    const result = await uploadFileObjectToGitHub(githubConfig, file, targetPath);
+    
+    if (result.success && result.rawUrl) {
+      return result.rawUrl;
+    } else {
+      throw new Error(result.error || 'Sponsor logo yükleme başarısız');
+    }
+  };
+
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
@@ -203,6 +298,28 @@ const MagazineModal = ({ isOpen, onClose, onSave, initialData }: MagazineModalPr
           
           setUploadProgress(75);
         }
+
+        // Sponsor logoları yükleme - YENİ
+        if (magazineSponsors.some(s => s.selectedLogoFile)) {
+          setUploadStatus('🏢 Sponsor logoları yükleniyor...');
+          setUploadProgress(80);
+          
+          for (let i = 0; i < magazineSponsors.length; i++) {
+            const sponsor = magazineSponsors[i];
+            if (sponsor.selectedLogoFile) {
+              try {
+                const logoUrl = await uploadSponsorLogo(sponsor.selectedLogoFile, i);
+                const updated = [...magazineSponsors];
+                updated[i].logo_url = logoUrl;
+                updated[i].selectedLogoFile = undefined; // Temizle
+                setMagazineSponsors(updated);
+              } catch (error) {
+                console.warn(`Sponsor ${i + 1} logosu yüklenemedi:`, error);
+                // Logo yükleme hatası ana işlemi durdurmasın
+              }
+            }
+          }
+        }
       }
 
       // Veritabanına kaydetme
@@ -212,6 +329,7 @@ const MagazineModal = ({ isOpen, onClose, onSave, initialData }: MagazineModalPr
       const cleanedData = {
         title: finalFormData.title.trim(),
         description: finalFormData.description.trim(),
+        theme: finalFormData.theme?.trim() || null,
         issue_number: Number(finalFormData.issue_number), 
         publication_date: finalFormData.publication_date,
         cover_image: finalFormData.cover_image.trim(),
@@ -220,6 +338,8 @@ const MagazineModal = ({ isOpen, onClose, onSave, initialData }: MagazineModalPr
         published: Boolean(finalFormData.published),
         updated_at: new Date().toISOString()
       };
+
+      let magazineId = initialData?.id;
 
       if (initialData?.id) {
         // Güncelleme
@@ -232,15 +352,93 @@ const MagazineModal = ({ isOpen, onClose, onSave, initialData }: MagazineModalPr
         setUploadStatus('✅ Dergi başarıyla güncellendi!');
       } else {
         // Yeni kayıt
-        const { error } = await supabase
+        const { data: newMagazine, error } = await supabase
           .from('magazine_issues')
           .insert([{
             ...cleanedData,
             created_by: null 
-          }]);
+          }])
+          .select()
+          .single();
 
         if (error) throw error;
+        magazineId = newMagazine.id;
         setUploadStatus('✅ Yeni dergi başarıyla eklendi!');
+      }
+
+      // Contributors kaydetme
+      if (contributors.length > 0 && magazineId) {
+        setUploadStatus('👥 Katkıda bulunanlar kaydediliyor...');
+        setUploadProgress(90);
+
+        // Önce mevcut contributors'ları sil (güncelleme durumunda)
+        if (initialData?.id) {
+          await supabase
+            .from('magazine_contributors')
+            .delete()
+            .eq('magazine_issue_id', magazineId);
+        }
+
+        // Yeni contributors'ları ekle
+        const contributorsData = contributors
+          .filter(c => c.name.trim()) // Boş isimli olanları filtrele
+          .map((contributor, index) => ({
+            magazine_issue_id: magazineId,
+            name: contributor.name.trim(),
+            role: contributor.role,
+            bio: contributor.bio?.trim() || null,
+            profile_image: contributor.profile_image?.trim() || null,
+            social_links: contributor.social_links || null,
+            sort_order: index + 1
+          }));
+
+        if (contributorsData.length > 0) {
+          const { error: contributorsError } = await supabase
+            .from('magazine_contributors')
+            .insert(contributorsData);
+
+          if (contributorsError) {
+            console.warn('Contributors kaydedilemedi:', contributorsError);
+            // Contributors hatası dergi kaydını etkilemesin
+          }
+        }
+      }
+
+      // Magazine Sponsors kaydetme
+      if (magazineSponsors.length > 0 && magazineId) {
+        setUploadStatus('🏢 Sponsorlar kaydediliyor...');
+        setUploadProgress(95);
+
+        // Önce mevcut sponsors'ları sil (güncelleme durumunda)
+        if (initialData?.id) {
+          await supabase
+            .from('magazine_sponsors')
+            .delete()
+            .eq('magazine_issue_id', magazineId);
+        }
+
+        // Yeni sponsors'ları ekle
+        const sponsorsData = magazineSponsors
+          .filter(s => s.sponsor_name.trim()) // Boş sponsor_name'li olanları filtrele
+          .map((sponsor, index) => ({
+            magazine_issue_id: magazineId,
+            sponsor_name: sponsor.sponsor_name.trim(),
+            sponsorship_type: sponsor.sponsorship_type.trim(),
+            logo_url: sponsor.logo_url?.trim() || null,
+            website_url: sponsor.website_url?.trim() || null,
+            sort_order: index + 1
+          }));
+
+        if (sponsorsData.length > 0) {
+          const { error: sponsorsError } = await supabase
+            .from('magazine_sponsors')
+            .insert(sponsorsData as any);
+
+          if (sponsorsError) {
+            console.warn('Magazine sponsors kaydedilemedi:', sponsorsError);
+            // Sponsors hatası dergi kaydını etkilemesin
+          }
+        }
       }
 
       setUploadProgress(100);
@@ -366,6 +564,18 @@ const MagazineModal = ({ isOpen, onClose, onSave, initialData }: MagazineModalPr
               disabled={isUploading}
             />
             {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description}</p>}
+          </div>
+
+          <div>
+            <Label htmlFor="theme">Tema</Label>
+            <Input
+              id="theme"
+              value={formData.theme || ''}
+              onChange={(e) => handleInputChange('theme', e.target.value)}
+              placeholder="Ör: Travma ve İyileşme, Psikoloji ve Teknoloji..."
+              disabled={isUploading}
+            />
+            <p className="text-xs text-gray-500 mt-1">Bu sayının ana teması (opsiyonel)</p>
           </div>
 
           <div>
@@ -507,11 +717,332 @@ const MagazineModal = ({ isOpen, onClose, onSave, initialData }: MagazineModalPr
                     </Badge>
                   )}
                 </div>
-                <p className="text-sm text-blue-800 dark:text-blue-200">
-                  📖 PDF dosyası flipbook okuma için hazır
+                <p className="text-sm text-blue-800 dark:text-blue-300">
+                  📄 PDF dosyası hazır
                 </p>
               </div>
             )}
+          </div>
+
+          {/* Contributors Bölümü - YENİ ÖZELLİK */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label className="flex items-center gap-2 text-base font-medium">
+                👥 Katkıda Bulunanlar
+              </Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setContributors([...contributors, { name: '', role: 'author' }])}
+                disabled={isUploading}
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Ekle
+              </Button>
+            </div>
+            
+            {contributors.length === 0 && (
+              <div className="text-center py-8 bg-gray-50 dark:bg-gray-900/50 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700">
+                <div className="text-2xl mb-2">👥</div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  Bu sayıya katkıda bulunanları ekleyin
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setContributors([{ name: '', role: 'author' }])}
+                  disabled={isUploading}
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  İlk Katkıda Bulunanı Ekle
+                </Button>
+              </div>
+            )}
+            
+            {contributors.map((contributor, index) => (
+              <div key={index} className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 space-y-3 border">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Katkıda Bulunan #{index + 1}
+                    </span>
+                    <Badge variant="outline" className="text-xs">
+                      {contributor.role === 'editor' ? 'Editör' :
+                       contributor.role === 'author' ? 'Yazar' :
+                       contributor.role === 'illustrator' ? 'İllüstratör' :
+                       contributor.role === 'designer' ? 'Tasarımcı' :
+                       contributor.role === 'translator' ? 'Çevirmen' : contributor.role}
+                    </Badge>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setContributors(contributors.filter((_, i) => i !== index))}
+                    disabled={isUploading}
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">İsim *</Label>
+                    <Input
+                      value={contributor.name}
+                      onChange={(e) => {
+                        const updated = [...contributors];
+                        updated[index].name = e.target.value;
+                        setContributors(updated);
+                      }}
+                      placeholder="Katkıda bulunanın adı"
+                      className="text-sm"
+                      disabled={isUploading}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label className="text-xs">Rol *</Label>
+                    <select
+                      value={contributor.role}
+                      onChange={(e) => {
+                        const updated = [...contributors];
+                        updated[index].role = e.target.value as Contributor['role'];
+                        setContributors(updated);
+                      }}
+                      className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-800"
+                      disabled={isUploading}
+                    >
+                      <option value="author">Yazar</option>
+                      <option value="editor">Editör</option>
+                      <option value="illustrator">İllüstratör</option>
+                      <option value="designer">Tasarımcı</option>
+                      <option value="translator">Çevirmen</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div>
+                  <Label className="text-xs">Kısa Bio (Opsiyonel)</Label>
+                  <Textarea
+                    value={contributor.bio || ''}
+                    onChange={(e) => {
+                      const updated = [...contributors];
+                      updated[index].bio = e.target.value;
+                      setContributors(updated);
+                    }}
+                    placeholder="Katkıda bulunan hakkında kısa bilgi..."
+                    rows={2}
+                    className="text-sm"
+                    disabled={isUploading}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Magazine Sponsors Bölümü - YENİ ÖZELLİK */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label className="flex items-center gap-2 text-base font-medium">
+                <Building2 className="w-5 h-5" />
+                Dergi Sponsorları
+              </Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setMagazineSponsors([...magazineSponsors, { 
+                  sponsor_name: '', 
+                  sponsorship_type: '',
+                  logo_url: '',
+                  website_url: '',
+                  selectedLogoFile: undefined
+                }])}
+                disabled={isUploading}
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Sponsor Ekle
+              </Button>
+            </div>
+            
+            {magazineSponsors.length === 0 && (
+              <div className="text-center py-8 bg-gray-50 dark:bg-gray-900/50 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700">
+                <div className="text-2xl mb-2">🏢</div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  Bu sayıya sponsor ekleyiniz
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setMagazineSponsors([{ 
+                    sponsor_name: '', 
+                    sponsorship_type: '',
+                    logo_url: '',
+                    website_url: '',
+                    selectedLogoFile: undefined
+                  }])}
+                  disabled={isUploading}
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  İlk Sponsoru Ekle
+                </Button>
+              </div>
+            )}
+            
+            {magazineSponsors.map((sponsor, index) => (
+              <div key={index} className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 space-y-3 border">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Sponsor #{index + 1}
+                    </span>
+                    {sponsor.sponsor_name && (
+                      <Badge variant="outline" className="text-xs">
+                        {sponsor.sponsor_name}
+                      </Badge>
+                    )}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setMagazineSponsors(magazineSponsors.filter((_, i) => i !== index))}
+                    disabled={isUploading}
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Sponsor İsmi *</Label>
+                    <Input
+                      value={sponsor.sponsor_name}
+                      onChange={(e) => {
+                        const updated = [...magazineSponsors];
+                        updated[index].sponsor_name = e.target.value;
+                        setMagazineSponsors(updated);
+                      }}
+                      placeholder="Sponsor şirket ismi..."
+                      className="text-sm"
+                      disabled={isUploading}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label className="text-xs">Sponsorluk Tipi *</Label>
+                    <Input
+                      value={sponsor.sponsorship_type}
+                      onChange={(e) => {
+                        const updated = [...magazineSponsors];
+                        updated[index].sponsorship_type = e.target.value;
+                        setMagazineSponsors(updated);
+                      }}
+                      placeholder="Ana Sponsor, Destekçi, vs..."
+                      className="text-sm"
+                      disabled={isUploading}
+                    />
+                  </div>
+                </div>
+                
+                {/* Logo Upload - YENİ */}
+                <div className="space-y-3">
+                  <Label className="text-xs flex items-center gap-2">
+                    <Image className="w-3 h-3" />
+                    Sponsor Logosu (Opsiyonel)
+                  </Label>
+                  
+                  {/* Logo Dosya Seçme */}
+                  {githubConfigured && (
+                    <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 space-y-2">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Upload className="w-3 h-3" />
+                        <span className="text-xs font-medium">Bilgisayarımdan Seç</span>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null;
+                          const updated = [...magazineSponsors];
+                          updated[index].selectedLogoFile = file;
+                          setMagazineSponsors(updated);
+                        }}
+                        className="w-full text-xs file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                        disabled={isUploading}
+                      />
+                      {sponsor.selectedLogoFile && (
+                        <p className="text-xs text-green-600 dark:text-green-400">
+                          ✓ {sponsor.selectedLogoFile.name} seçildi
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Manuel Logo URL */}
+                  <div>
+                    <Label className="text-xs text-gray-600 dark:text-gray-400">
+                      {githubConfigured ? 'Veya Logo URL Gir' : 'Logo URL'}
+                    </Label>
+                    <Input
+                      value={sponsor.logo_url || ''}
+                      onChange={(e) => {
+                        const updated = [...magazineSponsors];
+                        updated[index].logo_url = e.target.value;
+                        setMagazineSponsors(updated);
+                      }}
+                      placeholder="https://example.com/logo.png"
+                      className="text-sm"
+                      disabled={isUploading}
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <Label className="text-xs">Web Sitesi / Sosyal Medya (Opsiyonel)</Label>
+                  <Input
+                    value={sponsor.website_url || ''}
+                    onChange={(e) => {
+                      const updated = [...magazineSponsors];
+                      updated[index].website_url = e.target.value;
+                      setMagazineSponsors(updated);
+                    }}
+                    placeholder="https://www.example.com"
+                    className="text-sm"
+                    disabled={isUploading}
+                  />
+                </div>
+                
+                {/* Sponsor Önizleme */}
+                {(sponsor.sponsor_name || sponsor.logo_url) && (
+                  <div className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded border">
+                    {sponsor.logo_url && (
+                      <img 
+                        src={sponsor.logo_url} 
+                        alt={sponsor.sponsor_name}
+                        className="w-12 h-12 object-contain rounded border bg-white"
+                        onError={(e) => {
+                          e.currentTarget.src = '/placeholder.svg';
+                        }}
+                      />
+                    )}
+                    <div className="flex-1">
+                      <div className="font-medium text-sm text-blue-800 dark:text-blue-200">
+                        {sponsor.sponsor_name || 'İsimsiz Sponsor'}
+                      </div>
+                      <div className="text-xs text-blue-600 dark:text-blue-300">
+                        {sponsor.sponsorship_type || 'Tür belirtilmemiş'} 
+                        {sponsor.website_url && ` • ${sponsor.website_url}`}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
 
           {/* Yayın Durumu */}

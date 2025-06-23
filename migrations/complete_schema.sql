@@ -279,16 +279,12 @@ CREATE TABLE public.magazine_contributors (
 CREATE TABLE public.magazine_sponsors (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     magazine_issue_id UUID REFERENCES public.magazine_issues(id) ON DELETE CASCADE,
-    sponsor_id UUID REFERENCES public.sponsors(id) ON DELETE CASCADE,
-    sponsorship_type TEXT NOT NULL DEFAULT 'sponsor' CHECK (sponsorship_type IN (
-        'main_sponsor', 'sponsor', 'supporter', 'media_partner'
-    )),
-    logo_placement TEXT DEFAULT 'back_cover' CHECK (logo_placement IN (
-        'front_cover', 'back_cover', 'inside_cover', 'content_page'
-    )),
+    sponsor_name TEXT NOT NULL, -- Sponsor ismini kendimiz gireceğiz
+    sponsorship_type TEXT NOT NULL DEFAULT 'sponsor', -- Serbest text (Ana Sponsor, Destekçi, vs.)
+    logo_url TEXT, -- GitHub'a yüklenecek logo URL'i  
+    website_url TEXT, -- Web sitesi veya sosyal medya adresi
     sort_order INTEGER DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(magazine_issue_id, sponsor_id)
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Magazine reads tablosu (SADECE ADMİN İÇİN - dergi okuma istatistikleri)

@@ -58,6 +58,11 @@ Kurulum sonrası aşağıdaki tablolar oluşturulacak:
 - ✅ `news` - Haberler/duyurular
 - ✅ `events` - Etkinlikler
 - ✅ `magazine_issues` - Dergi sayıları
+- ✅ `magazine_contributors` - Dergi katkıda bulunanları (editör, yazar, illustratör)
+- ✅ `magazine_sponsors` - Dergi sponsorları (logo upload + web sitesi)
+- ✅ `magazine_reads` - Dergi okuma istatistikleri
+- ✅ `magazine_page_reads` - Sayfa bazında okuma takibi
+- ✅ `article_submissions` - Makale başvuru sistemi
 - ✅ `internships` - Staj ilanları
 - ✅ `academic_documents` - Akademik belgeler
 - ✅ `surveys` - Anketler

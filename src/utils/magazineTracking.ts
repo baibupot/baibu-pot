@@ -110,6 +110,38 @@ export const trackPageRead = async (
   }
 };
 
+// Basit sayfa tracking - magazine_read_id olmadan
+export const trackSimplePageRead = async (
+  magazineIssueId: string,
+  pageNumber: number,
+  timeSpent: number
+) => {
+  try {
+    const pageReadData = {
+      magazine_read_id: null, // Null olarak bırak, basit tracking için
+      magazine_issue_id: magazineIssueId,
+      page_number: pageNumber,
+      time_spent: timeSpent,
+      scroll_percentage: 0,
+      zoom_level: 1.0,
+    };
+
+    const { error } = await supabase
+      .from('magazine_page_reads')
+      .insert([pageReadData]);
+
+    if (error) {
+      console.error('Basit sayfa tracking hatası:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Basit sayfa tracking hatası:', error);
+    return false;
+  }
+};
+
 // Dergi okuma başlangıcı - basit kullanım
 export const startMagazineReading = (magazineIssueId: string) => {
   const startTime = Date.now();
@@ -146,7 +178,7 @@ export const generateDemoMagazineReads = async (magazineIssueId: string, count: 
       reading_duration: Math.floor(Math.random() * 1800) + 120, // 2-32 dakika arası
       pages_read: Math.floor(Math.random() * 20) + 1,
       completed_reading: Math.random() > 0.3, // %70 tamamlama oranı
-      referrer_url: Math.random() > 0.5 ? 'https://baibu.edu.tr' : null,
+      referrer_url: Math.random() > 0.5 ? 'https://ibu.edu.tr/' : null,
       session_id: `demo_session_${i}_${Date.now()}`,
     };
 

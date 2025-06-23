@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { X, Volume2, VolumeX, Maximize, Minimize } from 'lucide-react';
 import HTMLFlipBook from 'react-pageflip';
+import { trackSimplePageRead } from '@/utils/magazineTracking';
 
 // Gerçekçi kağıt çevirme sesi (public klasörüne eklenmiş bir mp3 dosyası kullanılacak)
 const PAGE_FLIP_SOUND = '/page-flip.mp3';
@@ -9,6 +10,8 @@ const PAGE_FLIP_SOUND = '/page-flip.mp3';
 interface FlipbookReaderProps {
   pages: string[];
   title: string;
+  magazineId: string;
+  totalPages?: number;
   onClose: () => void;
   isLoading?: boolean;
   loadingProgress?: number;
@@ -16,7 +19,7 @@ interface FlipbookReaderProps {
   onPageChange?: (page: number) => void;
 }
 
-const FlipbookReader: React.FC<FlipbookReaderProps> = ({ pages, title, onClose, isLoading = false, loadingProgress = 0, loadingText = 'Yükleniyor...', onPageChange }) => {
+const FlipbookReader: React.FC<FlipbookReaderProps> = ({ pages, title, magazineId, totalPages = 0, onClose, isLoading = false, loadingProgress = 0, loadingText = 'Yükleniyor...', onPageChange }) => {
   const flipBookRef = useRef<any>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -24,6 +27,10 @@ const FlipbookReader: React.FC<FlipbookReaderProps> = ({ pages, title, onClose, 
   const audioRef = useRef<HTMLAudioElement>(null);
   // Dinamik oran için state
   const [aspect, setAspect] = useState(3 / 4); // varsayılan 3:4
+  
+  // Gizli tracking için state'ler - kullanıcı hiç görmeyecek
+  const [pageStartTimes, setPageStartTimes] = useState<{ [pageNumber: number]: number }>({});
+  const [viewedPages, setViewedPages] = useState<Set<number>>(new Set());
 
   // İlk sayfa görselinin oranını al
   useEffect(() => {
@@ -57,9 +64,31 @@ const FlipbookReader: React.FC<FlipbookReaderProps> = ({ pages, title, onClose, 
     }
   };
 
-  // Sayfa değişiminde ses çal ve callback çağır
+  // Sayfa değişiminde ses çal, callback çağır ve gizli tracking yap
   const onFlip = (e: any) => {
     const newPage = e.data;
+    const prevPage = currentPage;
+    const now = Date.now();
+    
+    // Önceki sayfanın okuma süresini hesapla ve kaydet (sessizce)
+    if (pageStartTimes[prevPage]) {
+      const readingDuration = now - pageStartTimes[prevPage];
+      
+      // En az 2 saniye bakılmışsa gerçek okuma sayılır
+      if (readingDuration >= 2000) {
+                 // Gizlice veritabanına kaydet
+         trackSimplePageRead(magazineId, prevPage + 1, readingDuration).catch(() => {
+           // Hata olursa sessizce geç, kullanıcıya gösterme
+         });
+        
+        // Bu sayfayı gerçekten okumuş olarak işaretle
+        setViewedPages(prev => new Set([...prev, prevPage]));
+      }
+    }
+    
+    // Yeni sayfa başlangıç zamanını kaydet
+    setPageStartTimes(prev => ({ ...prev, [newPage]: now }));
+    
     setCurrentPage(newPage);
     
     // Parent component'e sayfa değişimini bildir (lazy loading için)
@@ -74,6 +103,29 @@ const FlipbookReader: React.FC<FlipbookReaderProps> = ({ pages, title, onClose, 
       playFlipSound();
     }
   };
+
+  // İlk sayfa tracking'i başlat
+  useEffect(() => {
+    if (pages.length > 0) {
+      const now = Date.now();
+      setPageStartTimes({ 0: now }); // İlk sayfa (sayfa 0) için başlangıç zamanı
+    }
+  }, [pages.length]);
+
+  // Component unmount olurken son sayfa tracking'ini yap
+  useEffect(() => {
+    return () => {
+      // Component kapanırken son sayfanın süresini kaydet
+      if (pageStartTimes[currentPage]) {
+        const readingDuration = Date.now() - pageStartTimes[currentPage];
+        if (readingDuration >= 2000) {
+          trackSimplePageRead(magazineId, currentPage + 1, readingDuration).catch(() => {
+            // Sessizce geç
+          });
+        }
+      }
+    };
+  }, [magazineId, currentPage, pageStartTimes]);
 
   // Klavye ile çıkış
   useEffect(() => {

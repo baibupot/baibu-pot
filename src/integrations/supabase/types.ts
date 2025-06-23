@@ -9,6 +9,87 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      article_submissions: {
+        Row: {
+          id: string
+          magazine_issue_id: string | null
+          title: string
+          author_name: string
+          author_email: string
+          author_bio: string | null
+          submission_type: string
+          category: string
+          content: string
+          keywords: string[] | null
+          file_attachments: string[] | null
+          submission_status: string
+          reviewer_notes: string | null
+          reviewed_by: string | null
+          reviewed_at: string | null
+          submission_deadline: string | null
+          word_count: number | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          magazine_issue_id?: string | null
+          title: string
+          author_name: string
+          author_email: string
+          author_bio?: string | null
+          submission_type: string
+          category: string
+          content: string
+          keywords?: string[] | null
+          file_attachments?: string[] | null
+          submission_status?: string
+          reviewer_notes?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          submission_deadline?: string | null
+          word_count?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          magazine_issue_id?: string | null
+          title?: string
+          author_name?: string
+          author_email?: string
+          author_bio?: string | null
+          submission_type?: string
+          category?: string
+          content?: string
+          keywords?: string[] | null
+          file_attachments?: string[] | null
+          submission_status?: string
+          reviewer_notes?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          submission_deadline?: string | null
+          word_count?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "article_submissions_magazine_issue_id_fkey"
+            columns: ["magazine_issue_id"]
+            isOneToOne: false
+            referencedRelation: "magazine_issues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "article_submissions_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       academic_documents: {
         Row: {
           author: string | null
@@ -540,6 +621,51 @@ export type Database = {
           },
         ]
       }
+      magazine_sponsors: {
+        Row: {
+          id: string
+          magazine_issue_id: string
+          sponsor_id: string
+          sponsorship_type: string
+          logo_placement: string
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          magazine_issue_id: string
+          sponsor_id: string
+          sponsorship_type: string
+          logo_placement: string
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          magazine_issue_id?: string
+          sponsor_id?: string
+          sponsorship_type?: string
+          logo_placement?: string
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "magazine_sponsors_magazine_issue_id_fkey"
+            columns: ["magazine_issue_id"]
+            isOneToOne: false
+            referencedRelation: "magazine_issues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "magazine_sponsors_sponsor_id_fkey"
+            columns: ["sponsor_id"]
+            isOneToOne: false
+            referencedRelation: "sponsors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       news: {
         Row: {
           author_id: string | null
@@ -981,3 +1107,38 @@ export const Constants = {
     Enums: {},
   },
 } as const
+
+export interface ArticleSubmission {
+  id?: string;
+  title: string;
+  abstract: string; // content yerine abstract
+  category: string;
+  author_name: string;
+  author_email: string;
+  author_affiliation?: string; // author_bio yerine author_affiliation
+  co_authors?: string[];
+  keywords?: string[];
+  word_count?: number;
+  file_url?: string;
+  cover_letter?: string;
+  status?: string; // submission_status yerine status
+  reviewer_comments?: string;
+  target_issue?: number; // magazine_issue_id yerine target_issue
+  submission_date?: string;
+  review_deadline?: string; // submission_deadline yerine review_deadline
+  decision_date?: string;
+  assigned_reviewer?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface MagazineSponsor {
+  id?: string;
+  magazine_issue_id?: string;
+  sponsor_name: string; // Yeni: Sponsor ismini kendimiz gireceğiz
+  sponsorship_type: string; // Artık serbest text, önceden tanımlı değil
+  logo_url?: string; // Yeni: Logo URL'i
+  website_url?: string; // Yeni: Web sitesi veya sosyal medya adresi
+  sort_order?: number;
+  created_at?: string;
+}

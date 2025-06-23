@@ -32,9 +32,10 @@ import SponsorModal from '@/components/admin/SponsorModal';
 import SurveyModal from '@/components/admin/SurveyModal';
 import TeamMemberModal from '@/components/admin/TeamMemberModal';
 import UserRoleManagement from '@/components/admin/UserRoleManagement';
-import { useNews, useEvents, useMagazineIssues, useSurveys, useSponsors, useTeamMembers, useAcademicDocuments, useInternships, useContactMessages, useUsers, useUserRoles, useMagazineAnalytics, useMagazineContributors } from '@/hooks/useSupabaseData';
+import { useNews, useEvents, useMagazineIssues, useSurveys, useSponsors, useTeamMembers, useAcademicDocuments, useInternships, useContactMessages, useUsers, useUserRoles, useMagazineAnalytics, useMagazineContributors, useArticleSubmissions } from '@/hooks/useSupabaseData';
 import { deleteMagazineFilesByUrls } from '@/utils/githubStorageHelper';
 import { getGitHubStorageConfig, isGitHubStorageConfigured } from '@/integrations/github/config';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 interface User {
   id: string;
@@ -63,6 +64,11 @@ const AdminDashboard = () => {
   const [surveyModalOpen, setSurveyModalOpen] = useState(false);
   const [teamMemberModalOpen, setTeamMemberModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
+  
+  // Article modal states - YENİ
+  const [articleDetailModalOpen, setArticleDetailModalOpen] = useState(false);
+  const [articleDeleteModalOpen, setArticleDeleteModalOpen] = useState(false);
+  const [selectedArticle, setSelectedArticle] = useState<any>(null);
 
   // Data hooks
   const { data: users } = useUsers();
@@ -80,6 +86,7 @@ const AdminDashboard = () => {
   // Dergi istatistikleri için yeni hook'lar
   const { data: magazineReads } = useMagazineAnalytics();
   const { data: allContributors } = useMagazineContributors();
+  const { data: articleSubmissions } = useArticleSubmissions();
 
   // Gerçek dergi istatistikleri hesaplama
   const calculateMagazineStats = () => {
@@ -487,6 +494,37 @@ const AdminDashboard = () => {
     }
   };
 
+  // Article handlers - YENİ
+  const handleViewArticleDetail = (article: any) => {
+    setSelectedArticle(article);
+    setArticleDetailModalOpen(true);
+  };
+
+  const handleDeleteArticle = (article: any) => {
+    setSelectedArticle(article);
+    setArticleDeleteModalOpen(true);
+  };
+
+  const confirmDeleteArticle = async () => {
+    if (!selectedArticle) return;
+    
+    try {
+      const { error } = await supabase
+        .from('article_submissions')
+        .delete()
+        .eq('id', selectedArticle.id);
+      
+      if (error) throw error;
+      
+      toast.success('Makale başarıyla silindi');
+      setArticleDeleteModalOpen(false);
+      setSelectedArticle(null);
+      window.location.reload();
+    } catch (error: any) {
+      toast.error('Makale silinirken hata: ' + error.message);
+    }
+  };
+
   if (!user) {
     return <div>Yükleniyor...</div>;
   }
@@ -650,6 +688,8 @@ const AdminDashboard = () => {
                     Dergi
                   </TabsTrigger>
                 )}
+
+
                 {hasPermission('surveys') && (
                   <TabsTrigger value="surveys" className="text-xs whitespace-nowrap">
                     <ClipboardList className="h-4 w-4 mr-1" />
@@ -1000,7 +1040,13 @@ const AdminDashboard = () => {
                       <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                         <h4 className="font-semibold mb-3 text-gray-900 dark:text-gray-100">En Popüler Dergiler (Bu Ay)</h4>
                         <div className="space-y-2">
-                          {magazines?.slice(0, 3).map((magazine, index) => (
+                          {magazines?.slice(0, 3)
+                            .map(magazine => ({
+                              ...magazine,
+                              stats: getMagazineReadStats(magazine.id)
+                            }))
+                            .sort((a, b) => b.stats.reads - a.stats.reads) // En çok okunanlar önce
+                            .map((magazine, index) => (
                             <div key={magazine.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg gap-2">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-bold text-primary text-lg">#{index + 1}</span>
@@ -1008,10 +1054,94 @@ const AdminDashboard = () => {
                                 <Badge variant="outline" className="text-xs">Sayı {magazine.issue_number}</Badge>
                               </div>
                               <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">
-                                👁️ {Math.floor(Math.random() * 100) + 50} okuma
+                                👁️ {magazine.stats.reads} okuma
                               </div>
                             </div>
                           ))}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Makale Başvuruları Bölümü - YENİ ÖZELLİK */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">📝 Makale Başvuruları</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {/* Başvuru İstatistikleri */}
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                          <div className="font-semibold text-blue-800 dark:text-blue-300">📄 Toplam Başvuru</div>
+                          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{articleSubmissions?.length || 0}</div>
+                          <div className="text-blue-600 dark:text-blue-400 text-xs">Tüm başvurular</div>
+                        </div>
+                        <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                          <div className="font-semibold text-yellow-800 dark:text-yellow-300">⏳ Bekleyen</div>
+                          <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                            {articleSubmissions?.length || 0}
+                          </div>
+                          <div className="text-yellow-600 dark:text-yellow-400 text-xs">İnceleme bekliyor</div>
+                        </div>
+                        <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+                          <div className="font-semibold text-green-800 dark:text-green-300">✅ Kabul Edilen</div>
+                          <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                            0
+                          </div>
+                          <div className="text-green-600 dark:text-green-400 text-xs">Yayın için onaylandı</div>
+                        </div>
+                        <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border border-red-200 dark:border-red-800">
+                          <div className="font-semibold text-red-800 dark:text-red-300">❌ Reddedilen</div>
+                          <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                            0
+                          </div>
+                          <div className="text-red-600 dark:text-red-400 text-xs">Yayına uygun değil</div>
+                        </div>
+                      </div>
+
+                      {/* Son Başvurular */}
+                      <div className="mt-6">
+                        <h3 className="text-lg font-semibold mb-4">📄 Son Makale Başvuruları</h3>
+                        <div className="space-y-3">
+                          {articleSubmissions?.slice(0, 5).map((submission) => (
+                            <div key={submission.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                              <div className="flex-1">
+                                <div className="font-medium text-gray-900 dark:text-gray-100">
+                                  {submission.title}
+                                </div>
+                                <div className="text-sm text-gray-500 dark:text-gray-400">
+                                  {submission.author_name} • {submission.category} • Beklemede
+                                </div>
+                                <div className="text-xs text-gray-400">
+                                  {submission.created_at && new Date(submission.created_at).toLocaleDateString('tr-TR')}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleViewArticleDetail(submission)}
+                                >
+                                  <Eye className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleDeleteArticle(submission)}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                          
+                          {(!articleSubmissions || articleSubmissions.length === 0) && (
+                            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                              📭 Henüz makale başvurusu yok
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1339,6 +1469,111 @@ const AdminDashboard = () => {
           onSave={handleSaveTeamMember}
           initialData={editingItem}
         />
+        
+        {/* Article Modals - YENİ */}
+        <Dialog open={articleDetailModalOpen} onOpenChange={setArticleDetailModalOpen}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold flex items-center gap-2">
+                <Eye className="h-5 w-5" />
+                Makale Detayları
+              </DialogTitle>
+            </DialogHeader>
+            
+            {selectedArticle && (
+              <div className="space-y-6 mt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Başlık</label>
+                    <p className="text-lg font-semibold">{selectedArticle.title}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Yazar</label>
+                    <p className="text-lg">{selectedArticle.author_name}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Email</label>
+                    <p className="text-lg">{selectedArticle.author_email}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Kategori</label>
+                    <p className="text-lg">{selectedArticle.category}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Makale Tipi</label>
+                    <p className="text-lg">{selectedArticle.submission_type}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Kelime Sayısı</label>
+                    <p className="text-lg">{selectedArticle.word_count || 'Hesaplanmamış'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Gönderim Tarihi</label>
+                    <p className="text-lg">{selectedArticle.created_at && new Date(selectedArticle.created_at).toLocaleDateString('tr-TR')}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Durum</label>
+                    <p className="text-lg">Beklemede</p>
+                  </div>
+                </div>
+                
+                {selectedArticle.author_bio && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Yazar Bio</label>
+                    <p className="text-sm bg-gray-50 dark:bg-gray-800 p-3 rounded">{selectedArticle.author_bio}</p>
+                  </div>
+                )}
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Makale İçeriği</label>
+                  <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg max-h-96 overflow-y-auto">
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed">{selectedArticle.content || selectedArticle.abstract || 'İçerik mevcut değil'}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={articleDeleteModalOpen} onOpenChange={setArticleDeleteModalOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold flex items-center gap-2 text-red-600">
+                <Trash2 className="h-5 w-5" />
+                 Makale Sil
+              </DialogTitle>
+              <DialogDescription>
+                Bu işlem geri alınamaz. Makale kalıcı olarak silinecektir.
+              </DialogDescription>
+            </DialogHeader>
+            
+            {selectedArticle && (
+              <div className="space-y-4 mt-4">
+                <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border border-red-200 dark:border-red-800">
+                  <h4 className="font-medium text-red-800 dark:text-red-300 mb-2">Silinecek Makale:</h4>
+                  <p className="text-sm font-semibold">{selectedArticle.title}</p>
+                  <p className="text-sm text-red-600 dark:text-red-400">Yazar: {selectedArticle.author_name}</p>
+                </div>
+                
+                <div className="flex gap-3 justify-end">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setArticleDeleteModalOpen(false)}
+                  >
+                    ❌ İptal
+                  </Button>
+                  <Button 
+                    variant="destructive" 
+                    onClick={confirmDeleteArticle}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    🗑️ Sil
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </ThemeProvider>
   );

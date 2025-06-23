@@ -981,3 +981,18 @@ export const useCreateMagazineRead = () => {
     },
   });
 };
+
+// Article Submissions hook - YENİ ÖZELLİK
+export const useArticleSubmissions = () => {
+  return useQuery({
+    queryKey: ['article_submissions'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('article_submissions')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+};

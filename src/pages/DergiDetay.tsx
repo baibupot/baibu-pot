@@ -9,11 +9,14 @@ import { Badge } from '../components/ui/badge';
 import { ArrowLeft, Download, BookOpen } from 'lucide-react';
 import FlipbookReader from '../components/FlipbookReader';
 import { processGitHubPdfPages, getPdfPageCount } from '../utils/pdfProcessor';
+import { useMagazineContributors } from '../hooks/useSupabaseData';
+import { trackMagazineRead } from '../utils/magazineTracking';
 
 interface Magazine {
   id: string;
   title: string;
   description: string | null;
+  theme: string | null;
   issue_number: number;
   publication_date: string;
   cover_image: string | null;
@@ -37,6 +40,37 @@ const DergiDetay = () => {
   const [totalPdfPages, setTotalPdfPages] = useState(0);
   const [loadedPageRanges, setLoadedPageRanges] = useState<Set<string>>(new Set());
   const [currentlyLoading, setCurrentlyLoading] = useState<Set<string>>(new Set());
+  
+  // Gizli istatistik tracking için state'ler
+  const [readingStartTime, setReadingStartTime] = useState<number | null>(null);
+  const [currentReadingSession, setCurrentReadingSession] = useState<string | null>(null);
+  
+  // Contributors verilerini çek
+  const { data: contributors = [] } = useMagazineContributors(magazine?.id);
+  
+  // Magazine sponsors verilerini çek
+  const [magazineSponsors, setMagazineSponsors] = useState<any[]>([]);
+  
+  useEffect(() => {
+    const fetchSponsorsData = async () => {
+      if (!magazine?.id) return;
+      
+      try {
+        // Yeni sistemde direkt magazine_sponsors tablosundan al
+        const { data: magazineSponsorData } = await supabase
+          .from('magazine_sponsors')
+          .select('*')
+          .eq('magazine_issue_id', magazine.id)
+          .order('sort_order', { ascending: true });
+          
+        setMagazineSponsors(magazineSponsorData || []);
+      } catch (error) {
+        console.error('Sponsors yüklenirken hata:', error);
+      }
+    };
+    
+    fetchSponsorsData();
+  }, [magazine?.id]);
 
   useEffect(() => {
     const fetchMagazine = async () => {
@@ -87,9 +121,10 @@ const DergiDetay = () => {
 
         setMagazine(data);
 
-        // İstatistik kaydet (okuma başlatıldığında)
+        // Gizli istatistik tracking başlat (sayfa yüklendiğinde)
         if (data.pdf_file) {
-          await trackMagazineView(data.id);
+          // Hiç ses çıkarmadan tracking başlat
+          startReadingSession(data.id);
         }
 
       } catch (err: any) {
@@ -102,17 +137,60 @@ const DergiDetay = () => {
     fetchMagazine();
   }, [id]);
 
-  // İstatistik takibi
-  const trackMagazineView = async (magazineId: string) => {
+  // Gizli istatistik tracking - kullanıcı hiç anlamayacak
+  const startReadingSession = (magazineId: string) => {
+    const startTime = Date.now();
+    const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    setReadingStartTime(startTime);
+    setCurrentReadingSession(sessionId);
+    
+    // Sayfa kapatılırken otomatik kaydet (background tracking)
+    const handleBeforeUnload = () => {
+      if (readingStartTime) {
+        const duration = Date.now() - readingStartTime;
+        // Async olmayan şekilde hızlıca kaydet
+        navigator.sendBeacon('/api/magazine-read', JSON.stringify({
+          magazineId,
+          duration,
+          completed: false
+        }));
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      if (readingStartTime) {
+        const duration = Date.now() - readingStartTime;
+        // Normal okuma tamamlandığında
+        trackMagazineRead(magazineId, duration, totalPdfPages, true);
+      }
+    };
+  };
+  
+  // Okuma sonu tracking
+  const endReadingSession = async (pagesRead?: number, completed = false) => {
+    if (!readingStartTime || !magazine?.id) return;
+    
+    const duration = Date.now() - readingStartTime;
+    
+    // Gizlice veritabanına kaydet
     try {
-      const deviceType = window.innerWidth <= 768 ? 'mobile' : 
-                        window.innerWidth <= 1024 ? 'tablet' : 'desktop';
-      
-      // Basit istatistik log - admin panelinde gösterilebilir
-      // TODO: Gerçek istatistik kaydetme admin panelinde implement edilecek
+      await trackMagazineRead(
+        magazine.id,
+        duration,
+        pagesRead || totalPdfPages,
+        completed
+      );
     } catch (error) {
-      // İstatistik kaydedilemedi
+      // Sessizce hata yakala, kullanıcıya gösterme
+      console.debug('Analytics error:', error);
     }
+    
+    setReadingStartTime(null);
+    setCurrentReadingSession(null);
   };
 
   const getDownloadUrl = () => {
@@ -301,7 +379,13 @@ const DergiDetay = () => {
         <FlipbookReader 
           pages={flipbookPages}
           title={magazine.title}
-          onClose={() => setIsReading(false)}
+          magazineId={magazine.id}
+          totalPages={totalPdfPages}
+          onClose={() => {
+            // Flipbook kapatılırken session'ı sonlandır
+            endReadingSession(totalPdfPages, true);
+            setIsReading(false);
+          }}
           isLoading={pdfProcessing}
           loadingProgress={pdfProcessProgress}
           loadingText={magazine.pdf_file?.includes('raw.githubusercontent.com') ? 
@@ -390,10 +474,7 @@ const DergiDetay = () => {
                     // Direkt okuma moduna geç
                     setIsReading(true);
                     
-                    // İstatistik kaydı
-                    if (magazine.id) {
-                      trackMagazineView(magazine.id);
-                    }
+                    // Flipbook açılırken additional tracking yok - zaten session başlatıldı
                     
                     // PDF henüz işlenmemişse arka planda işle
                     if (flipbookPages.length === 0 && !pdfProcessing) {
@@ -446,6 +527,130 @@ const DergiDetay = () => {
               </CardContent>
             </Card>
 
+            {/* Contributors Bölümü - YENİ ÖZELLİK */}
+            {contributors.length > 0 && (
+              <Card className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-purple-200 dark:border-purple-800">
+                <CardContent className="p-4">
+                  <h4 className="font-medium text-purple-800 dark:text-purple-200 mb-3 flex items-center">
+                    👥 Katkıda Bulunanlar ({contributors.length})
+                  </h4>
+                  <div className="space-y-3">
+                    {contributors.map((contributor) => (
+                      <div key={contributor.id} className="flex items-start gap-3 p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                        {contributor.profile_image ? (
+                          <img 
+                            src={contributor.profile_image} 
+                            alt={contributor.name}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
+                            <span className="text-purple-600 dark:text-purple-300 font-medium text-sm">
+                              {contributor.name.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium text-gray-900 dark:text-gray-100">
+                              {contributor.name}
+                            </span>
+                            <Badge variant="outline" className="text-xs">
+                              {contributor.role === 'editor' ? 'Editör' :
+                               contributor.role === 'author' ? 'Yazar' :
+                               contributor.role === 'illustrator' ? 'İllüstratör' :
+                               contributor.role === 'designer' ? 'Tasarımcı' :
+                               contributor.role === 'translator' ? 'Çevirmen' : contributor.role}
+                            </Badge>
+                          </div>
+                          {contributor.bio && (
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                              {contributor.bio}
+                            </p>
+                          )}
+                          {contributor.social_links && Object.keys(contributor.social_links as any).length > 0 && (
+                            <div className="flex gap-2 text-xs">
+                              {Object.entries(contributor.social_links as any).map(([platform, link]) => (
+                                <a 
+                                  key={platform}
+                                  href={link as string}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-purple-600 dark:text-purple-400 hover:underline"
+                                >
+                                  {platform === 'linkedin' ? '💼 LinkedIn' :
+                                   platform === 'twitter' ? '🐦 Twitter' :
+                                   platform === 'instagram' ? '📷 Instagram' : 
+                                   platform === 'email' ? '✉️ Email' : platform}
+                                </a>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Sponsors Bölümü - YENİ ÖZELLİK */}
+            {magazineSponsors.length > 0 && (
+              <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-blue-200 dark:border-blue-800">
+                <CardContent className="p-4">
+                  <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-3 flex items-center">
+                    🏢 Bu Sayının Sponsorları ({magazineSponsors.length})
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {magazineSponsors.map((magazineSponsor, index) => (
+                      <div key={index} className="flex items-center gap-3 p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                        {magazineSponsor.logo_url ? (
+                          <img 
+                            src={magazineSponsor.logo_url} 
+                            alt={magazineSponsor.sponsor_name}
+                            className="w-12 h-12 object-contain rounded border bg-white"
+                            onError={(e) => {
+                              e.currentTarget.src = '/placeholder.svg';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded border bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                            <span className="text-blue-600 dark:text-blue-300 font-bold text-lg">
+                              {magazineSponsor.sponsor_name?.charAt(0).toUpperCase() || '🏢'}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          {magazineSponsor.website_url ? (
+                            <a 
+                              href={magazineSponsor.website_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="font-medium text-blue-900 dark:text-blue-100 hover:text-blue-700 dark:hover:text-blue-300 underline"
+                            >
+                              {magazineSponsor.sponsor_name || 'Sponsor'}
+                            </a>
+                          ) : (
+                            <div className="font-medium text-blue-900 dark:text-blue-100">
+                              {magazineSponsor.sponsor_name || 'Sponsor'}
+                            </div>
+                          )}
+                          <div className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                            {magazineSponsor.sponsorship_type || 'Sponsor'}
+                          </div>
+                          {magazineSponsor.website_url && (
+                            <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                              🌐 {magazineSponsor.website_url.replace(/^https?:\/\//, '')}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Teknik Bilgiler */}
             <Card className="bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700">
               <CardContent className="p-4">
@@ -465,6 +670,20 @@ const DergiDetay = () => {
                       {magazine.published ? 'Yayında' : 'Taslak'}
                     </Badge>
                   </div>
+                  {magazine.theme && (
+                    <div className="flex justify-between">
+                      <span>Tema:</span>
+                      <Badge variant="outline" className="text-xs">
+                        {magazine.theme}
+                      </Badge>
+                    </div>
+                  )}
+                  {contributors.length > 0 && (
+                    <div className="flex justify-between">
+                      <span>Katkıda Bulunanlar:</span>
+                      <span>{contributors.length} kişi</span>
+                    </div>
+                  )}
                   {magazine.pdf_file?.includes('raw.githubusercontent.com') && (
                     <div className="flex justify-between">
                       <span>Format:</span>
