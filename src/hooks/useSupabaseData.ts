@@ -94,6 +94,9 @@ export const useNews = (published = true) => {
       if (error) throw error;
       return data;
     },
+    staleTime: 3 * 60 * 1000, // 3 dakika fresh (news orta sıklıkta değişir)
+    cacheTime: 10 * 60 * 1000, // 10 dakika cache
+    refetchOnWindowFocus: false,
   });
 };
 
@@ -165,6 +168,9 @@ export const useEvents = () => {
       if (error) throw error;
       return data;
     },
+    staleTime: 2 * 60 * 1000, // 2 dakika fresh tut (events sık değişmez)
+    cacheTime: 10 * 60 * 1000, // 10 dakika cache'de tut
+    refetchOnWindowFocus: false, // Pencere focus'ta refetch etme
   });
 };
 
@@ -318,6 +324,9 @@ export const useMagazineIssues = (published = true) => {
       if (error) throw error;
       return data;
     },
+    staleTime: 5 * 60 * 1000, // 5 dakika fresh (magazine daha az değişir)
+    cacheTime: 15 * 60 * 1000, // 15 dakika cache
+    refetchOnWindowFocus: false,
   });
 };
 

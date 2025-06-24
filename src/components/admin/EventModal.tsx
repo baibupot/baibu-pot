@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Upload, X, Image, FileText, Loader2, Settings, Plus } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
+import { toast } from 'sonner';
 import FormBuilder from './FormBuilder';
 import { 
   uploadEventFeaturedImage, 
@@ -400,8 +401,120 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
     setEventSponsors(prev => prev.filter((_, index) => index !== indexToRemove));
   };
 
+  // Helper function to handle registration method changes
+  const handleRegistrationMethodChange = (method: 'external' | 'internal' | 'none') => {
+    switch (method) {
+      case 'external':
+        setFormData(prev => ({ 
+          ...prev, 
+          registration_required: true,
+          has_custom_form: false,
+          registration_link: prev.registration_link || ''
+        }));
+        break;
+      case 'internal':
+        setFormData(prev => ({ 
+          ...prev, 
+          registration_required: true,
+          has_custom_form: true,
+          registration_link: ''
+        }));
+        break;
+      case 'none':
+        setFormData(prev => ({ 
+          ...prev, 
+          registration_required: false,
+          has_custom_form: false,
+          registration_link: ''
+        }));
+        break;
+    }
+  };
+
+  // Get current registration method
+  const getCurrentRegistrationMethod = (): 'external' | 'internal' | 'none' => {
+    if (!formData.registration_required) return 'none';
+    if (formData.registration_link) return 'external';
+    if (formData.has_custom_form) return 'internal';
+    return 'none';
+  };
+
+  // Form validation helper
+  const validateForm = (): { isValid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+
+    // Required field validations
+    if (!formData.title?.trim()) {
+      errors.push('Etkinlik başlığı zorunludur');
+    }
+    if (!formData.description?.trim()) {
+      errors.push('Etkinlik açıklaması zorunludur');
+    }
+    if (!formData.event_date) {
+      errors.push('Etkinlik tarihi zorunludur');
+    }
+
+    // Title length validation
+    if (formData.title && formData.title.length > 100) {
+      errors.push('Etkinlik başlığı 100 karakterden uzun olamaz');
+    }
+
+    // Date validation
+    if (formData.event_date) {
+      const eventDate = new Date(formData.event_date);
+      const now = new Date();
+      if (eventDate < now) {
+        errors.push('Etkinlik tarihi gelecekte olmalıdır');
+      }
+    }
+
+    // End date validation
+    if (formData.end_date && formData.event_date) {
+      const startDate = new Date(formData.event_date);
+      const endDate = new Date(formData.end_date);
+      if (endDate <= startDate) {
+        errors.push('Bitiş tarihi başlangıç tarihinden sonra olmalıdır');
+      }
+    }
+
+    // Price validation
+    if (formData.price && Number(formData.price) < 0) {
+      errors.push('Etkinlik ücreti negatif olamaz');
+    }
+
+    // Max participants validation
+    if (formData.max_participants && Number(formData.max_participants) <= 0) {
+      errors.push('Maksimum katılımcı sayısı pozitif olmalıdır');
+    }
+
+    // Registration validation
+    if (formData.registration_required) {
+      if (!formData.registration_link?.trim() && !formData.has_custom_form) {
+        errors.push('Kayıt gerekli ise kayıt yöntemi belirtilmelidir');
+      }
+    }
+
+    // URL validation for registration link
+    if (formData.registration_link?.trim()) {
+      try {
+        new URL(formData.registration_link);
+      } catch {
+        errors.push('Geçerli bir kayıt linki giriniz');
+      }
+    }
+
+    return { isValid: errors.length === 0, errors };
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate form
+    const validation = validateForm();
+    if (!validation.isValid) {
+      toast.error(`❌ Form Hatası:\n${validation.errors.join('\n')}`);
+      return;
+    }
     
     const eventData: EventData & { sponsors?: EventSponsor[] } = {
       ...formData,
@@ -435,17 +548,52 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[100vw] max-h-[100vh] sm:max-w-5xl sm:max-h-[95vh] sm:rounded-xl overflow-y-auto p-0 sm:p-6">
-        {/* Mobile-First Header */}
+        {/* Enhanced Header with Smart Progress */}
         <DialogHeader className="sticky top-0 z-50 bg-gradient-to-r from-blue-50 via-purple-50 to-cyan-50 dark:from-blue-900/30 dark:via-purple-900/30 dark:to-cyan-900/30 backdrop-blur-sm border-b border-blue-200 dark:border-blue-700 p-4 sm:p-6 sm:rounded-t-xl">
-          <div className="flex items-center justify-between">
-            <div className="flex-1 text-center sm:text-left">
-              <DialogTitle className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent leading-tight">
-                {initialData ? '✏️ Etkinlik Düzenle' : '🎉 Yeni Etkinlik Oluştur'}
-              </DialogTitle>
-              <DialogDescription className="text-xs sm:text-base mt-1 sm:mt-2 text-gray-600 dark:text-gray-300 line-clamp-2">
-                {initialData ? 'Mevcut etkinlik bilgilerini düzenleyin ve katılımcı yanıtlarını yönetin' : 'Harika bir etkinlik oluşturun! Adım adım rehber eşliğinde'}
-              </DialogDescription>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <span className="text-2xl">{initialData ? '✏️' : '🎉'}</span>
+                </div>
+                <div className="flex-1">
+                  <DialogTitle className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent leading-tight">
+                    {initialData ? '✏️ Etkinlik Düzenle' : '🎉 Yeni Etkinlik Oluştur'}
+                  </DialogTitle>
+                  <DialogDescription className="text-xs sm:text-base mt-1 text-gray-600 dark:text-gray-300">
+                    {initialData ? 'Mevcut etkinlik bilgilerini düzenleyin ve yönetin' : 'Harika bir etkinlik oluşturmak için adım adım rehberi takip edin'}
+                  </DialogDescription>
+                </div>
+              </div>
+              
+              {/* Smart Progress Indicator */}
+              <div className="flex items-center gap-4 mt-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 text-xs sm:text-sm">
+                    {/* Step indicators */}
+                    <div className={`flex items-center gap-1 px-2 py-1 rounded-full transition-all ${formData.title ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
+                      <span>{formData.title ? '✅' : '📝'}</span>
+                    </div>
+                    <div className={`flex items-center gap-1 px-2 py-1 rounded-full transition-all ${formData.featured_image || galleryImages.length > 0 ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
+                      <span>{formData.featured_image || galleryImages.length > 0 ? '✅' : '🎨'}</span>
+                      <span className="hidden sm:inline">Medya</span>
+                    </div>
+                    <div className={`flex items-center gap-1 px-2 py-1 rounded-full transition-all ${formData.has_custom_form && formData.slug ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
+                      <span>{formData.has_custom_form && formData.slug ? '✅' : '📋'}</span>
+                      <span className="hidden sm:inline">Kayıt Form</span>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Completion Badge */}
+                {formData.title && formData.event_date && (
+                  <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-3 py-1 rounded-full text-xs font-medium shadow-md">
+                    🎯 Yayınlamaya Hazır
+                  </div>
+                )}
+              </div>
             </div>
+            
             {/* Mobile Close Button */}
             <button 
               onClick={onClose}
@@ -453,14 +601,6 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
             >
               <X className="h-5 w-5 text-gray-600 dark:text-gray-300" />
             </button>
-          </div>
-          
-          {/* Mobile Progress Indicator */}
-          <div className="sm:hidden mt-3 flex items-center justify-center space-x-2">
-            <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400">
-              <span className="block w-2 h-2 bg-blue-500 rounded-full"></span>
-              <span>Etkinlik Formu</span>
-            </div>
           </div>
         </DialogHeader>
         
@@ -776,7 +916,7 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
             <Switch
               id="registration_required"
               checked={formData.registration_required}
-              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, registration_required: checked }))}
+              onCheckedChange={(checked) => handleRegistrationMethodChange(checked ? 'external' : 'none')}
             />
                     <div className="flex-1">
                       <Label htmlFor="registration_required" className="text-base font-medium">Kayıt Gerekli</Label>
@@ -785,32 +925,98 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
           </div>
 
           {formData.registration_required && (
-            <div>
-                      <Label htmlFor="registration_link" className="text-base font-medium">Harici Kayıt Linki (Opsiyonel)</Label>
-              <Input
-                id="registration_link"
-                value={formData.registration_link}
-                onChange={(e) => setFormData(prev => ({ ...prev, registration_link: e.target.value }))}
-                placeholder="https://example.com/register"
-                        className="mt-1 h-12"
-              />
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Google Forms, Eventbrite vs. kullanıyorsanız linkini buraya yazın
-                      </p>
-            </div>
-          )}
+            <div className="space-y-4">
+              {/* Kayıt Yöntemi Seçimi */}
+              <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg border border-amber-200 dark:border-amber-700">
+                <div className="flex items-start gap-3">
+                  <span className="text-amber-600 dark:text-amber-400 text-lg">⚡</span>
+                  <div>
+                    <h4 className="font-medium text-amber-800 dark:text-amber-300 mb-1">Kayıt Yöntemi Seçimi</h4>
+                    <p className="text-sm text-amber-700 dark:text-amber-400">
+                      Sadece bir kayıt yöntemi seçebilirsiniz. Harici link (Google Forms) veya özel form sistemi.
+                    </p>
+                  </div>
+                </div>
+              </div>
 
-                  <div className="flex items-center space-x-3 p-4 bg-white dark:bg-gray-800 rounded-lg border">
-                    <Switch
-                      id="has_custom_form"
-                      checked={formData.has_custom_form}
-                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, has_custom_form: checked }))}
-                    />
-                    <div className="flex-1">
-                      <Label htmlFor="has_custom_form" className="text-base font-medium">Özel Kayıt Formu Kullan</Label>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Kendi tasarımınızla kayıt formu oluşturun</p>
+              {/* Harici Kayıt Linki */}
+              <div className={`transition-all duration-200 ${formData.has_custom_form ? 'opacity-60 pointer-events-none' : ''}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <Label htmlFor="registration_link" className="text-base font-medium flex items-center gap-2">
+                    🔗 Harici Kayıt Linki
+                  </Label>
+                  {formData.has_custom_form && (
+                    <Badge variant="secondary" className="text-xs">Devre Dışı</Badge>
+                  )}
+                </div>
+                <Input
+                  id="registration_link"
+                  value={formData.registration_link}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    handleRegistrationMethodChange(value.trim() ? 'external' : 'none');
+                  }}
+                  placeholder="https://forms.google.com/... veya https://eventbrite.com/..."
+                  className="mt-1 h-12"
+                  disabled={formData.has_custom_form}
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {formData.has_custom_form 
+                    ? "Özel form aktifken harici link kullanılamaz" 
+                    : "Google Forms, Eventbrite, Typeform vs. harici platformları buraya ekleyin"}
+                </p>
+              </div>
+
+              {/* ÖR İle Ayırıcı */}
+              <div className="flex items-center gap-4">
+                <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
+                <span className="text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900 px-3">VEYA</span>
+                <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
+              </div>
+
+              {/* Özel Kayıt Formu */}
+              <div className={`transition-all duration-200 ${formData.registration_link?.trim() ? 'opacity-60 pointer-events-none' : ''}`}>
+                <div className="flex items-center space-x-3 p-4 bg-white dark:bg-gray-800 rounded-lg border">
+                  <Switch
+                    id="has_custom_form"
+                    checked={formData.has_custom_form}
+                    onCheckedChange={(checked) => handleRegistrationMethodChange(checked ? 'internal' : 'none')}
+                    disabled={!!formData.registration_link?.trim()}
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="has_custom_form" className="text-base font-medium">🏗️ Özel Kayıt Formu Kullan</Label>
+                      {formData.registration_link?.trim() && (
+                        <Badge variant="secondary" className="text-xs">Devre Dışı</Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {formData.registration_link?.trim() 
+                        ? "Harici link varken özel form kullanılamaz" 
+                        : "Kendi sistemimizde özelleştirilebilir kayıt formu oluşturun"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Aktif Durum Göstergesi */}
+              {(formData.registration_link?.trim() || formData.has_custom_form) && (
+                <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-700">
+                  <div className="flex items-center gap-3">
+                    <span className="text-green-600 dark:text-green-400 text-lg">✅</span>
+                    <div>
+                      <h4 className="font-medium text-green-800 dark:text-green-300">Aktif Kayıt Yöntemi</h4>
+                      <p className="text-sm text-green-700 dark:text-green-400">
+                        {formData.registration_link?.trim() 
+                          ? `🔗 Harici platform: ${new URL(formData.registration_link).hostname}`
+                          : "🏗️ Özel kayıt formu sistemi"}
+                      </p>
                     </div>
                   </div>
+                </div>
+              )}
+            </div>
+          )}
                 </div>
               </div>
             </TabsContent>
@@ -1234,42 +1440,94 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
             </TabsContent>
           </Tabs>
 
-          {/* Mobile-First Footer */}
-          <div className="sticky bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 p-4 sm:relative sm:bg-transparent sm:border-0 sm:pt-6">
+          {/* Enhanced Smart Footer */}
+          <div className="sticky bottom-0 left-0 right-0 bg-gradient-to-r from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 border-t border-gray-200 dark:border-gray-700 p-4 sm:relative sm:bg-transparent sm:border-0 sm:pt-6 backdrop-blur-sm">
+            {/* Smart Validation Messages */}
+            {!formData.title || !formData.event_date ? (
+              <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-700">
+                <div className="flex items-start gap-2">
+                  <span className="text-amber-600 dark:text-amber-400">⚠️</span>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-amber-800 dark:text-amber-300 text-sm">Zorunlu alanları tamamlayın</h4>
+                    <ul className="text-xs text-amber-700 dark:text-amber-400 mt-1 list-disc list-inside">
+                      {!formData.title && <li>Etkinlik başlığı gerekli</li>}
+                      {!formData.event_date && <li>Etkinlik tarihi gerekli</li>}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700">
+                <div className="flex items-center gap-2">
+                  <span className="text-green-600 dark:text-green-400">✅</span>
+                  <span className="text-sm font-medium text-green-800 dark:text-green-300">
+                    Etkinlik yayınlamaya hazır!
+                  </span>
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
               <Button 
                 type="button" 
                 variant="outline" 
                 onClick={onClose}
-                className="w-full sm:w-auto h-12 sm:h-11 px-6 text-base sm:text-sm font-medium border-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
+                className="w-full sm:w-auto h-12 sm:h-11 px-6 text-base sm:text-sm font-medium border-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200"
               >
-                <X className="h-4 w-4 mr-2 sm:hidden" />
+                <X className="h-4 w-4 mr-2" />
                 İptal
               </Button>
               <Button 
                 type="submit"
-                disabled={isUploading}
-                className="w-full sm:w-auto h-12 sm:h-11 px-8 text-base sm:text-sm font-bold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 rounded-xl disabled:transform-none"
+                disabled={isUploading || !formData.title || !formData.event_date}
+                className="w-full sm:w-auto h-12 sm:h-11 px-8 text-base sm:text-sm font-bold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 rounded-xl disabled:transform-none disabled:cursor-not-allowed"
               >
                 {isUploading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Yükleniyor...
-                  </>
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Yükleniyor...</span>
+                  </div>
                 ) : (
-                  <>
-                    {initialData ? '✅ Güncelle' : '🎉 Kaydet'}
-                  </>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{initialData ? '✏️' : '🎉'}</span>
+                    <span>{initialData ? 'Güncelle' : 'Etkinliği Oluştur'}</span>
+                  </div>
                 )}
               </Button>
             </div>
             
-            {/* Mobile Upload Progress */}
+            {/* Enhanced Upload Progress */}
             {isUploading && uploadProgress && (
-              <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700 sm:hidden">
-                <div className="flex items-center space-x-2">
-                  <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                  <span className="text-sm font-medium text-blue-800 dark:text-blue-300">{uploadProgress}</span>
+              <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-700">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <Loader2 className="h-4 w-4 animate-spin text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium text-blue-800 dark:text-blue-300 text-sm">
+                      Dosyalar işleniyor...
+                    </div>
+                    <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                      {uploadProgress}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Success Tips */}
+            {formData.title && formData.event_date && !isUploading && (
+              <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
+                <div className="flex items-start gap-2">
+                  <span className="text-blue-600 dark:text-blue-400">💡</span>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-blue-800 dark:text-blue-300 text-sm mb-1">Sonraki adımlar</h4>
+                    <div className="text-xs text-blue-700 dark:text-blue-400 space-y-1">
+                      <div>• Etkinlik kaydedildikten sonra Medya sekmesinden görsel ekleyebilirsiniz</div>
+                      <div>• Form sekmesinden katılımcı kayıt formu oluşturabilirsiniz</div>
+                      <div>• Sponsor ekleyerek etkinliğinizi destekleyenleri tanıtabilirsiniz</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

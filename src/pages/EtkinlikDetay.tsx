@@ -97,6 +97,32 @@ const EtkinlikDetay = () => {
     return format(new Date(dateString), 'HH:mm', { locale: tr });
   };
 
+  // Format date range helper
+  const formatDateRange = (startDate: string, endDate?: string) => {
+    if (!endDate || startDate === endDate) {
+      return null;
+    }
+    
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    // Same day, different times
+    if (start.toDateString() === end.toDateString()) {
+      const endTime = format(end, 'HH:mm', { locale: tr });
+      return ` - ${endTime}`;
+    }
+    
+    // Different days
+    const endDay = format(end, 'dd MMMM yyyy', { locale: tr });
+    return ` - ${endDay}`;
+  };
+
+  // Format price display
+  const formatPrice = (price?: number, currency: string = 'TL') => {
+    if (!price || price === 0) return '🆓 Ücretsiz';
+    return `💰 ${price.toLocaleString('tr-TR')} ${currency}`;
+  };
+
   const openMapsLocation = () => {
     if (event?.latitude && event?.longitude) {
       const mapsUrl = `https://www.google.com/maps?q=${event.latitude},${event.longitude}`;
@@ -109,13 +135,18 @@ const EtkinlikDetay = () => {
 
   const handleRegistration = () => {
     if (event?.registration_link) {
-      // Harici link varsa oraya yönlendir
+      // External registration (Google Forms, Eventbrite, etc.)
       window.open(event.registration_link, '_blank');
     } else if (event?.has_custom_form) {
-      // Custom form varsa modal aç
-      setIsRegistrationModalOpen(true);
+      // Internal custom form - scroll to form section
+      const formElement = document.getElementById('kayit-formu');
+      if (formElement) {
+        formElement.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        setIsRegistrationModalOpen(true);
+      }
     } else {
-      alert('Kayıt sistemi henüz aktif değil. Lütfen organizatörlerle iletişime geçin.');
+      alert('Kayıt sistemi henüz hazırlanmıştır. Lütfen organizatörlerle iletişime geçin.');
     }
   };
 
@@ -227,11 +258,9 @@ const EtkinlikDetay = () => {
                 <Badge className={`${getEventStatusColor(event.status as EventStatus)} shadow-lg backdrop-blur-sm`}>
                   {getEventStatusLabel(event.status as EventStatus)}
                 </Badge>
-                {event.price && event.price > 0 && (
-                  <Badge className="bg-green-600 text-white shadow-lg backdrop-blur-sm">
-                    💰 {event.price} {event.currency || 'TL'}
-                  </Badge>
-                )}
+                <Badge className={`${event.price && event.price > 0 ? 'bg-green-600' : 'bg-blue-600'} text-white shadow-lg backdrop-blur-sm`}>
+                  {formatPrice(event.price, event.currency)}
+                </Badge>
               </div>
               {event.registration_required && (
                 <div className="absolute top-4 right-4">
@@ -259,11 +288,9 @@ const EtkinlikDetay = () => {
                     📝 Kayıt Gerekli
                   </Badge>
                 )}
-                {event.price && event.price > 0 && (
-                  <Badge className="bg-green-600 text-white">
-                    💰 {event.price} {event.currency || 'TL'}
-                  </Badge>
-                )}
+                <Badge className={`${event.price && event.price > 0 ? 'bg-green-600' : 'bg-blue-600'} text-white`}>
+                  {formatPrice(event.price, event.currency)}
+                </Badge>
               </div>
             )}
             
@@ -291,7 +318,10 @@ const EtkinlikDetay = () => {
                     </div>
                     <div className="text-sm text-blue-700 dark:text-blue-300 mt-1">
                       🕐 {formatEventTime(event.event_date)}
-                      {event.end_date && ` - ${formatEventTime(event.end_date)}`}
+                      {formatDateRange(event.event_date, event.end_date)}
+                      {event.end_date && !formatDateRange(event.event_date, event.end_date) && (
+                        <span className="ml-2 text-xs">📅 Çok günlük etkinlik</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -348,20 +378,18 @@ const EtkinlikDetay = () => {
                   <UserPlus className="h-6 w-6 mr-3" />
                   {event.status === 'completed' ? '✅ Etkinlik Tamamlandı' :
                    event.status === 'cancelled' ? '❌ Etkinlik İptal Edildi' :
+                   event.registration_link ? '🔗 Kayıt Sayfasına Git' :
                    event.has_custom_form ? '📝 Kayıt Formunu Doldur' : 
-                   event.registration_link ? '🔗 Kayıt Sayfasına Git' : 
                    '✨ Etkinliğe Kayıt Ol'}
                 </Button>
                 
                 {/* Additional Info Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {event.price && event.price > 0 && (
-                    <div className="bg-green-50 dark:bg-green-900/20 px-4 py-3 rounded-xl border border-green-200 dark:border-green-800 text-center sm:text-left">
-                      <span className="text-green-700 dark:text-green-300 font-semibold">
-                        💰 Ücret: {event.price} {event.currency || 'TL'}
-                      </span>
-                    </div>
-                  )}
+                  <div className={`${event.price && event.price > 0 ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'} px-4 py-3 rounded-xl border text-center sm:text-left`}>
+                    <span className={`${event.price && event.price > 0 ? 'text-green-700 dark:text-green-300' : 'text-blue-700 dark:text-blue-300'} font-semibold`}>
+                      {formatPrice(event.price, event.currency)}
+                    </span>
+                  </div>
                   {event.status === 'ongoing' && (
                     <div className="bg-orange-50 dark:bg-orange-900/20 px-4 py-3 rounded-xl border border-orange-200 dark:border-orange-800 text-center sm:text-left">
                       <span className="text-orange-700 dark:text-orange-300 font-semibold">
@@ -708,7 +736,7 @@ const EtkinlikDetay = () => {
       {/* Registration Modal */}
       {event && (
         <EventRegistrationForm
-          eventId={event.slug}
+          eventId={event.id}
           eventTitle={event.title}
           isOpen={isRegistrationModalOpen}
           onClose={() => setIsRegistrationModalOpen(false)}

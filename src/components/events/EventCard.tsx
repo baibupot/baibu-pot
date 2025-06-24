@@ -27,6 +27,7 @@ interface Event {
   max_participants?: number;
   registration_required: boolean;
   registration_link?: string;
+  has_custom_form?: boolean;
   featured_image?: string;
   gallery_images?: string[];
   status: string;
@@ -54,6 +55,32 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
     return format(new Date(dateString), 'dd MMM, HH:mm', { locale: tr });
   };
 
+  // Format date range helper
+  const formatDateRange = (startDate: string, endDate?: string) => {
+    const start = new Date(startDate);
+    if (!endDate || startDate === endDate) {
+      return null; // Single date, no range
+    }
+    
+    const end = new Date(endDate);
+    
+    // Same day, different times
+    if (start.toDateString() === end.toDateString()) {
+      const endTime = format(end, 'HH:mm', { locale: tr });
+      return `- ${endTime}`;
+    }
+    
+    // Different days
+    const endDay = format(end, 'dd MMM', { locale: tr });
+    return `- ${endDay}`;
+  };
+
+  // Format price display
+  const formatPrice = (price?: number, currency: string = 'TL') => {
+    if (!price || price === 0) return '🆓 Ücretsiz';
+    return `💰 ${price.toLocaleString('tr-TR')} ${currency}`;
+  };
+
   return (
     <Card className="group hover:shadow-xl hover:scale-[1.02] transition-all duration-300 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg">
       {/* Mobile-First Header with Image */}
@@ -74,13 +101,11 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
             </Badge>
           </div>
           {/* Price overlay */}
-          {event.price && event.price > 0 && (
-            <div className="absolute top-3 right-3">
-              <Badge className="bg-green-600 text-white shadow-lg">
-                💰 {event.price} {event.currency || 'TL'}
-              </Badge>
-            </div>
-          )}
+          <div className="absolute top-3 right-3">
+            <Badge className={`${event.price && event.price > 0 ? 'bg-green-600' : 'bg-blue-600'} text-white shadow-lg`}>
+              {formatPrice(event.price, event.currency)}
+            </Badge>
+          </div>
         </div>
       )}
 
@@ -108,12 +133,18 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
             <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
             <div className="flex-1">
               <div className="text-sm sm:text-base font-semibold text-blue-900 dark:text-blue-100">
-                <span className="sm:hidden">{formatMobileDate(event.event_date)}</span>
-                <span className="hidden sm:inline">{formatEventDate(event.event_date)}</span>
+                <span className="sm:hidden">
+                  {formatMobileDate(event.event_date)}
+                  {formatDateRange(event.event_date, event.end_date)}
+                </span>
+                <span className="hidden sm:inline">
+                  {formatEventDate(event.event_date)}
+                  {formatDateRange(event.event_date, event.end_date)}
+                </span>
               </div>
-              {event.end_date && (
+              {event.end_date && formatDateRange(event.event_date, event.end_date) && (
                 <div className="text-xs text-blue-700 dark:text-blue-300">
-                  Bitiş: {format(new Date(event.end_date), 'HH:mm', { locale: tr })}
+                  📅 Çok günlük etkinlik
                 </div>
               )}
             </div>
@@ -188,15 +219,21 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
               className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-200"
               onClick={() => {
                 if (event.registration_link) {
+                  // External registration (Google Forms, Eventbrite, etc.)
                   window.open(event.registration_link, '_blank');
+                } else if (event.has_custom_form) {
+                  // Internal custom form
+                  window.location.href = `/etkinlikler/${event.slug}#kayit-formu`;
                 } else {
-                  alert('Kayıt linki henüz belirlenmemiş. Lütfen organizatörlerle iletişime geçin.');
+                  // No registration method set up
+                  alert('Kayıt sistemi henüz hazırlanmıştır. Lütfen etkinlik detaylarından organizatörlerle iletişime geçin.');
                 }
               }}
             >
               <span className="mr-2">🎯</span>
               Hemen Kayıt Ol
-              <ExternalLink className="h-5 w-5 ml-2" />
+              {event.registration_link && <ExternalLink className="h-5 w-5 ml-2" />}
+              {event.has_custom_form && !event.registration_link && <span className="ml-2">📝</span>}
             </Button>
           )}
 

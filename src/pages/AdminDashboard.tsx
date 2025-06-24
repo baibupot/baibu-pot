@@ -20,7 +20,10 @@ import {
   GraduationCap,
   Eye,
   Shield,
-  Package
+  Package,
+  Clock,
+  CheckCircle,
+  XCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ThemeProvider } from '@/components/ThemeProvider';
@@ -506,7 +509,16 @@ const AdminDashboard = () => {
     }
   };
 
-  const openEditModal = (item: any, type: 'news' | 'event' | 'magazine' | 'sponsor' | 'survey' | 'team') => {
+  // Type-safe item types
+  type EditableItem = 
+    | Tables['news']['Row']
+    | Tables['events']['Row'] 
+    | Tables['magazine_issues']['Row']
+    | Tables['sponsors']['Row']
+    | Tables['surveys']['Row']
+    | Tables['team_members']['Row'];
+
+  const openEditModal = (item: EditableItem, type: 'news' | 'event' | 'magazine' | 'sponsor' | 'survey' | 'team') => {
     setEditingItem(item);
     if (type === 'news') setNewsModalOpen(true);
     else if (type === 'event') setEventModalOpen(true);
@@ -582,12 +594,12 @@ const AdminDashboard = () => {
   };
 
   // Article handlers - YENİ
-  const handleViewArticleDetail = (article: any) => {
+  const handleViewArticleDetail = (article: Tables['article_submissions']['Row']) => {
     setSelectedArticle(article);
     setArticleDetailModalOpen(true);
   };
 
-  const handleDeleteArticle = (article: any) => {
+  const handleDeleteArticle = (article: Tables['article_submissions']['Row']) => {
     setSelectedArticle(article);
     setArticleDeleteModalOpen(true);
   };
@@ -607,8 +619,9 @@ const AdminDashboard = () => {
       setArticleDeleteModalOpen(false);
       setSelectedArticle(null);
       window.location.reload();
-    } catch (error: any) {
-      toast.error('Makale silinirken hata: ' + error.message);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
+      toast.error('Makale silinirken hata: ' + errorMessage);
     }
   };
 
@@ -777,12 +790,7 @@ const AdminDashboard = () => {
                     Etkinlikler
                   </TabsTrigger>
                 )}
-                {hasPermission('events') && (
-                  <TabsTrigger value="event-suggestions" className="text-xs whitespace-nowrap">
-                    <MessageSquare className="h-4 w-4 mr-1" />
-                    Öneriler
-                  </TabsTrigger>
-                )}
+
                 {hasPermission('magazine') && (
                   <TabsTrigger value="magazine" className="text-xs whitespace-nowrap">
                     <BookOpen className="h-4 w-4 mr-1" />
@@ -947,17 +955,17 @@ const AdminDashboard = () => {
               </TabsContent>
             )}
 
-            {/* Events Tab - Mobile-First Enhanced */}
+            {/* Events Tab - Enhanced with Suggestions */}
             {hasPermission('events') && (
-              <TabsContent value="events" className="space-y-4 sm:space-y-6">
-                {/* Header Section - Mobile Optimized */}
+              <TabsContent value="events" className="space-y-6">
+                {/* Header Section */}
                 <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
                   <div>
                     <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                       📅 Etkinlik Yönetimi
                     </h2>
                     <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
-                      Topluluğun etkinliklerini oluşturun ve yönetin
+                      Etkinlikleri yönetin ve kullanıcı önerilerini değerlendirin
                     </p>
                   </div>
                   <Button 
@@ -968,6 +976,33 @@ const AdminDashboard = () => {
                     Yeni Etkinlik Oluştur
                   </Button>
                 </div>
+
+                {/* Sub Navigation Tabs */}
+                <Tabs defaultValue="events-list" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 gap-1 h-12 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-1 rounded-xl shadow-sm">
+                    <TabsTrigger 
+                      value="events-list" 
+                      className="flex items-center justify-center gap-2 h-10 data-[state=active]:bg-blue-50 data-[state=active]:border-blue-200 data-[state=active]:shadow-sm dark:data-[state=active]:bg-blue-900/30 dark:data-[state=active]:border-blue-700 rounded-lg border-2 border-transparent transition-all duration-200"
+                    >
+                      <Calendar className="h-4 w-4" />
+                      <span className="font-medium">Etkinlik Listesi</span>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="suggestions"
+                      className="flex items-center justify-center gap-2 h-10 data-[state=active]:bg-purple-50 data-[state=active]:border-purple-200 data-[state=active]:shadow-sm dark:data-[state=active]:bg-purple-900/30 dark:data-[state=active]:border-purple-700 rounded-lg border-2 border-transparent transition-all duration-200"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      <span className="font-medium">Kullanıcı Önerileri</span>
+                      {eventSuggestions?.filter(s => s.status === 'pending').length > 0 && (
+                        <Badge variant="destructive" className="ml-1 h-5 min-w-5 px-1 text-xs">
+                          {eventSuggestions.filter(s => s.status === 'pending').length}
+                        </Badge>
+                      )}
+                    </TabsTrigger>
+                  </TabsList>
+
+                  {/* Events List Sub-Tab */}
+                  <TabsContent value="events-list" className="space-y-6 mt-6">
 
                 {/* Events Stats Cards - Mobile Grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
@@ -1035,51 +1070,92 @@ const AdminDashboard = () => {
                                 </div>
                               </div>
 
-                              {/* Event Meta Information */}
-                              <div className="flex flex-wrap items-center gap-2">
-                                {/* Event Type */}
-                                <Badge variant="outline" className="text-xs font-medium">
-                                  {EVENT_TYPES[event.event_type as keyof typeof EVENT_TYPES] || event.event_type}
-                              </Badge>
-                                
-                                {/* Event Date */}
-                                <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                                  <Calendar className="h-3 w-3" />
-                                  <span>{new Date(event.event_date).toLocaleDateString('tr-TR')}</span>
-                            </div>
-
-                                {/* Location */}
-                                {event.location && (
-                                  <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                                    <span>📍</span>
-                                    <span className="line-clamp-1">{event.location}</span>
-                          </div>
-                                )}
-
-                                {/* Status Badge */}
-                                <Badge 
-                                  variant={event.status === 'upcoming' ? "default" : event.status === 'completed' ? "secondary" : "outline"}
-                                  className="text-xs"
-                                >
-                                  {event.status === 'upcoming' ? '🔥 Yaklaşan' : 
-                                   event.status === 'completed' ? '✅ Tamamlandı' : 
-                                   event.status === 'cancelled' ? '❌ İptal' : '📝 Taslak'}
-                                </Badge>
-
-                                {/* Participants */}
-                                {event.max_participants && (
-                                  <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
-                                    <Users className="h-3 w-3" />
-                                    <span>Max {event.max_participants}</span>
-                                  </div>
-                                )}
-
-                                {/* Price */}
-                                {event.price && event.price > 0 && (
-                                  <Badge variant="outline" className="text-xs font-medium text-green-600 border-green-300">
-                                    💰 {event.price} {event.currency}
+                              {/* Event Meta Information - Enhanced */}
+                              <div className="space-y-3">
+                                {/* Primary Info Row */}
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {/* Event Type */}
+                                  <Badge variant="outline" className="text-xs font-medium">
+                                    {EVENT_TYPES[event.event_type as keyof typeof EVENT_TYPES] || event.event_type}
                                   </Badge>
-                                )}
+                                  
+                                  {/* Event Date Range */}
+                                  <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                                    <Calendar className="h-3 w-3" />
+                                    <span>{new Date(event.event_date).toLocaleDateString('tr-TR')}</span>
+                                    {event.end_date && event.end_date !== event.event_date && (
+                                      <span className="text-blue-600 dark:text-blue-400 font-medium">
+                                        - {new Date(event.end_date).toLocaleDateString('tr-TR')}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* Status Badge */}
+                                  <Badge 
+                                    variant={event.status === 'upcoming' ? "default" : event.status === 'completed' ? "secondary" : "outline"}
+                                    className="text-xs"
+                                  >
+                                    {event.status === 'upcoming' ? '🔥 Yaklaşan' : 
+                                     event.status === 'completed' ? '✅ Tamamlandı' : 
+                                     event.status === 'cancelled' ? '❌ İptal' : '📝 Taslak'}
+                                  </Badge>
+
+                                  {/* Price */}
+                                  {event.price && event.price > 0 ? (
+                                    <Badge variant="outline" className="text-xs font-medium text-green-600 border-green-300">
+                                      💰 {event.price} {event.currency}
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="text-xs font-medium text-blue-600 border-blue-300">
+                                      🆓 Ücretsiz
+                                    </Badge>
+                                  )}
+                                </div>
+
+                                {/* Secondary Info Row */}
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {/* Location */}
+                                  {event.location && (
+                                    <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                                      <span>📍</span>
+                                      <span className="line-clamp-1">{event.location}</span>
+                                    </div>
+                                  )}
+
+                                  {/* Participants */}
+                                  {event.max_participants && (
+                                    <Badge variant="outline" className="text-xs font-medium text-purple-600 border-purple-300">
+                                      👥 Max {event.max_participants}
+                                    </Badge>
+                                  )}
+
+                                  {/* Gallery Images */}
+                                  {event.gallery_images && event.gallery_images.length > 0 && (
+                                    <Badge variant="outline" className="text-xs font-medium text-cyan-600 border-cyan-300">
+                                      📸 {event.gallery_images.length} Resim
+                                    </Badge>
+                                  )}
+
+                                  {/* Registration Method */}
+                                  {event.registration_required && (
+                                    <Badge variant="outline" className="text-xs font-medium text-orange-600 border-orange-300">
+                                      {event.registration_link ? '🔗 Harici Kayıt' : 
+                                       event.has_custom_form ? '📝 Özel Form' : '📋 Kayıt Var'}
+                                    </Badge>
+                                  )}
+
+                                  {/* Map Available */}
+                                  {event.latitude && event.longitude && (
+                                    <Badge variant="outline" className="text-xs font-medium text-emerald-600 border-emerald-300">
+                                      🗺️ Harita Var
+                                    </Badge>
+                                  )}
+
+                                  {/* Sponsor Count - We'll get this from a separate query */}
+                                  <Badge variant="outline" className="text-xs font-medium text-pink-600 border-pink-300">
+                                    🤝 Sponsorlar
+                                  </Badge>
+                                </div>
                               </div>
                             </div>
 
@@ -1134,239 +1210,171 @@ const AdminDashboard = () => {
                     </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
-            )}
+                  </TabsContent>
 
-            {/* Event Suggestions Tab */}
-            {hasPermission('events') && (
-              <TabsContent value="event-suggestions" className="space-y-4 sm:space-y-6">
-                <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
-                  <div>
-                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                      💡 Etkinlik Önerileri
-                    </h2>
-                    <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
-                      Kullanıcılardan gelen etkinlik önerilerini değerlendirin
-                    </p>
-                  </div>
-                </div>
-
-                {/* Stats Cards */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-3 sm:p-4 rounded-xl border border-blue-200 dark:border-blue-700">
-                    <div className="text-xs sm:text-sm font-medium text-blue-800 dark:text-blue-300">📥 Toplam</div>
-                    <div className="text-lg sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
-                      {eventSuggestions?.length || 0}
+                  {/* Suggestions Sub-Tab */}
+                  <TabsContent value="suggestions" className="space-y-6 mt-6">
+                    {/* Etkinlik Önerileri Bölümü */}
+                    <div className="space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
+                      <span className="text-2xl">💡</span>
                     </div>
-                    <div className="text-xs text-blue-600 dark:text-blue-400">Öneri</div>
-                  </div>
-                  <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 p-3 sm:p-4 rounded-xl border border-orange-200 dark:border-orange-700">
-                    <div className="text-xs sm:text-sm font-medium text-orange-800 dark:text-orange-300">⏳ Bekleyen</div>
-                    <div className="text-lg sm:text-2xl font-bold text-orange-600 dark:text-orange-400">
-                      {eventSuggestions?.filter(s => s.status === 'pending').length || 0}
+                    <div>
+                      <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+                        Kullanıcı Etkinlik Önerileri
+                      </h3>
+                      <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+                        Kullanıcılardan gelen etkinlik önerilerini değerlendirin ve onaylayın
+                      </p>
                     </div>
-                    <div className="text-xs text-orange-600 dark:text-orange-400">Öneri</div>
                   </div>
-                  <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-3 sm:p-4 rounded-xl border border-green-200 dark:border-green-700">
-                    <div className="text-xs sm:text-sm font-medium text-green-800 dark:text-green-300">✅ Onaylanan</div>
-                    <div className="text-lg sm:text-2xl font-bold text-green-600 dark:text-green-400">
-                      {eventSuggestions?.filter(s => s.status === 'approved').length || 0}
-                    </div>
-                    <div className="text-xs text-green-600 dark:text-green-400">Öneri</div>
-                  </div>
-                  <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 p-3 sm:p-4 rounded-xl border border-red-200 dark:border-red-700">
-                    <div className="text-xs sm:text-sm font-medium text-red-800 dark:text-red-300">❌ Reddedilen</div>
-                    <div className="text-lg sm:text-2xl font-bold text-red-600 dark:text-red-400">
-                      {eventSuggestions?.filter(s => s.status === 'rejected').length || 0}
-                    </div>
-                    <div className="text-xs text-red-600 dark:text-red-400">Öneri</div>
-                  </div>
-                </div>
 
-                {/* Suggestions List */}
-                <Card className="overflow-hidden">
-                  <CardContent className="p-3 sm:p-6">
-                    <div className="space-y-3 sm:space-y-4">
-                      {eventSuggestions?.map(suggestion => (
-                        <div key={suggestion.id} className="group bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:shadow-lg transition-all duration-200">
-                          <div className="flex flex-col space-y-3 sm:flex-row sm:items-start sm:justify-between sm:space-y-0">
-                            {/* Suggestion Info */}
-                            <div className="flex-1 min-w-0 space-y-3">
-                              {/* Header */}
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <h3 className="font-semibold text-base sm:text-lg text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                                    {suggestion.title}
-                                  </h3>
-                                  <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mt-1">
-                                    {suggestion.description}
-                                  </p>
-                                </div>
-                                <Badge 
-                                  variant={
-                                    suggestion.status === 'pending' ? "outline" :
-                                    suggestion.status === 'approved' ? "default" :
-                                    suggestion.status === 'rejected' ? "destructive" : "secondary"
-                                  }
-                                  className="ml-3 flex-shrink-0"
-                                >
-                                  {suggestion.status === 'pending' ? '⏳ Bekliyor' :
-                                   suggestion.status === 'approved' ? '✅ Onaylandı' :
-                                   suggestion.status === 'rejected' ? '❌ Reddedildi' : '📝 İnceleniyor'}
-                                </Badge>
-                              </div>
-
-                              {/* Meta Information */}
-                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs sm:text-sm">
-                                <div className="flex items-center gap-1">
-                                  <span>🎯</span>
-                                  <span className="text-gray-600 dark:text-gray-400">
-                                    {EVENT_TYPES[suggestion.event_type as keyof typeof EVENT_TYPES] || suggestion.event_type}
-                                  </span>
-                                </div>
-                                {suggestion.suggested_date && (
-                                  <div className="flex items-center gap-1">
-                                    <span>📅</span>
-                                    <span className="text-gray-600 dark:text-gray-400">
-                                      {new Date(suggestion.suggested_date).toLocaleDateString('tr-TR')}
-                                    </span>
-                                  </div>
-                                )}
-                                {suggestion.estimated_participants && (
-                                  <div className="flex items-center gap-1">
-                                    <span>👥</span>
-                                    <span className="text-gray-600 dark:text-gray-400">
-                                      ~{suggestion.estimated_participants} kişi
-                                    </span>
-                                  </div>
-                                )}
-                                {suggestion.estimated_budget && (
-                                  <div className="flex items-center gap-1">
-                                    <span>💰</span>
-                                    <span className="text-gray-600 dark:text-gray-400">
-                                      ~{suggestion.estimated_budget} TL
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Contact Info */}
-                              <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                                <div className="text-sm">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span>👤</span>
-                                    <span className="font-medium text-gray-900 dark:text-white">
-                                      {suggestion.contact_name}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                                    <span>📧</span>
-                                    <span>{suggestion.contact_email}</span>
-                                  </div>
-                                  {suggestion.contact_phone && (
-                                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 mt-1">
-                                      <span>📱</span>
-                                      <span>{suggestion.contact_phone}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Location & Notes */}
-                              {(suggestion.suggested_location || suggestion.additional_notes) && (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                  {suggestion.suggested_location && (
-                                    <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
-                                      <span>📍</span>
-                                      <span>{suggestion.suggested_location}</span>
-                                    </div>
-                                  )}
-                                  {suggestion.additional_notes && (
-                                    <div className="flex items-start gap-1 text-sm text-gray-600 dark:text-gray-400">
-                                      <span>📝</span>
-                                      <span className="line-clamp-2">{suggestion.additional_notes}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-
-                              <div className="text-xs text-gray-500 dark:text-gray-400">
-                                📅 Önerilme: {new Date(suggestion.created_at).toLocaleDateString('tr-TR')} • 
-                                ⚡ Öncelik: {suggestion.priority_level === 'high' ? '🔴 Yüksek' : 
-                                           suggestion.priority_level === 'urgent' ? '🚨 Acil' : '🟡 Normal'}
-                              </div>
-                            </div>
-
-                            {/* Action Buttons */}
-                            {suggestion.status === 'pending' && (
-                              <div className="flex flex-row sm:flex-col gap-2 sm:flex-shrink-0">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  onClick={async () => {
-                                    try {
-                                      await updateEventSuggestion.mutateAsync({
-                                        id: suggestion.id,
-                                        status: 'approved',
-                                        reviewer_id: user?.id,
-                                        reviewed_at: new Date().toISOString()
-                                      });
-                                      toast.success('Öneri onaylandı!');
-                                    } catch (error) {
-                                      toast.error('Hata oluştu');
-                                    }
-                                  }}
-                                  className="flex-1 sm:flex-none h-9 text-xs sm:text-sm hover:bg-green-50 hover:border-green-300 hover:text-green-600 dark:hover:bg-green-900/20 transition-colors"
-                                >
-                                  <span>✅ Onayla</span>
-                                </Button>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  onClick={async () => {
-                                    const reason = prompt('Reddetme sebebini belirtin:');
-                                    if (reason) {
-                                      try {
-                                        await updateEventSuggestion.mutateAsync({
-                                          id: suggestion.id,
-                                          status: 'rejected',
-                                          reviewer_id: user?.id,
-                                          reviewer_notes: reason,
-                                          reviewed_at: new Date().toISOString()
-                                        });
-                                        toast.success('Öneri reddedildi');
-                                      } catch (error) {
-                                        toast.error('Hata oluştu');
-                                      }
-                                    }
-                                  }}
-                                  className="flex-1 sm:flex-none h-9 text-xs sm:text-sm hover:bg-red-50 hover:border-red-300 hover:text-red-600 dark:hover:bg-red-900/20 transition-colors"
-                                >
-                                  <span>❌ Reddet</span>
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                      
-                      {/* Empty State */}
-                      {(!eventSuggestions || eventSuggestions?.length === 0) && (
-                        <div className="text-center py-12 sm:py-16">
-                          <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
-                            <MessageSquare className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400" />
-                          </div>
-                          <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                            Henüz etkinlik önerisi bulunmuyor
-                          </h3>
-                          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 max-w-md mx-auto">
-                            Kullanıcılar etkinlik önermeye başladığında buradan değerlendirebilirsiniz
+                  {/* Suggestion Stats Cards */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 sm:p-6 rounded-xl shadow-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-blue-100 text-xs sm:text-sm font-medium">📥 Toplam</p>
+                          <p className="text-lg sm:text-2xl font-bold">
+                            {eventSuggestions?.length || 0}
                           </p>
                         </div>
-                      )}
+                        <MessageSquare className="h-6 w-6 sm:h-8 sm:w-8 text-blue-200" />
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
+                    <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 text-white p-4 sm:p-6 rounded-xl shadow-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-yellow-100 text-xs sm:text-sm font-medium">⏳ Bekleyen</p>
+                          <p className="text-lg sm:text-2xl font-bold">
+                            {eventSuggestions?.filter(s => s.status === 'pending').length || 0}
+                          </p>
+                        </div>
+                        <Clock className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-200" />
+                      </div>
+                    </div>
+                    <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-4 sm:p-6 rounded-xl shadow-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-green-100 text-xs sm:text-sm font-medium">✅ Onaylanan</p>
+                          <p className="text-lg sm:text-2xl font-bold">
+                            {eventSuggestions?.filter(s => s.status === 'approved').length || 0}
+                          </p>
+                        </div>
+                        <CheckCircle className="h-6 w-6 sm:h-8 sm:w-8 text-green-200" />
+                      </div>
+                    </div>
+                    <div className="bg-gradient-to-br from-red-500 to-red-600 text-white p-4 sm:p-6 rounded-xl shadow-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-red-100 text-xs sm:text-sm font-medium">❌ Reddedilen</p>
+                          <p className="text-lg sm:text-2xl font-bold">
+                            {eventSuggestions?.filter(s => s.status === 'rejected').length || 0}
+                          </p>
+                        </div>
+                        <XCircle className="h-6 w-6 sm:h-8 sm:w-8 text-red-200" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Suggestions List */}
+                  <Card className="overflow-hidden">
+                    <CardHeader className="bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-900">
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        📝 Öneri Listesi
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                        {eventSuggestions?.map(suggestion => (
+                          <div key={suggestion.id} className="p-4 sm:p-6 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                            <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <h5 className="font-semibold text-gray-900 dark:text-white text-base sm:text-lg">
+                                    {suggestion.title}
+                                  </h5>
+                                  <Badge 
+                                    className={`${
+                                      suggestion.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300' :
+                                      suggestion.status === 'approved' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
+                                      'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
+                                    }`}
+                                  >
+                                    {suggestion.status === 'pending' ? '⏳ Beklemede' :
+                                     suggestion.status === 'approved' ? '✅ Onaylandı' : '❌ Reddedildi'}
+                                  </Badge>
+                                </div>
+                                <p className="text-gray-600 dark:text-gray-300 text-sm sm:text-base mb-3 line-clamp-2">
+                                  {suggestion.description}
+                                </p>
+                                <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                                  <span className="flex items-center gap-1">
+                                    <span>👤</span>
+                                    {suggestion.contact_name || 'Anonim'}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <span>📧</span>
+                                    {suggestion.contact_email || 'E-posta yok'}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <span>📅</span>
+                                    {new Date(suggestion.created_at).toLocaleDateString('tr-TR')}
+                                  </span>
+                                  {suggestion.suggested_date && (
+                                    <span className="flex items-center gap-1">
+                                      <span>🗓️</span>
+                                      Tercih: {new Date(suggestion.suggested_date).toLocaleDateString('tr-TR')}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              
+                              {/* Action Buttons */}
+                              {suggestion.status === 'pending' && (
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => updateEventSuggestion.mutate({ id: suggestion.id, status: 'approved' })}
+                                    className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 h-8 text-xs"
+                                  >
+                                    ✅ Onayla
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => updateEventSuggestion.mutate({ id: suggestion.id, status: 'rejected' })}
+                                    className="border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20 px-3 py-1 h-8 text-xs"
+                                  >
+                                    ❌ Reddet
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                        
+                        {/* Empty State */}
+                        {(!eventSuggestions || eventSuggestions?.length === 0) && (
+                          <div className="text-center py-12 sm:py-16">
+                            <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-4 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                              <MessageSquare className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400" />
+                            </div>
+                            <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                              Henüz öneri bulunmuyor
+                            </h3>
+                            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+                              Kullanıcılar etkinlik önerilerini ana sayfadan gönderebilirler
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                    </div>
+                  </TabsContent>
+                </Tabs>
               </TabsContent>
             )}
 

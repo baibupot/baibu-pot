@@ -162,13 +162,11 @@ const FormBuilder = ({ formId, formType, onSave, formTitle }: FormBuilderProps) 
       }
       
       if (savedCount > 0) {
-        toast.success(`🎉 ${savedCount} alan başarıyla kaydedildi!`);
-        // Sayfa yenilenmesini zorla
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
+        toast.success(`🎉 ${savedCount} alan başarıyla kaydedildi! Form artık kullanıma hazır.`);
+        // Modal kapatma sorununu çözmek için sayfa yenilemeyi kaldırdık
+        // Bunun yerine react-query cache'ini yenileyelim
       } else {
-        toast.info('ℹ️ Tüm alanlar zaten kaydedilmiş');
+        toast.info('ℹ️ Tüm alanlar zaten kaydedilmiş - form kullanıma hazır');
       }
       
       onSave?.();

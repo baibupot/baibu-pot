@@ -79,8 +79,45 @@ const EventRegistrationForm = ({
       }
     }
 
+    // Advanced validation for specific field types
+    for (const [fieldName, value] of Object.entries(formData)) {
+      const field = formFields.find(f => f.field_name === fieldName);
+      if (!field || !value) continue;
+
+      // Email validation
+      if (field.field_type === 'email' && typeof value === 'string' && value.trim()) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(value)) {
+          errors.push(`${field.field_label} geçerli bir e-posta adresi olmalıdır`);
+        }
+      }
+
+      // Phone validation (Turkish format)
+      if (field.field_type === 'tel' && typeof value === 'string' && value.trim()) {
+        const phoneRegex = /^(\+90|0)?[5-9]\d{9}$/;
+        if (!phoneRegex.test(value.replace(/\s/g, ''))) {
+          errors.push(`${field.field_label} geçerli bir telefon numarası olmalıdır`);
+        }
+      }
+
+      // Number validation
+      if (field.field_type === 'number' && typeof value === 'string' && value.trim()) {
+        if (isNaN(Number(value))) {
+          errors.push(`${field.field_label} geçerli bir sayı olmalıdır`);
+        }
+      }
+
+      // File size validation (5MB limit)
+      if (field.field_type === 'file' && value instanceof File) {
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        if (value.size > maxSize) {
+          errors.push(`${field.field_label} dosyası 5MB'dan küçük olmalıdır`);
+        }
+      }
+    }
+
     if (errors.length > 0) {
-      toast.error(`❌ Lütfen şu alanları doldurun: ${errors.join(', ')}`);
+      toast.error(`❌ Form Hataları:\n${errors.join('\n')}`);
       return false;
     }
 
