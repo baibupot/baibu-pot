@@ -2,6 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+// 🔒 Enhanced Auth Hook with Email & Role Validation
 export const useAuth = () => {
   return useQuery({
     queryKey: ['auth-user'],
@@ -15,6 +16,49 @@ export const useAuth = () => {
     },
     retry: 1,
     staleTime: 1000 * 60 * 5, // 5 dakika
+  });
+};
+
+// 🔍 Comprehensive Auth Status Check
+export const useAuthStatus = () => {
+  return useQuery({
+    queryKey: ['auth-status'],
+    queryFn: async () => {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error || !user) {
+        return { 
+          user: null, 
+          isAuthenticated: false,
+          emailConfirmed: false,
+          hasApprovedRole: false,
+          canAccessAdmin: false
+        };
+      }
+
+      // Email confirmation kontrolü
+      const emailConfirmed = !!user.email_confirmed_at;
+
+      // Role approval kontrolü
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role, is_approved')
+        .eq('user_id', user.id)
+        .eq('is_approved', true);
+
+      const hasApprovedRole = roleData && roleData.length > 0;
+      const canAccessAdmin = emailConfirmed && hasApprovedRole;
+
+      return {
+        user,
+        isAuthenticated: true,
+        emailConfirmed,
+        hasApprovedRole,
+        canAccessAdmin,
+        approvedRoles: roleData?.map(r => r.role) || []
+      };
+    },
+    retry: 1,
+    staleTime: 1000 * 60 * 2, // 2 dakika (daha sık kontrol)
   });
 };
 

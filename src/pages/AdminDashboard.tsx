@@ -152,9 +152,18 @@ const AdminDashboard = () => {
     checkUser();
   }, []);
 
+  // 🔒 Enhanced Security Check with Email & Role Validation
   const checkUser = async () => {
     const { data: { user: authUser } } = await supabase.auth.getUser();
     if (!authUser) {
+      navigate('/admin');
+      return;
+    }
+
+    // Email confirmation kontrolü
+    if (!authUser.email_confirmed_at) {
+      toast.error('📧 E-posta adresiniz onaylanmamış. Admin paneline erişim için e-posta onayı gerekli.');
+      await supabase.auth.signOut();
       navigate('/admin');
       return;
     }
@@ -172,6 +181,14 @@ const AdminDashboard = () => {
       .eq('user_id', authUser.id)
       .eq('is_approved', true);
 
+    // Role approval kontrolü
+    if (!userRoleData || userRoleData.length === 0) {
+      toast.error('⏳ Hesabınız henüz yönetici tarafından onaylanmamış. Erişim reddedildi.');
+      await supabase.auth.signOut();
+      navigate('/admin');
+      return;
+    }
+
     if (userProfile) {
       setUser({
         id: authUser.id,
@@ -179,13 +196,17 @@ const AdminDashboard = () => {
         name: userProfile.name || authUser.user_metadata?.name,
         userRoles: userRoleData?.map(r => r.role) || []
       });
+      
+      // Success message
+      const roleNames = userRoleData.map(r => getRoleDisplayName(r.role)).join(', ');
+      console.log(`✅ Admin panel erişimi onaylandı: ${roleNames}`);
     } else {
-      // Fallback for users without profile
+      // If no profile found but roles exist, create minimal user
       setUser({
         id: authUser.id,
         email: authUser.email || '',
-        name: authUser.user_metadata?.name,
-        userRoles: ['baskan'] // Default role for fallback
+        name: authUser.user_metadata?.name || 'Bilinmeyen Kullanıcı',
+        userRoles: userRoleData?.map(r => r.role) || []
       });
     }
   };
@@ -224,6 +245,25 @@ const AdminDashboard = () => {
   const hasPermission = (permission: string) => {
     if (!user || !user.userRoles) return false;
     return getRolePermissions(user.userRoles).includes(permission);
+  };
+
+  // 🏷️ Role Display Utility
+  const getRoleDisplayName = (role: string) => {
+    const roleLabels = {
+      baskan: 'Başkan',
+      baskan_yardimcisi: 'Başkan Yardımcısı',
+      teknik_koordinator: 'Teknik İşler Koordinatörü',
+      teknik_ekip: 'Teknik İşler Ekip Üyesi',
+      etkinlik_koordinator: 'Etkinlik Koordinatörü',
+      etkinlik_ekip: 'Etkinlik Ekip Üyesi',
+      iletisim_koordinator: 'İletişim Koordinatörü',
+      iletisim_ekip: 'İletişim Ekip Üyesi',
+      dergi_koordinator: 'Dergi Koordinatörü',
+      dergi_ekip: 'Dergi Ekip Üyesi',
+      mali_koordinator: 'Mali İşler Koordinatörü',
+      mali_ekip: 'Mali İşler Ekip Üyesi'
+    };
+    return roleLabels[role as keyof typeof roleLabels] || role;
   };
 
   const getRoleLabel = (roles: string[]) => {

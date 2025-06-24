@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useCreateUserRole } from '@/hooks/useSupabaseData';
+import { useAuthStatus } from '@/hooks/useAuth';
 import PageContainer from '@/components/ui/page-container';
 
 const AdminLogin = () => {
@@ -20,8 +21,14 @@ const AdminLogin = () => {
   const [selectedRole, setSelectedRole] = useState('teknik_ekip');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  
+  // 🚨 Enhanced Error & Success State Management
+  const [signupSuccess, setSignupSuccess] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [emailSent, setEmailSent] = useState(false);
 
   const createUserRole = useCreateUserRole();
+  const { data: authStatus } = useAuthStatus();
 
   useEffect(() => {
     checkUser();
@@ -34,34 +41,137 @@ const AdminLogin = () => {
     }
   };
 
+  // 🔒 Enhanced Login with Email & Role Validation
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setAuthError(null);
 
     try {
+      // Basic email/password validation
+      if (!email.trim() || !password.trim()) {
+        throw new Error('E-posta ve şifre gereklidir');
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        // Enhanced error messages
+        if (error.message === 'Invalid login credentials') {
+          throw new Error('🚫 E-posta veya şifre hatalı');
+        }
+        if (error.message === 'Email not confirmed') {
+          throw new Error('📧 E-posta adresinizi onaylamanız gerekiyor. Gelen kutunuzu kontrol edin.');
+        }
+        throw new Error(error.message);
+      }
 
       if (data.user) {
-        toast.success('Giriş başarılı!');
+        // Email confirmation kontrolü
+        if (!data.user.email_confirmed_at) {
+          setAuthError('📧 E-posta adresiniz henüz onaylanmamış');
+          setEmailSent(true);
+          
+          // Resend confirmation email
+          await supabase.auth.resend({
+            type: 'signup',
+            email: email,
+          });
+          
+          toast.error('📧 E-posta onaylanmamış! Yeni onay e-postası gönderildi.');
+          return;
+        }
+
+        // Role approval kontrolü
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role, is_approved')
+          .eq('user_id', data.user.id)
+          .eq('is_approved', true);
+
+        if (!roleData || roleData.length === 0) {
+          setAuthError('⏳ Hesabınız henüz yönetici tarafından onaylanmamış');
+          toast.error('⏳ Hesap onayı bekleniyor. Lütfen yönetici ile iletişime geçin.');
+          return;
+        }
+
+        // Success! 
+        const roleNames = roleData.map(r => getRoleDisplayName(r.role)).join(', ');
+        toast.success(`🎉 Hoş geldiniz! (${roleNames})`);
         navigate('/admin/dashboard');
       }
     } catch (error: any) {
-      toast.error(error.message || 'Giriş yapılırken bir hata oluştu');
+      const errorMessage = error.message || 'Giriş yapılırken beklenmeyen bir hata oluştu';
+      setAuthError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
+  // 💪 Password Strength Checker
+  const getPasswordStrength = (password: string) => {
+    let score = 0;
+    const checks = {
+      length: password.length >= 8,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      numbers: /\d/.test(password),
+      special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+    };
+
+    score += checks.length ? 20 : 0;
+    score += checks.uppercase ? 20 : 0;
+    score += checks.lowercase ? 20 : 0;
+    score += checks.numbers ? 20 : 0;
+    score += checks.special ? 20 : 0;
+
+    let strength = 'Çok Zayıf';
+    let color = 'bg-red-500';
+    
+    if (score >= 80) { strength = 'Çok Güçlü'; color = 'bg-green-500'; }
+    else if (score >= 60) { strength = 'Güçlü'; color = 'bg-blue-500'; }
+    else if (score >= 40) { strength = 'Orta'; color = 'bg-yellow-500'; }
+    else if (score >= 20) { strength = 'Zayıf'; color = 'bg-orange-500'; }
+
+    return { score, strength, color, checks };
+  };
+
+  // 🔒 Enhanced Signup with Comprehensive Validation
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setAuthError(null);
 
     try {
+      // Form validation
+      if (!name.trim()) {
+        throw new Error('👤 Ad Soyad gereklidir');
+      }
+      if (!email.trim()) {
+        throw new Error('📧 E-posta adresi gereklidir');
+      }
+      if (!email.includes('@')) {
+        throw new Error('📧 Geçerli bir e-posta adresi girin');
+      }
+      
+      // Password strength validation
+      const passwordStrength = getPasswordStrength(password);
+      if (passwordStrength.score < 60) {
+        throw new Error('🔒 Şifreniz çok zayıf. En az 8 karakter, büyük/küçük harf, rakam içermelidir');
+      }
+
+      // University email validation (optional)
+      if (!email.toLowerCase().includes('baibu') && !email.toLowerCase().includes('edu')) {
+        const confirmNonUni = window.confirm(
+          '⚠️ Üniversite e-posta adresi kullanmıyorsunuz. Devam etmek istiyor musunuz?'
+        );
+        if (!confirmNonUni) return;
+      }
+
       // Önce kullanıcıyı Supabase Auth'a kaydet
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
@@ -73,7 +183,12 @@ const AdminLogin = () => {
         }
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        if (authError.message === 'User already registered') {
+          throw new Error('📧 Bu e-posta adresi zaten kayıtlı');
+        }
+        throw new Error(authError.message);
+      }
 
       if (authData.user) {
         // Kullanıcıyı users tablosuna ekle
@@ -102,10 +217,14 @@ const AdminLogin = () => {
           console.error('Role creation error:', roleError);
         }
 
-        toast.success('Kayıt başarılı! E-posta adresinizi doğrulayın ve rol onayını bekleyin.');
+        setSignupSuccess(true);
+        setEmailSent(true);
+        toast.success(`🎉 Kayıt başarılı! ${getRoleDisplayName(selectedRole)} rolü için onay bekleniyor.`);
       }
     } catch (error: any) {
-      toast.error(error.message || 'Kayıt olurken bir hata oluştu');
+      const errorMessage = error.message || 'Kayıt olurken beklenmeyen bir hata oluştu';
+      setAuthError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -167,6 +286,28 @@ const AdminLogin = () => {
                 </TabsList>
                 
                 <TabsContent value="login" className="space-y-6">
+                  {/* 🚨 Error Message Display */}
+                  {authError && (
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="text-red-600 dark:text-red-400 mt-0.5">❌</div>
+                        <div>
+                          <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                            Giriş Hatası
+                          </p>
+                          <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                            {authError}
+                          </p>
+                          {emailSent && (
+                            <p className="text-xs text-red-600 dark:text-red-400 mt-2">
+                              📧 Yeni onay e-postası gönderildi. Gelen kutunuzu kontrol edin.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <form onSubmit={handleLogin} className="space-y-6">
                     <div className="space-y-3">
                       <Label htmlFor="email" className="text-base font-medium">
@@ -179,8 +320,13 @@ const AdminLogin = () => {
                           type="email"
                           placeholder="admin@baibu.edu.tr"
                           value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          className="pl-12 h-12 text-base bg-white/80 dark:bg-slate-700/80"
+                          onChange={(e) => {
+                            setEmail(e.target.value);
+                            setAuthError(null); // Clear error on input change
+                          }}
+                          className={`pl-12 h-12 text-base bg-white/80 dark:bg-slate-700/80 ${
+                            authError ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''
+                          }`}
                           required
                         />
                       </div>
@@ -197,8 +343,13 @@ const AdminLogin = () => {
                           type={showPassword ? 'text' : 'password'}
                           placeholder="••••••••"
                           value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          className="pl-12 pr-12 h-12 text-base bg-white/80 dark:bg-slate-700/80"
+                          onChange={(e) => {
+                            setPassword(e.target.value);
+                            setAuthError(null); // Clear error on input change
+                          }}
+                          className={`pl-12 pr-12 h-12 text-base bg-white/80 dark:bg-slate-700/80 ${
+                            authError ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''
+                          }`}
                           required
                         />
                         <Button
@@ -238,6 +389,43 @@ const AdminLogin = () => {
                 </TabsContent>
 
                 <TabsContent value="signup" className="space-y-6">
+                  {/* 🎉 Success Message Display */}
+                  {signupSuccess && (
+                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="text-green-600 dark:text-green-400 mt-0.5">🎉</div>
+                        <div>
+                          <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                            Kayıt Başarılı!
+                          </p>
+                          <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                            E-posta adresinizi onaylayın ve rol onayını bekleyin.
+                          </p>
+                          <p className="text-xs text-green-600 dark:text-green-400 mt-2">
+                            📧 Onay e-postası gönderildi. Spam klasörünü de kontrol edin.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 🚨 Error Message Display */}
+                  {authError && !signupSuccess && (
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="text-red-600 dark:text-red-400 mt-0.5">❌</div>
+                        <div>
+                          <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                            Kayıt Hatası
+                          </p>
+                          <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                            {authError}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <form onSubmit={handleSignUp} className="space-y-6">
                     <div className="space-y-3">
                       <Label htmlFor="signup-name" className="text-base font-medium">
@@ -286,10 +474,15 @@ const AdminLogin = () => {
                           type={showPassword ? 'text' : 'password'}
                           placeholder="••••••••"
                           value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          className="pl-12 pr-12 h-12 text-base bg-white/80 dark:bg-slate-700/80"
+                          onChange={(e) => {
+                            setPassword(e.target.value);
+                            setAuthError(null); // Clear error on input change
+                          }}
+                          className={`pl-12 pr-12 h-12 text-base bg-white/80 dark:bg-slate-700/80 ${
+                            authError ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''
+                          }`}
                           required
-                          minLength={6}
+                          minLength={8}
                         />
                         <Button
                           type="button"
@@ -305,6 +498,48 @@ const AdminLogin = () => {
                           )}
                         </Button>
                       </div>
+                      
+                      {/* 💪 Password Strength Indicator */}
+                      {password && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-slate-600 dark:text-slate-400">Şifre Gücü:</span>
+                            <span className={`text-xs font-medium ${
+                              getPasswordStrength(password).score >= 80 ? 'text-green-600 dark:text-green-400' :
+                              getPasswordStrength(password).score >= 60 ? 'text-blue-600 dark:text-blue-400' :
+                              getPasswordStrength(password).score >= 40 ? 'text-yellow-600 dark:text-yellow-400' :
+                              getPasswordStrength(password).score >= 20 ? 'text-orange-600 dark:text-orange-400' :
+                              'text-red-600 dark:text-red-400'
+                            }`}>
+                              {getPasswordStrength(password).strength}
+                            </span>
+                          </div>
+                          <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                            <div 
+                              className={`h-2 rounded-full transition-all duration-300 ${getPasswordStrength(password).color}`}
+                              style={{ width: `${getPasswordStrength(password).score}%` }}
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className={`flex items-center gap-1 ${getPasswordStrength(password).checks.length ? 'text-green-600 dark:text-green-400' : 'text-slate-400'}`}>
+                              <span>{getPasswordStrength(password).checks.length ? '✅' : '❌'}</span>
+                              <span>8+ karakter</span>
+                            </div>
+                            <div className={`flex items-center gap-1 ${getPasswordStrength(password).checks.uppercase ? 'text-green-600 dark:text-green-400' : 'text-slate-400'}`}>
+                              <span>{getPasswordStrength(password).checks.uppercase ? '✅' : '❌'}</span>
+                              <span>Büyük harf</span>
+                            </div>
+                            <div className={`flex items-center gap-1 ${getPasswordStrength(password).checks.lowercase ? 'text-green-600 dark:text-green-400' : 'text-slate-400'}`}>
+                              <span>{getPasswordStrength(password).checks.lowercase ? '✅' : '❌'}</span>
+                              <span>Küçük harf</span>
+                            </div>
+                            <div className={`flex items-center gap-1 ${getPasswordStrength(password).checks.numbers ? 'text-green-600 dark:text-green-400' : 'text-slate-400'}`}>
+                              <span>{getPasswordStrength(password).checks.numbers ? '✅' : '❌'}</span>
+                              <span>Rakam</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     
                     <div className="space-y-3">
