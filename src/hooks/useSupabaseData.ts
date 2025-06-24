@@ -1074,3 +1074,76 @@ export const useDeleteEventSponsor = () => {
     },
   });
 };
+
+// Event suggestions hooks (ADMIN ONLY - requires authentication)
+export const useEventSuggestions = () => {
+  return useQuery({
+    queryKey: ['event_suggestions'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('event_suggestions')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    // Güvenlik: Sadece giriş yapmış kullanıcılar için çalışır
+    enabled: true, // RLS politikası zaten kontrol ediyor
+  });
+};
+
+export const useCreateEventSuggestion = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (suggestionData: Tables['event_suggestions']['Insert']) => {
+      const { data, error } = await supabase
+        .from('event_suggestions')
+        .insert([suggestionData])
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['event_suggestions'] });
+    },
+  });
+};
+
+export const useUpdateEventSuggestion = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, ...updateData }: { id: string } & Tables['event_suggestions']['Update']) => {
+      const { data, error } = await supabase
+        .from('event_suggestions')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['event_suggestions'] });
+    },
+  });
+};
+
+export const useDeleteEventSuggestion = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('event_suggestions')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['event_suggestions'] });
+    },
+  });
+};

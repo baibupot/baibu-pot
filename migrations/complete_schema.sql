@@ -360,6 +360,29 @@ CREATE TABLE public.event_sponsors (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Event suggestions tablosu (kullanıcı etkinlik önerileri)
+CREATE TABLE public.event_suggestions (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    suggested_date TIMESTAMP WITH TIME ZONE,
+    suggested_location TEXT,
+    event_type TEXT NOT NULL DEFAULT 'seminer' CHECK (event_type IN ('atolye', 'konferans', 'sosyal', 'egitim', 'seminer')),
+    estimated_participants INTEGER,
+    estimated_budget DECIMAL(10,2),
+    contact_name TEXT NOT NULL,
+    contact_email TEXT NOT NULL,
+    contact_phone TEXT,
+    additional_notes TEXT,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'under_review', 'approved', 'rejected', 'implemented')),
+    reviewer_id UUID REFERENCES public.users(id),
+    reviewer_notes TEXT,
+    reviewed_at TIMESTAMP WITH TIME ZONE,
+    priority_level TEXT DEFAULT 'normal' CHECK (priority_level IN ('low', 'normal', 'high', 'urgent')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- ====================================================================
 -- 3. TRİGGER FONKSİYONLARI
 -- ====================================================================
@@ -420,6 +443,7 @@ CREATE TRIGGER handle_updated_at_comments BEFORE UPDATE ON public.comments FOR E
 CREATE TRIGGER handle_updated_at_products BEFORE UPDATE ON public.products FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER handle_updated_at_magazine_contributors BEFORE UPDATE ON public.magazine_contributors FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER handle_updated_at_article_submissions BEFORE UPDATE ON public.article_submissions FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+CREATE TRIGGER handle_updated_at_event_suggestions BEFORE UPDATE ON public.event_suggestions FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
 -- ====================================================================
 -- 5. RLS POLİTİKALARI - GÜVENLİ VE ESNEk
@@ -447,6 +471,7 @@ ALTER TABLE public.magazine_reads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.magazine_page_reads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.article_submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.event_sponsors ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.event_suggestions ENABLE ROW LEVEL SECURITY;
 
 -- *** ESNEk VE GÜVENLİ POLİTİKALAR ***
 
@@ -539,6 +564,12 @@ CREATE POLICY "article_submissions_all_policy" ON public.article_submissions FOR
 -- Event sponsors politikaları
 CREATE POLICY "event_sponsors_select_policy" ON public.event_sponsors FOR SELECT USING (true);
 CREATE POLICY "event_sponsors_all_policy" ON public.event_sponsors FOR ALL USING (auth.uid() IS NOT NULL);
+
+-- Event suggestions politikaları (anonim kullanıcılar da öneri gönderebilir)
+CREATE POLICY "event_suggestions_insert_policy" ON public.event_suggestions FOR INSERT WITH CHECK (true);
+CREATE POLICY "event_suggestions_select_admin_policy" ON public.event_suggestions FOR SELECT USING (auth.uid() IS NOT NULL);
+CREATE POLICY "event_suggestions_update_admin_policy" ON public.event_suggestions FOR UPDATE USING (auth.uid() IS NOT NULL);
+CREATE POLICY "event_suggestions_delete_admin_policy" ON public.event_suggestions FOR DELETE USING (auth.uid() IS NOT NULL);
 
 -- ====================================================================
 -- 6. YETKİLERİ AYARLA

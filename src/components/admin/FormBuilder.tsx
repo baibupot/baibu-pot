@@ -144,6 +144,7 @@ const FormBuilder = ({ formId, formType, onSave, formTitle }: FormBuilderProps) 
 
   const saveForm = async () => {
     try {
+      let savedCount = 0;
       for (const field of fields) {
         if (!field.id) {
           await createFormField.mutateAsync({
@@ -156,13 +157,24 @@ const FormBuilder = ({ formId, formType, onSave, formTitle }: FormBuilderProps) 
             options: field.options,
             sort_order: field.sort_order,
           });
+          savedCount++;
         }
       }
-      toast.success('🎉 Form başarıyla kaydedildi!');
+      
+      if (savedCount > 0) {
+        toast.success(`🎉 ${savedCount} alan başarıyla kaydedildi!`);
+        // Sayfa yenilenmesini zorla
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        toast.info('ℹ️ Tüm alanlar zaten kaydedilmiş');
+      }
+      
       onSave?.();
     } catch (error) {
       console.error('Error saving form:', error);
-      toast.error('❌ Form kaydedilirken hata oluştu');
+      toast.error('❌ Form kaydedilirken hata oluştu: ' + (error as any)?.message);
     }
   };
 
@@ -435,6 +447,56 @@ const FormBuilder = ({ formId, formType, onSave, formTitle }: FormBuilderProps) 
           </Button>
         </div>
       </div>
+
+      {/* FORM KAYDET BÖLÜMÜ - ÖNEMLİ! */}
+      {fields.length > 0 && (
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/10 dark:to-emerald-900/10 p-8 rounded-2xl border-2 border-green-200 dark:border-green-700 shadow-lg">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 bg-green-600 rounded-xl flex items-center justify-center shadow-md">
+              <Settings className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-2xl font-bold text-green-800 dark:text-green-300">
+                💾 Form Alanlarını Kaydet
+              </h3>
+              <p className="text-green-600 dark:text-green-400">
+                Eklediğiniz {fields.length} alanı veritabanına kaydedin
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border shadow-sm">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="flex-1">
+                <p className="text-gray-700 dark:text-gray-300 text-base leading-relaxed">
+                  ⚠️ <span className="font-semibold">Önemli:</span> Eklediğiniz form alanları henüz kaydedilmedi. 
+                  Katılımcıların bu alanları görebilmesi için <span className="font-semibold text-green-600">mutlaka kaydedin!</span>
+                </p>
+              </div>
+            </div>
+            
+            <Button 
+              type="button" 
+              onClick={saveForm} 
+              size="lg"
+              className="w-full h-16 text-xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-xl"
+              disabled={createFormField.isPending}
+            >
+              {createFormField.isPending ? (
+                <>
+                  <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent mr-3"></div>
+                  Kaydediliyor...
+                </>
+              ) : (
+                <>
+                  <Settings className="mr-3 h-6 w-6" />
+                  💾 Form Alanlarını Kaydet ({fields.filter(f => !f.id).length} yeni alan)
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* FORM ALANLARI LİSTESİ */}
       <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/10 dark:to-pink-900/10 p-8 rounded-2xl border border-purple-200 dark:border-purple-700 shadow-lg">

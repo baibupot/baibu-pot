@@ -20,6 +20,18 @@ import {
 } from '@/utils/githubStorageHelper';
 import { getGitHubStorageConfig } from '@/integrations/github/config';
 import { useEventSponsors } from '@/hooks/useSupabaseData';
+import { 
+  DEFAULT_EVENT_TYPE,
+  DEFAULT_EVENT_STATUS,
+  DEFAULT_SPONSOR_TYPE,
+  getSponsorTypeIcon,
+  EVENT_TYPES,
+  EVENT_STATUSES,
+  SPONSOR_TYPES,
+  type EventType,
+  type EventStatus,
+  type SponsorType
+} from '@/constants/eventConstants';
 
 type Tables = Database['public']['Tables'];
 type EventData = Tables['events']['Insert'];
@@ -50,13 +62,13 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
     event_date: initialData?.event_date || '',
     end_date: initialData?.end_date || '',
     location: initialData?.location || '',
-    event_type: initialData?.event_type || 'seminer',
+    event_type: initialData?.event_type || DEFAULT_EVENT_TYPE,
     max_participants: initialData?.max_participants || '',
     registration_required: initialData?.registration_required || false,
     registration_link: initialData?.registration_link || '',
     featured_image: initialData?.featured_image || '',
     slug: initialData?.slug || '',
-    status: initialData?.status || 'upcoming',
+    status: initialData?.status || DEFAULT_EVENT_STATUS,
     has_custom_form: initialData?.has_custom_form || false,
     price: initialData?.price?.toString() || '',
     currency: initialData?.currency || 'TL',
@@ -76,7 +88,7 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
     sponsor_name: '',
     sponsor_logo: '',
     sponsor_website: '',
-    sponsor_type: 'destekci',
+    sponsor_type: DEFAULT_SPONSOR_TYPE,
     sort_order: 0
   });
   const sponsorLogoRef = useRef<HTMLInputElement>(null);
@@ -422,44 +434,65 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto">
-        <DialogHeader className="text-center pb-6 border-b bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 -m-6 mb-6 p-6 rounded-t-lg">
-          <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-            {initialData ? '✏️ Etkinlik Düzenle' : '🎉 Yeni Etkinlik Oluştur'}
-          </DialogTitle>
-          <DialogDescription className="text-base mt-2 text-gray-600 dark:text-gray-300">
-            {initialData ? 'Mevcut etkinlik bilgilerini düzenleyin ve katılımcı yanıtlarını yönetin' : 'Harika bir etkinlik oluşturun! Adım adım rehber eşliğinde'}
-          </DialogDescription>
+      <DialogContent className="max-w-[100vw] max-h-[100vh] sm:max-w-5xl sm:max-h-[95vh] sm:rounded-xl overflow-y-auto p-0 sm:p-6">
+        {/* Mobile-First Header */}
+        <DialogHeader className="sticky top-0 z-50 bg-gradient-to-r from-blue-50 via-purple-50 to-cyan-50 dark:from-blue-900/30 dark:via-purple-900/30 dark:to-cyan-900/30 backdrop-blur-sm border-b border-blue-200 dark:border-blue-700 p-4 sm:p-6 sm:rounded-t-xl">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 text-center sm:text-left">
+              <DialogTitle className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent leading-tight">
+                {initialData ? '✏️ Etkinlik Düzenle' : '🎉 Yeni Etkinlik Oluştur'}
+              </DialogTitle>
+              <DialogDescription className="text-xs sm:text-base mt-1 sm:mt-2 text-gray-600 dark:text-gray-300 line-clamp-2">
+                {initialData ? 'Mevcut etkinlik bilgilerini düzenleyin ve katılımcı yanıtlarını yönetin' : 'Harika bir etkinlik oluşturun! Adım adım rehber eşliğinde'}
+              </DialogDescription>
+            </div>
+            {/* Mobile Close Button */}
+            <button 
+              onClick={onClose}
+              className="sm:hidden ml-4 p-2 rounded-full bg-white dark:bg-gray-700 shadow-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+            >
+              <X className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+            </button>
+          </div>
+          
+          {/* Mobile Progress Indicator */}
+          <div className="sm:hidden mt-3 flex items-center justify-center space-x-2">
+            <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400">
+              <span className="block w-2 h-2 bg-blue-500 rounded-full"></span>
+              <span>Etkinlik Formu</span>
+            </div>
+          </div>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-0 space-y-4 sm:space-y-6">
           <Tabs defaultValue="general" className="w-full">
-            <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 gap-2 h-auto bg-gray-50 dark:bg-gray-800 p-2 rounded-lg">
+            {/* Mobile-First Tabs Navigation */}
+            <TabsList className="sticky top-[120px] sm:top-0 z-40 w-full grid grid-cols-3 gap-1 h-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-2 rounded-xl shadow-lg sm:shadow-none mb-4 sm:mb-6">
               <TabsTrigger 
                 value="general" 
-                className="flex flex-col items-center justify-center p-4 h-auto data-[state=active]:bg-white data-[state=active]:shadow-md dark:data-[state=active]:bg-gray-700"
+                className="flex flex-col items-center justify-center p-3 sm:p-4 h-auto min-h-[60px] sm:min-h-[80px] data-[state=active]:bg-blue-50 data-[state=active]:border-blue-200 data-[state=active]:shadow-sm dark:data-[state=active]:bg-blue-900/30 dark:data-[state=active]:border-blue-700 rounded-lg border-2 border-transparent transition-all duration-200"
               >
-                <div className="text-2xl mb-1">📝</div>
-                <div className="font-medium">Genel Bilgiler</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Etkinlik detayları</div>
+                <div className="text-lg sm:text-2xl mb-1">📝</div>
+                <div className="font-medium text-xs sm:text-sm text-center leading-tight">Genel</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block text-center">Etkinlik detayları</div>
               </TabsTrigger>
               <TabsTrigger 
                 value="media"
-                className="flex flex-col items-center justify-center p-4 h-auto data-[state=active]:bg-white data-[state=active]:shadow-md dark:data-[state=active]:bg-gray-700"
+                className="flex flex-col items-center justify-center p-3 sm:p-4 h-auto min-h-[60px] sm:min-h-[80px] data-[state=active]:bg-purple-50 data-[state=active]:border-purple-200 data-[state=active]:shadow-sm dark:data-[state=active]:bg-purple-900/30 dark:data-[state=active]:border-purple-700 rounded-lg border-2 border-transparent transition-all duration-200"
               >
-                <div className="text-2xl mb-1">🎨</div>
-                <div className="font-medium">Medya & Sponsorlar</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Görseller ve destekçiler</div>
+                <div className="text-lg sm:text-2xl mb-1">🎨</div>
+                <div className="font-medium text-xs sm:text-sm text-center leading-tight">Medya</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block text-center">Görseller ve sponsorlar</div>
               </TabsTrigger>
               <TabsTrigger 
                 value="form" 
                 disabled={!formData.has_custom_form || !formData.slug}
-                className="flex flex-col items-center justify-center p-4 h-auto data-[state=active]:bg-white data-[state=active]:shadow-md dark:data-[state=active]:bg-gray-700 disabled:opacity-50"
+                className="flex flex-col items-center justify-center p-3 sm:p-4 h-auto min-h-[60px] sm:min-h-[80px] data-[state=active]:bg-green-50 data-[state=active]:border-green-200 data-[state=active]:shadow-sm dark:data-[state=active]:bg-green-900/30 dark:data-[state=active]:border-green-700 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg border-2 border-transparent transition-all duration-200"
               >
-                <div className="text-2xl mb-1">{formData.has_custom_form ? '📋' : '🔒'}</div>
-                <div className="font-medium">Kayıt Formu</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
-                  {!formData.has_custom_form ? 'Önce özel form etkinleştirin' : 'Katılımcı kayıt formu'}
+                <div className="text-lg sm:text-2xl mb-1">{formData.has_custom_form ? '📋' : '🔒'}</div>
+                <div className="font-medium text-xs sm:text-sm text-center leading-tight">Form</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block text-center">
+                  {!formData.has_custom_form ? 'Etkinleştirin' : 'Kayıt formu'}
                 </div>
               </TabsTrigger>
             </TabsList>
@@ -472,35 +505,45 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
                 </h3>
                 <div className="space-y-4">
           <div>
-                    <Label htmlFor="title" className="text-base font-medium">Etkinlik Başlığı *</Label>
+                    <Label htmlFor="title" className="text-base font-medium flex items-center gap-2">
+                      📝 Etkinlik Başlığı *
+                    </Label>
             <Input
               id="title"
               value={formData.title}
               onChange={(e) => handleTitleChange(e.target.value)}
               required
-                      className="mt-1 h-12 text-base"
-                      placeholder="Etkinliğinizin çekici bir başlığını girin..."
+                      className="mt-2 h-12 sm:h-14 text-base sm:text-lg border-2 rounded-xl focus:ring-2 focus:ring-blue-500 transition-all"
+                      placeholder="🎯 Etkinliğinizin çekici bir başlığını girin..."
                     />
                     {formData.title && (
-                      <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-sm">
-                        <span className="text-blue-700 dark:text-blue-300">
-                          🔗 URL: <code className="bg-blue-100 dark:bg-blue-800 px-1 rounded">/etkinlikler/{generateSlug(formData.title)}</code>
+                      <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+                        <span className="text-blue-700 dark:text-blue-300 text-sm">
+                          🔗 URL Önizleme: <br className="sm:hidden"/>
+                          <code className="bg-blue-100 dark:bg-blue-800 px-2 py-1 rounded text-xs break-all">
+                            /etkinlikler/{generateSlug(formData.title)}
+                          </code>
                         </span>
                       </div>
                     )}
           </div>
 
           <div>
-                    <Label htmlFor="description" className="text-base font-medium">Etkinlik Açıklaması *</Label>
+                    <Label htmlFor="description" className="text-base font-medium flex items-center gap-2">
+                      📄 Etkinlik Açıklaması *
+                    </Label>
             <Textarea
               id="description"
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               rows={4}
               required
-                      className="mt-1 text-base"
-                      placeholder="Etkinliğinizi detaylı bir şekilde tanıtın..."
+                      className="mt-2 text-base border-2 rounded-xl focus:ring-2 focus:ring-blue-500 transition-all resize-none"
+                      placeholder="📝 Etkinliğinizi detaylı bir şekilde tanıtın..."
             />
+            <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              💡 Katılımcıların ilgisini çekecek detayları ekleyin
+            </div>
                   </div>
                 </div>
           </div>
@@ -660,11 +703,9 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                          <SelectItem value="atolye">🛠️ Atölye</SelectItem>
-                          <SelectItem value="konferans">🎤 Konferans</SelectItem>
-                          <SelectItem value="sosyal">🎉 Sosyal</SelectItem>
-                          <SelectItem value="egitim">📚 Eğitim</SelectItem>
-                          <SelectItem value="seminer">📊 Seminer</SelectItem>
+                          {Object.entries(EVENT_TYPES).map(([key, label]) => (
+                            <SelectItem key={key} value={key}>{label}</SelectItem>
+                          ))}
                 </SelectContent>
               </Select>
             </div>
@@ -675,10 +716,9 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                          <SelectItem value="upcoming">⏳ Yaklaşan</SelectItem>
-                          <SelectItem value="ongoing">🔴 Devam Eden</SelectItem>
-                          <SelectItem value="completed">✅ Tamamlandı</SelectItem>
-                          <SelectItem value="cancelled">❌ İptal Edildi</SelectItem>
+                          {Object.entries(EVENT_STATUSES).map(([key, label]) => (
+                            <SelectItem key={key} value={key}>{label}</SelectItem>
+                          ))}
                 </SelectContent>
               </Select>
             </div>
@@ -973,10 +1013,11 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="ana">🥇 Ana Sponsor</SelectItem>
-                              <SelectItem value="destekci">🤝 Destekçi</SelectItem>
-                              <SelectItem value="medya">📺 Medya Sponsoru</SelectItem>
-                              <SelectItem value="yerel">📍 Yerel Partner</SelectItem>
+                              {Object.entries(SPONSOR_TYPES).map(([key, label]) => (
+                                <SelectItem key={key} value={key}>
+                                  {getSponsorTypeIcon(key as SponsorType)} {label}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                         </div>
@@ -1072,10 +1113,7 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
                                 </div>
                                 <div className="text-sm text-gray-500 dark:text-gray-400 flex flex-wrap gap-2 mt-1">
                                   <Badge variant="outline" className="text-xs">
-                                    {sponsor.sponsor_type === 'ana' && '🥇 Ana'}
-                                    {sponsor.sponsor_type === 'destekci' && '🤝 Destekçi'} 
-                                    {sponsor.sponsor_type === 'medya' && '📺 Medya'}
-                                    {sponsor.sponsor_type === 'yerel' && '📍 Yerel'}
+                                    {getSponsorTypeIcon(sponsor.sponsor_type as SponsorType)} {SPONSOR_TYPES[sponsor.sponsor_type as SponsorType] || sponsor.sponsor_type}
                                   </Badge>
                                   {sponsor.sponsor_website && (
                                     <a 
@@ -1117,31 +1155,124 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
             </TabsContent>
 
             <TabsContent value="form" className="space-y-4">
-              {formData.has_custom_form && formData.slug && (
-                <div className="space-y-4">
-                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-md">
-                    <h3 className="font-medium mb-2">Etkinlik Kayıt Formu</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Bu etkinlik için özel kayıt formu oluşturun. Katılımcılar bu formu doldurarak etkinliğe kayıt olabilirler.
+              {/* Form Builder Ana Container */}
+              <div className="space-y-6">
+                {/* Durum Kontrol ve Uyarılar */}
+                {!formData.has_custom_form && (
+                  <div className="text-center py-16 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600">
+                    <div className="w-24 h-24 mx-auto mb-6 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center">
+                      <span className="text-4xl">🔒</span>
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                      Özel Kayıt Formu Devre Dışı
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto mb-6">
+                      Özel kayıt formu oluşturmak için "Genel Bilgiler" sekmesindeki "Kayıt Ayarları" bölümünden 
+                      <span className="font-semibold text-blue-600 dark:text-blue-400"> "Özel Kayıt Formu Kullan"</span> seçeneğini aktifleştirin.
                     </p>
+                    <div className="flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                      <span>📋</span>
+                      <span>Adım: Genel Bilgiler → Kayıt Ayarları → Özel Kayıt Formu Kullan</span>
+                    </div>
                   </div>
-                  <FormBuilder 
-                    formId={formData.slug} 
-                    formType="event_registration"
-                    formTitle={formData.title}
-                  />
-                </div>
-              )}
+                )}
+
+                {formData.has_custom_form && !formData.slug && (
+                  <div className="text-center py-16 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-2xl border-2 border-dashed border-amber-300 dark:border-amber-600">
+                    <div className="w-24 h-24 mx-auto mb-6 bg-amber-200 dark:bg-amber-800 rounded-full flex items-center justify-center">
+                      <span className="text-4xl">⚠️</span>
+                    </div>
+                    <h3 className="text-xl font-semibold text-amber-800 dark:text-amber-300 mb-3">
+                      Etkinlik Başlığı Gerekli
+                    </h3>
+                    <p className="text-amber-700 dark:text-amber-400 max-w-md mx-auto mb-6">
+                      Kayıt formu oluşturmak için önce <span className="font-semibold">"Genel Bilgiler"</span> sekmesinden 
+                      <span className="font-semibold"> etkinlik başlığını</span> girmeniz gerekmektedir.
+                    </p>
+                    <div className="flex items-center justify-center gap-2 text-sm text-amber-600 dark:text-amber-400">
+                      <span>📝</span>
+                      <span>Adım: Genel Bilgiler → Etkinlik Başlığı → Form sekmesine dönün</span>
+                    </div>
+                  </div>
+                )}
+
+                {formData.has_custom_form && formData.slug && (
+                  <div className="space-y-4">
+                    {/* Form Builder Başlık */}
+                    <div className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 p-6 rounded-xl border border-blue-200 dark:border-blue-700">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-md">
+                          <span className="text-2xl text-white">📋</span>
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold text-blue-800 dark:text-blue-300">
+                            Etkinlik Kayıt Formu
+                          </h3>
+                          <p className="text-blue-600 dark:text-blue-400 text-sm">
+                            "{formData.title}" etkinliği için özel kayıt formu
+                          </p>
+                        </div>
+                      </div>
+                      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-blue-200 dark:border-blue-600">
+                        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                          <span className="font-medium">💡 Form ID:</span> <code className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs font-mono">{formData.slug}</code><br/>
+                          <span className="font-medium">🎯 Kullanım:</span> Katılımcılar bu formu doldurarak etkinliğe kayıt olabilirler<br/>
+                          <span className="font-medium">📊 Veriler:</span> Form yanıtları otomatik olarak sisteme kaydedilir ve Excel'e aktarılabilir
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* FormBuilder Component */}
+                    <FormBuilder 
+                      formId={formData.slug} 
+                      formType="event_registration"
+                      formTitle={formData.title}
+                    />
+                  </div>
+                )}
+              </div>
             </TabsContent>
           </Tabs>
 
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              İptal
-            </Button>
-            <Button type="submit">
-              {initialData ? 'Güncelle' : 'Kaydet'}
-            </Button>
+          {/* Mobile-First Footer */}
+          <div className="sticky bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 p-4 sm:relative sm:bg-transparent sm:border-0 sm:pt-6">
+            <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={onClose}
+                className="w-full sm:w-auto h-12 sm:h-11 px-6 text-base sm:text-sm font-medium border-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
+              >
+                <X className="h-4 w-4 mr-2 sm:hidden" />
+                İptal
+              </Button>
+              <Button 
+                type="submit"
+                disabled={isUploading}
+                className="w-full sm:w-auto h-12 sm:h-11 px-8 text-base sm:text-sm font-bold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 rounded-xl disabled:transform-none"
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Yükleniyor...
+                  </>
+                ) : (
+                  <>
+                    {initialData ? '✅ Güncelle' : '🎉 Kaydet'}
+                  </>
+                )}
+              </Button>
+            </div>
+            
+            {/* Mobile Upload Progress */}
+            {isUploading && uploadProgress && (
+              <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700 sm:hidden">
+                <div className="flex items-center space-x-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                  <span className="text-sm font-medium text-blue-800 dark:text-blue-300">{uploadProgress}</span>
+                </div>
+              </div>
+            )}
           </div>
         </form>
       </DialogContent>

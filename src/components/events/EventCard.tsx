@@ -7,6 +7,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Calendar, Clock, MapPin, Users, ExternalLink, Image, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { 
+  getEventTypeLabel, 
+  getEventStatusLabel, 
+  getEventTypeColor, 
+  getEventStatusColor,
+  type EventType,
+  type EventStatus 
+} from '@/constants/eventConstants';
 
 interface Event {
   id: string;
@@ -36,145 +44,148 @@ interface EventCardProps {
 const EventCard: React.FC<EventCardProps> = ({ event }) => {
   const [showGallery, setShowGallery] = useState(false);
 
-  const getEventTypeColor = (type: string) => {
-    const colors: Record<string, string> = {
-      'atolye': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-      'konferans': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
-      'sosyal': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-      'egitim': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
-      'seminer': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
-    };
-    return colors[type] || 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
-  };
-
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      'upcoming': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-      'ongoing': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-      'completed': 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300',
-      'cancelled': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
-    };
-    return colors[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
-  };
-
-  const getEventTypeLabel = (type: string) => {
-    const types: Record<string, string> = {
-      'atolye': 'Atölye',
-      'konferans': 'Konferans',
-      'sosyal': 'Sosyal',
-      'egitim': 'Eğitim',
-      'seminer': 'Seminer'
-    };
-    return types[type] || type;
-  };
-
-  const getStatusLabel = (status: string) => {
-    const statuses: Record<string, string> = {
-      'upcoming': 'Yaklaşan',
-      'ongoing': 'Devam Eden',
-      'completed': 'Tamamlandı',
-      'cancelled': 'İptal Edildi'
-    };
-    return statuses[status] || status;
-  };
+  // Event type ve status helper functions artık constants'tan geliyor
 
   const formatEventDate = (dateString: string) => {
     return format(new Date(dateString), 'dd MMMM yyyy, HH:mm', { locale: tr });
   };
 
+  const formatMobileDate = (dateString: string) => {
+    return format(new Date(dateString), 'dd MMM, HH:mm', { locale: tr });
+  };
+
   return (
-    <Card className="hover:shadow-lg transition-shadow duration-300">
-      <CardHeader>
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-          <div className="flex-1">
-            <div className="flex flex-wrap items-center gap-2 mb-2">
-              <Badge className={getEventTypeColor(event.event_type)}>
-                {getEventTypeLabel(event.event_type)}
-              </Badge>
-              <Badge className={getStatusColor(event.status)}>
-                {getStatusLabel(event.status)}
-              </Badge>
-            </div>
-            <CardTitle className="text-xl font-bold text-slate-900 dark:text-white">
-              {event.title}
-            </CardTitle>
+    <Card className="group hover:shadow-xl hover:scale-[1.02] transition-all duration-300 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg">
+      {/* Mobile-First Header with Image */}
+      {event.featured_image && (
+        <div className="relative h-48 sm:h-56 md:h-40 w-full overflow-hidden rounded-t-xl">
+          <img 
+            src={event.featured_image} 
+            alt={event.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            onError={(e) => {
+              e.currentTarget.src = '/placeholder.svg';
+            }}
+          />
+          {/* Status overlay */}
+          <div className="absolute top-3 left-3">
+            <Badge className={`${getEventStatusColor(event.status as EventStatus)} shadow-lg`}>
+              {getEventStatusLabel(event.status as EventStatus)}
+            </Badge>
           </div>
-          {event.featured_image && (
-            <div className="w-full sm:w-32 h-20 rounded-lg overflow-hidden">
-              <img 
-                src={event.featured_image} 
-                alt={event.title}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.src = '/placeholder.svg';
-                }}
-              />
+          {/* Price overlay */}
+          {event.price && event.price > 0 && (
+            <div className="absolute top-3 right-3">
+              <Badge className="bg-green-600 text-white shadow-lg">
+                💰 {event.price} {event.currency || 'TL'}
+              </Badge>
             </div>
           )}
         </div>
-      </CardHeader>
-      
-      <CardContent>
-        <p className="text-slate-600 dark:text-slate-300 mb-4 line-clamp-3">
-          {event.description}
-        </p>
-        
-        <div className="space-y-2 mb-4">
-          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-            <Calendar className="h-4 w-4" />
-            <span>{formatEventDate(event.event_date)}</span>
-            {event.end_date && (
-              <>
-                <span>-</span>
-                <span>{format(new Date(event.end_date), 'HH:mm', { locale: tr })}</span>
-              </>
+      )}
+
+      <CardHeader className="pb-4">
+        <div className="space-y-3">
+          {/* Event Type Badge - Always Visible */}
+          <div className="flex items-center justify-between">
+            <Badge className={`${getEventTypeColor(event.event_type as EventType)} text-sm px-3 py-1`}>
+              {getEventTypeLabel(event.event_type as EventType)}
+            </Badge>
+            {!event.featured_image && (
+              <Badge className={getEventStatusColor(event.status as EventStatus)}>
+                {getEventStatusLabel(event.status as EventStatus)}
+              </Badge>
             )}
           </div>
           
-          {event.location && (
-            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-              <MapPin className="h-4 w-4" />
-              <span>{event.location === 'Bolu' ? 'BAİBÜ Gölköy Kampüsü, Psikoloji Bölümü, Bolu (40.71388, 31.51442)' : event.location}</span>
+          {/* Title - Mobile Optimized */}
+          <CardTitle className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white line-clamp-2 leading-tight">
+            {event.title}
+          </CardTitle>
+
+          {/* Date & Time - Prominent on Mobile */}
+          <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+            <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+            <div className="flex-1">
+              <div className="text-sm sm:text-base font-semibold text-blue-900 dark:text-blue-100">
+                <span className="sm:hidden">{formatMobileDate(event.event_date)}</span>
+                <span className="hidden sm:inline">{formatEventDate(event.event_date)}</span>
+              </div>
+              {event.end_date && (
+                <div className="text-xs text-blue-700 dark:text-blue-300">
+                  Bitiş: {format(new Date(event.end_date), 'HH:mm', { locale: tr })}
+                </div>
+              )}
             </div>
-          )}
-          
-          {event.max_participants && (
-            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-              <Users className="h-4 w-4" />
-              <span>Maksimum {event.max_participants} katılımcı</span>
-            </div>
-          )}
-          
-          {event.price && event.price > 0 && (
-            <div className="flex items-center gap-2 text-sm text-green-600 font-medium">
-              <span>💰 {event.price} {event.currency || 'TL'}</span>
-            </div>
-          )}
+          </div>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="pt-0">
+        {/* Description - Mobile Friendly */}
+        <div className="mb-4">
+          <p className="text-slate-600 dark:text-slate-300 text-sm sm:text-base line-clamp-3 leading-relaxed">
+            {event.description}
+          </p>
         </div>
         
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Button variant="outline" className="flex-1" asChild>
-            <Link to={`/etkinlikler/${event.slug}`}>
-              <Eye className="h-4 w-4 mr-2" />
-              Detayları Görüntüle
-            </Link>
-          </Button>
-          
-          {event.gallery_images && event.gallery_images.length > 0 && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setShowGallery(true)}
-              className="flex items-center gap-2"
-            >
-              <Image className="h-4 w-4" />
-              Galeri ({event.gallery_images.length})
-            </Button>
+        {/* Event Details - Mobile Optimized Grid */}
+        <div className="space-y-3 mb-6">
+          {event.location && (
+            <div className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+              <MapPin className="h-5 w-5 text-gray-600 dark:text-gray-400 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <div className="text-sm sm:text-base font-medium text-gray-900 dark:text-gray-100 truncate">
+                  {event.location === 'Bolu' ? 'BAİBÜ Gölköy Kampüsü' : event.location}
+                </div>
+                {event.location === 'Bolu' && (
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    Psikoloji Bölümü, Bolu
+                  </div>
+                )}
+              </div>
+            </div>
           )}
           
+          {/* Additional Info Row */}
+          <div className="flex flex-wrap gap-2">
+            {event.max_participants && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-orange-50 dark:bg-orange-900/20 rounded-full border border-orange-200 dark:border-orange-800">
+                <Users className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                <span className="text-xs sm:text-sm text-orange-700 dark:text-orange-300 font-medium">
+                  Max {event.max_participants} kişi
+                </span>
+              </div>
+            )}
+            
+            {event.registration_required && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-full border border-blue-200 dark:border-blue-800">
+                <span className="text-xs sm:text-sm text-blue-700 dark:text-blue-300 font-medium">
+                  📝 Kayıt Gerekli
+                </span>
+              </div>
+            )}
+
+            {event.gallery_images && event.gallery_images.length > 0 && (
+              <button 
+                onClick={() => setShowGallery(true)}
+                className="flex items-center gap-2 px-3 py-2 bg-purple-50 dark:bg-purple-900/20 rounded-full border border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
+              >
+                <Image className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                <span className="text-xs sm:text-sm text-purple-700 dark:text-purple-300 font-medium">
+                  📸 Galeri ({event.gallery_images.length})
+                </span>
+              </button>
+            )}
+          </div>
+        </div>
+        
+        {/* Action Buttons - Mobile First */}
+        <div className="space-y-3">
+          {/* Primary Action - Always Full Width on Mobile */}
           {event.registration_required && event.status === 'upcoming' && (
             <Button 
-              className="flex-1 flex items-center gap-2"
+              className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-200"
               onClick={() => {
                 if (event.registration_link) {
                   window.open(event.registration_link, '_blank');
@@ -183,35 +194,67 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
                 }
               }}
             >
-              Kayıt Ol
-              <ExternalLink className="h-4 w-4" />
+              <span className="mr-2">🎯</span>
+              Hemen Kayıt Ol
+              <ExternalLink className="h-5 w-5 ml-2" />
             </Button>
           )}
+
+          {/* Secondary Action */}
+          <Button 
+            variant="outline" 
+            className="w-full h-11 text-sm sm:text-base font-medium border-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" 
+            asChild
+          >
+            <Link to={`/etkinlikler/${event.slug}`}>
+              <Eye className="h-4 w-4 mr-2" />
+              Detayları İncele
+            </Link>
+          </Button>
         </div>
 
-        {/* Galeri Modal */}
+        {/* Galeri Modal - Mobile Optimized */}
         <Dialog open={showGallery} onOpenChange={setShowGallery}>
-          <DialogContent className="max-w-4xl">
-            <DialogHeader>
-              <DialogTitle>{event.title} - Galeri</DialogTitle>
+          <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] p-3 sm:p-6">
+            <DialogHeader className="pb-2 sm:pb-4">
+              <DialogTitle className="text-lg sm:text-xl font-bold text-center">
+                📸 {event.title} - Galeri
+              </DialogTitle>
             </DialogHeader>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
-              {event.gallery_images?.map((imageUrl, index) => (
-                <div key={index} className="relative group">
-                  <img
-                    src={imageUrl}
-                    alt={`${event.title} galeri ${index + 1}`}
-                    className="w-full h-32 object-cover rounded-lg hover:scale-105 transition-transform cursor-pointer"
-                    onClick={() => window.open(imageUrl, '_blank')}
-                    onError={(e) => {
-                      e.currentTarget.src = '/placeholder.svg';
-                    }}
-                  />
-                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity rounded-lg flex items-center justify-center">
-                    <Eye className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="overflow-y-auto max-h-[60vh] sm:max-h-[70vh]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                {event.gallery_images?.map((imageUrl, index) => (
+                  <div key={index} className="relative group">
+                    <div className="aspect-square overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800">
+                      <img
+                        src={imageUrl}
+                        alt={`${event.title} galeri ${index + 1}`}
+                        className="w-full h-full object-cover hover:scale-110 transition-transform duration-300 cursor-pointer"
+                        onClick={() => window.open(imageUrl, '_blank')}
+                        onError={(e) => {
+                          e.currentTarget.src = '/placeholder.svg';
+                        }}
+                      />
+                    </div>
+                    {/* Mobile-friendly overlay */}
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity rounded-lg flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white dark:bg-gray-800 rounded-full p-2 shadow-lg">
+                        <Eye className="h-6 w-6 text-gray-700 dark:text-gray-300" />
+                      </div>
+                    </div>
+                    {/* Image number indicator */}
+                    <div className="absolute top-2 left-2 bg-black/70 text-white text-xs sm:text-sm px-2 py-1 rounded-full">
+                      {index + 1}/{event.gallery_images?.length}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+            </div>
+            {/* Mobile-friendly close instruction */}
+            <div className="text-center pt-3 sm:pt-4 border-t border-gray-200 dark:border-gray-700">
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                📱 Resme dokunarak büyütebilirsiniz
+              </p>
             </div>
           </DialogContent>
         </Dialog>

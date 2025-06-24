@@ -275,19 +275,44 @@ const EventRegistrationForm = ({
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-md">
           <div className="text-center py-8">
-            <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle2 className="h-8 w-8 text-green-600" />
+            <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+              <CheckCircle2 className="h-10 w-10 text-green-600" />
             </div>
-            <h3 className="text-xl font-bold text-green-800 dark:text-green-300 mb-2">
-              🎉 Kayıt Tamamlandı!
-            </h3>
-            <p className="text-green-600 dark:text-green-400 mb-4">
-              <strong>{eventTitle}</strong> etkinliğine başarıyla kayıt oldunuz.
-            </p>
-            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-              <p className="text-sm text-green-700 dark:text-green-300">
-                📧 Etkinlik öncesi size bilgilendirme e-postası gönderilecektir.
-              </p>
+            <div className="space-y-4">
+              <h3 className="text-2xl font-bold text-green-800 dark:text-green-300">
+                🎉 Kayıt Tamamlandı!
+              </h3>
+              <div className="space-y-3">
+                <p className="text-green-600 dark:text-green-400 text-lg">
+                  <strong>{eventTitle}</strong> etkinliğine başarıyla kayıt oldunuz.
+                </p>
+                <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-xl border border-green-200 dark:border-green-700">
+                  <div className="text-sm text-green-700 dark:text-green-300 space-y-2">
+                    <p className="flex items-center gap-2">
+                      <span>📧</span>
+                      <span>Etkinlik öncesi bilgilendirme e-postası alacaksınız</span>
+                    </p>
+                    <p className="flex items-center gap-2">
+                      <span>📅</span>
+                      <span>Etkinlik hatırlatması gönderilecek</span>
+                    </p>
+                    <p className="flex items-center gap-2">
+                      <span>✅</span>
+                      <span>Kayıt bilgileriniz güvenle saklandı</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Kapat Butonu */}
+            <div className="mt-6 pt-4 border-t border-green-200 dark:border-green-700">
+              <Button
+                onClick={onClose}
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-xl"
+              >
+                🏠 Ana Sayfaya Dön
+              </Button>
             </div>
           </div>
         </DialogContent>

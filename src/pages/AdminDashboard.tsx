@@ -32,8 +32,10 @@ import SponsorModal from '@/components/admin/SponsorModal';
 import SurveyModal from '@/components/admin/SurveyModal';
 import TeamMemberModal from '@/components/admin/TeamMemberModal';
 import UserRoleManagement from '@/components/admin/UserRoleManagement';
+import ThemeToggle from '@/components/admin/ThemeToggle';
+import { EVENT_TYPES, EVENT_STATUSES } from '@/constants/eventConstants';
 
-import { useNews, useEvents, useMagazineIssues, useSurveys, useSponsors, useTeamMembers, useAcademicDocuments, useInternships, useContactMessages, useUsers, useUserRoles, useMagazineAnalytics, useMagazineContributors, useArticleSubmissions } from '@/hooks/useSupabaseData';
+import { useNews, useEvents, useMagazineIssues, useSurveys, useSponsors, useTeamMembers, useAcademicDocuments, useInternships, useContactMessages, useUsers, useUserRoles, useMagazineAnalytics, useMagazineContributors, useArticleSubmissions, useEventSuggestions, useUpdateEventSuggestion } from '@/hooks/useSupabaseData';
 import { deleteMagazineFilesByUrls } from '@/utils/githubStorageHelper';
 import { getGitHubStorageConfig, isGitHubStorageConfigured } from '@/integrations/github/config';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -88,6 +90,8 @@ const AdminDashboard = () => {
   const { data: magazineReads } = useMagazineAnalytics();
   const { data: allContributors } = useMagazineContributors();
   const { data: articleSubmissions } = useArticleSubmissions();
+  const { data: eventSuggestions } = useEventSuggestions();
+  const updateEventSuggestion = useUpdateEventSuggestion();
 
   // Gerçek dergi istatistikleri hesaplama
   const calculateMagazineStats = () => {
@@ -261,9 +265,11 @@ const AdminDashboard = () => {
   };
 
   const handleSaveEvent = async (eventData: any) => {
+    let savedEventId: string | null = null;
+    let isNewEvent = !editingItem;
+    
     try {
       const { sponsors, ...eventDataWithoutSponsors } = eventData;
-      let savedEventId: string;
       
       if (editingItem) {
         // Etkinlik güncelleme
@@ -275,10 +281,11 @@ const AdminDashboard = () => {
         savedEventId = editingItem.id;
         
         // Mevcut sponsorları sil
-        await supabase
+        const { error: sponsorDeleteError } = await supabase
           .from('event_sponsors')
           .delete()
           .eq('event_id', savedEventId);
+        if (sponsorDeleteError) throw sponsorDeleteError;
           
         toast.success('Etkinlik güncellendi');
       } else {
@@ -295,6 +302,7 @@ const AdminDashboard = () => {
       
       // Sponsorları kaydet
       if (sponsors && sponsors.length > 0 && savedEventId) {
+        try {
         const sponsorInserts = sponsors.map((sponsor: any) => ({
           event_id: savedEventId,
           sponsor_name: sponsor.sponsor_name,
@@ -308,11 +316,27 @@ const AdminDashboard = () => {
           .from('event_sponsors')
           .insert(sponsorInserts);
           
-        if (sponsorError) {
-          console.error('Sponsor kaydetme hatası:', sponsorError);
-          toast.error('Etkinlik kaydedildi ancak sponsorlar kaydedilemedi');
-        } else if (sponsors.length > 0) {
+          if (sponsorError) throw sponsorError;
+          
+          if (sponsors.length > 0) {
           toast.success(`${sponsors.length} sponsor başarıyla kaydedildi`);
+          }
+        } catch (sponsorError) {
+          console.error('🚨 Sponsor kaydetme hatası:', sponsorError);
+          
+          // Rollback: Yeni eklenen etkinliği sil
+          if (isNewEvent && savedEventId) {
+            console.log('🔄 Rolling back: Etkinlik siliniyor...');
+            await supabase
+              .from('events')
+              .delete()
+              .eq('id', savedEventId);
+            
+            toast.error('❌ Sponsorlar kaydedilemedi, etkinlik silindi. Lütfen tekrar deneyin.');
+            return;
+          } else {
+            toast.error('⚠️ Etkinlik kaydedildi ancak sponsorlar kaydedilemedi');
+          }
         }
       }
       
@@ -324,8 +348,24 @@ const AdminDashboard = () => {
       }, 1000);
       
     } catch (error) {
-      toast.error('Bir hata oluştu');
-      console.error('Error saving event:', error);
+      console.error('🚨 Etkinlik kaydetme hatası:', error);
+      
+      // Rollback: Yeni eklenen etkinliği sil
+      if (isNewEvent && savedEventId) {
+        console.log('🔄 Rolling back: Etkinlik siliniyor...');
+        try {
+          await supabase
+            .from('events')
+            .delete()
+            .eq('id', savedEventId);
+          toast.error('❌ Bir hata oluştu, değişiklikler geri alındı');
+        } catch (rollbackError) {
+          console.error('🚨 Rollback hatası:', rollbackError);
+          toast.error('❌ Kritik hata: Manuel temizlik gerekli');
+        }
+      } else {
+        toast.error('❌ Bir hata oluştu');
+      }
     }
   };
 
@@ -684,7 +724,13 @@ const AdminDashboard = () => {
                   Admin Paneli
                 </h1>
               </div>
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-3 sm:space-x-4">
+                {/* Theme Toggle */}
+                <div className="flex items-center">
+                  <ThemeToggle />
+                </div>
+                
+                {/* User Info */}
                 <div className="text-right">
                   <p className="text-sm font-medium text-slate-900 dark:text-white">
                     {user.name || user.email}
@@ -693,6 +739,8 @@ const AdminDashboard = () => {
                     {getRoleLabel(user.userRoles || [])}
                   </p>
                 </div>
+                
+                {/* Logout Button */}
                 <Button variant="outline" size="sm" onClick={handleLogout}>
                   <LogOut className="h-4 w-4 mr-2" />
                   <span className="hidden sm:inline">Çıkış</span>
@@ -727,6 +775,12 @@ const AdminDashboard = () => {
                   <TabsTrigger value="events" className="text-xs whitespace-nowrap">
                     <Calendar className="h-4 w-4 mr-1" />
                     Etkinlikler
+                  </TabsTrigger>
+                )}
+                {hasPermission('events') && (
+                  <TabsTrigger value="event-suggestions" className="text-xs whitespace-nowrap">
+                    <MessageSquare className="h-4 w-4 mr-1" />
+                    Öneriler
                   </TabsTrigger>
                 )}
                 {hasPermission('magazine') && (
@@ -893,45 +947,422 @@ const AdminDashboard = () => {
               </TabsContent>
             )}
 
-            {/* Events Tab */}
+            {/* Events Tab - Mobile-First Enhanced */}
             {hasPermission('events') && (
-              <TabsContent value="events" className="space-y-6">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <h2 className="text-2xl font-bold">Etkinlikler</h2>
-                  <Button onClick={() => { setEditingItem(null); setEventModalOpen(true); }}>
+              <TabsContent value="events" className="space-y-4 sm:space-y-6">
+                {/* Header Section - Mobile Optimized */}
+                <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                      📅 Etkinlik Yönetimi
+                    </h2>
+                    <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
+                      Topluluğun etkinliklerini oluşturun ve yönetin
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={() => { setEditingItem(null); setEventModalOpen(true); }}
+                    className="w-full sm:w-auto h-12 sm:h-10 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200"
+                  >
                     <Plus className="h-4 w-4 mr-2" />
-                    Yeni Etkinlik
+                    Yeni Etkinlik Oluştur
                   </Button>
                 </div>
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="space-y-4">
+
+                {/* Events Stats Cards - Mobile Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-3 sm:p-4 rounded-xl border border-blue-200 dark:border-blue-700">
+                    <div className="text-xs sm:text-sm font-medium text-blue-800 dark:text-blue-300">📅 Toplam</div>
+                    <div className="text-lg sm:text-2xl font-bold text-blue-600 dark:text-blue-400">{events?.length || 0}</div>
+                    <div className="text-xs text-blue-600 dark:text-blue-400">Etkinlik</div>
+                  </div>
+                  <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-3 sm:p-4 rounded-xl border border-green-200 dark:border-green-700">
+                    <div className="text-xs sm:text-sm font-medium text-green-800 dark:text-green-300">🔥 Yaklaşan</div>
+                    <div className="text-lg sm:text-2xl font-bold text-green-600 dark:text-green-400">
+                      {events?.filter(e => e.status === 'upcoming').length || 0}
+                    </div>
+                    <div className="text-xs text-green-600 dark:text-green-400">Etkinlik</div>
+                  </div>
+                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 p-3 sm:p-4 rounded-xl border border-purple-200 dark:border-purple-700">
+                    <div className="text-xs sm:text-sm font-medium text-purple-800 dark:text-purple-300">✅ Tamamlanan</div>
+                    <div className="text-lg sm:text-2xl font-bold text-purple-600 dark:text-purple-400">
+                      {events?.filter(e => e.status === 'completed').length || 0}
+                    </div>
+                    <div className="text-xs text-purple-600 dark:text-purple-400">Etkinlik</div>
+                  </div>
+                  <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 p-3 sm:p-4 rounded-xl border border-orange-200 dark:border-orange-700">
+                    <div className="text-xs sm:text-sm font-medium text-orange-800 dark:text-orange-300">⏳ Bekleyen</div>
+                    <div className="text-lg sm:text-2xl font-bold text-orange-600 dark:text-orange-400">
+                      {events?.filter(e => e.status === 'draft').length || 0}
+                    </div>
+                    <div className="text-xs text-orange-600 dark:text-orange-400">Taslak</div>
+                  </div>
+                </div>
+
+                {/* Events List - Mobile-First Cards */}
+                <Card className="overflow-hidden">
+                  <CardContent className="p-3 sm:p-6">
+                    <div className="space-y-3 sm:space-y-4">
                       {events?.map(event => (
-                        <div key={event.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg gap-4">
+                        <div key={event.id} className="group bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-200">
+                          {/* Mobile-First Event Card Layout */}
+                          <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+                            {/* Event Info */}
+                            <div className="flex-1 min-w-0 space-y-2">
+                              {/* Title and Featured Image */}
+                              <div className="flex items-start gap-3">
+                                {event.featured_image && (
+                                  <div className="flex-shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
+                                    <img 
+                                      src={event.featured_image} 
+                                      alt={event.title}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).src = '/placeholder.svg';
+                                      }}
+                                    />
+                                  </div>
+                                )}
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-medium truncate">{event.title}</h3>
-                            <div className="flex flex-wrap items-center gap-2 mt-2">
-                              <Badge variant="outline">{event.event_type}</Badge>
-                              <span className="text-sm text-muted-foreground">
-                                {new Date(event.event_date).toLocaleDateString('tr-TR')}
-                              </span>
-                              <Badge variant={event.status === 'upcoming' ? "default" : "secondary"}>
-                                {event.status === 'upcoming' ? "Yaklaşan" : "Tamamlandı"}
+                                  <h3 className="font-semibold text-base sm:text-lg text-gray-900 dark:text-white line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                    {event.title}
+                                  </h3>
+                                  {event.description && (
+                                    <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mt-1">
+                                      {event.description}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Event Meta Information */}
+                              <div className="flex flex-wrap items-center gap-2">
+                                {/* Event Type */}
+                                <Badge variant="outline" className="text-xs font-medium">
+                                  {EVENT_TYPES[event.event_type as keyof typeof EVENT_TYPES] || event.event_type}
                               </Badge>
+                                
+                                {/* Event Date */}
+                                <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                                  <Calendar className="h-3 w-3" />
+                                  <span>{new Date(event.event_date).toLocaleDateString('tr-TR')}</span>
                             </div>
+
+                                {/* Location */}
+                                {event.location && (
+                                  <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                                    <span>📍</span>
+                                    <span className="line-clamp-1">{event.location}</span>
                           </div>
-                          <div className="flex space-x-2 flex-shrink-0">
-                            <Button variant="outline" size="sm" onClick={() => openEditModal(event, 'event')}>
-                              <Edit className="h-4 w-4" />
+                                )}
+
+                                {/* Status Badge */}
+                                <Badge 
+                                  variant={event.status === 'upcoming' ? "default" : event.status === 'completed' ? "secondary" : "outline"}
+                                  className="text-xs"
+                                >
+                                  {event.status === 'upcoming' ? '🔥 Yaklaşan' : 
+                                   event.status === 'completed' ? '✅ Tamamlandı' : 
+                                   event.status === 'cancelled' ? '❌ İptal' : '📝 Taslak'}
+                                </Badge>
+
+                                {/* Participants */}
+                                {event.max_participants && (
+                                  <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
+                                    <Users className="h-3 w-3" />
+                                    <span>Max {event.max_participants}</span>
+                                  </div>
+                                )}
+
+                                {/* Price */}
+                                {event.price && event.price > 0 && (
+                                  <Badge variant="outline" className="text-xs font-medium text-green-600 border-green-300">
+                                    💰 {event.price} {event.currency}
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Action Buttons - Mobile Stack */}
+                            <div className="flex flex-row sm:flex-col gap-2 sm:flex-shrink-0">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => openEditModal(event, 'event')}
+                                className="flex-1 sm:flex-none h-9 text-xs sm:text-sm hover:bg-blue-50 hover:border-blue-300 dark:hover:bg-blue-900/20 dark:hover:border-blue-600 transition-colors"
+                              >
+                                <Edit className="h-3 w-3 mr-1 sm:mr-2" />
+                                <span className="hidden sm:inline">Düzenle</span>
+                                <span className="sm:hidden">Düzenle</span>
                             </Button>
-                            <Button variant="outline" size="sm" onClick={() => handleDelete(event.id, 'events')}>
-                              <Trash2 className="h-4 w-4" />
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleDelete(event.id, 'events')}
+                                className="flex-1 sm:flex-none h-9 text-xs sm:text-sm hover:bg-red-50 hover:border-red-300 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:border-red-600 dark:hover:text-red-400 transition-colors"
+                              >
+                                <Trash2 className="h-3 w-3 mr-1 sm:mr-2" />
+                                <span className="hidden sm:inline">Sil</span>
+                                <span className="sm:hidden">Sil</span>
                             </Button>
+                            </div>
                           </div>
                         </div>
                       ))}
+                      
+                      {/* Empty State - Enhanced */}
                       {(!events || events?.length === 0) && (
-                        <p className="text-center text-muted-foreground py-8">Henüz etkinlik bulunmuyor</p>
+                        <div className="text-center py-12 sm:py-16">
+                          <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                            <Calendar className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400" />
+                          </div>
+                          <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                            Henüz etkinlik bulunmuyor
+                          </h3>
+                          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
+                            İlk etkinliğinizi oluşturarak topluluğunuzu harekete geçirin
+                          </p>
+                          <Button 
+                            onClick={() => { setEditingItem(null); setEventModalOpen(true); }}
+                            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            İlk Etkinliği Oluştur
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            )}
+
+            {/* Event Suggestions Tab */}
+            {hasPermission('events') && (
+              <TabsContent value="event-suggestions" className="space-y-4 sm:space-y-6">
+                <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                      💡 Etkinlik Önerileri
+                    </h2>
+                    <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
+                      Kullanıcılardan gelen etkinlik önerilerini değerlendirin
+                    </p>
+                  </div>
+                </div>
+
+                {/* Stats Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-3 sm:p-4 rounded-xl border border-blue-200 dark:border-blue-700">
+                    <div className="text-xs sm:text-sm font-medium text-blue-800 dark:text-blue-300">📥 Toplam</div>
+                    <div className="text-lg sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
+                      {eventSuggestions?.length || 0}
+                    </div>
+                    <div className="text-xs text-blue-600 dark:text-blue-400">Öneri</div>
+                  </div>
+                  <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 p-3 sm:p-4 rounded-xl border border-orange-200 dark:border-orange-700">
+                    <div className="text-xs sm:text-sm font-medium text-orange-800 dark:text-orange-300">⏳ Bekleyen</div>
+                    <div className="text-lg sm:text-2xl font-bold text-orange-600 dark:text-orange-400">
+                      {eventSuggestions?.filter(s => s.status === 'pending').length || 0}
+                    </div>
+                    <div className="text-xs text-orange-600 dark:text-orange-400">Öneri</div>
+                  </div>
+                  <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-3 sm:p-4 rounded-xl border border-green-200 dark:border-green-700">
+                    <div className="text-xs sm:text-sm font-medium text-green-800 dark:text-green-300">✅ Onaylanan</div>
+                    <div className="text-lg sm:text-2xl font-bold text-green-600 dark:text-green-400">
+                      {eventSuggestions?.filter(s => s.status === 'approved').length || 0}
+                    </div>
+                    <div className="text-xs text-green-600 dark:text-green-400">Öneri</div>
+                  </div>
+                  <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 p-3 sm:p-4 rounded-xl border border-red-200 dark:border-red-700">
+                    <div className="text-xs sm:text-sm font-medium text-red-800 dark:text-red-300">❌ Reddedilen</div>
+                    <div className="text-lg sm:text-2xl font-bold text-red-600 dark:text-red-400">
+                      {eventSuggestions?.filter(s => s.status === 'rejected').length || 0}
+                    </div>
+                    <div className="text-xs text-red-600 dark:text-red-400">Öneri</div>
+                  </div>
+                </div>
+
+                {/* Suggestions List */}
+                <Card className="overflow-hidden">
+                  <CardContent className="p-3 sm:p-6">
+                    <div className="space-y-3 sm:space-y-4">
+                      {eventSuggestions?.map(suggestion => (
+                        <div key={suggestion.id} className="group bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:shadow-lg transition-all duration-200">
+                          <div className="flex flex-col space-y-3 sm:flex-row sm:items-start sm:justify-between sm:space-y-0">
+                            {/* Suggestion Info */}
+                            <div className="flex-1 min-w-0 space-y-3">
+                              {/* Header */}
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <h3 className="font-semibold text-base sm:text-lg text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                    {suggestion.title}
+                                  </h3>
+                                  <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mt-1">
+                                    {suggestion.description}
+                                  </p>
+                                </div>
+                                <Badge 
+                                  variant={
+                                    suggestion.status === 'pending' ? "outline" :
+                                    suggestion.status === 'approved' ? "default" :
+                                    suggestion.status === 'rejected' ? "destructive" : "secondary"
+                                  }
+                                  className="ml-3 flex-shrink-0"
+                                >
+                                  {suggestion.status === 'pending' ? '⏳ Bekliyor' :
+                                   suggestion.status === 'approved' ? '✅ Onaylandı' :
+                                   suggestion.status === 'rejected' ? '❌ Reddedildi' : '📝 İnceleniyor'}
+                                </Badge>
+                              </div>
+
+                              {/* Meta Information */}
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs sm:text-sm">
+                                <div className="flex items-center gap-1">
+                                  <span>🎯</span>
+                                  <span className="text-gray-600 dark:text-gray-400">
+                                    {EVENT_TYPES[suggestion.event_type as keyof typeof EVENT_TYPES] || suggestion.event_type}
+                                  </span>
+                                </div>
+                                {suggestion.suggested_date && (
+                                  <div className="flex items-center gap-1">
+                                    <span>📅</span>
+                                    <span className="text-gray-600 dark:text-gray-400">
+                                      {new Date(suggestion.suggested_date).toLocaleDateString('tr-TR')}
+                                    </span>
+                                  </div>
+                                )}
+                                {suggestion.estimated_participants && (
+                                  <div className="flex items-center gap-1">
+                                    <span>👥</span>
+                                    <span className="text-gray-600 dark:text-gray-400">
+                                      ~{suggestion.estimated_participants} kişi
+                                    </span>
+                                  </div>
+                                )}
+                                {suggestion.estimated_budget && (
+                                  <div className="flex items-center gap-1">
+                                    <span>💰</span>
+                                    <span className="text-gray-600 dark:text-gray-400">
+                                      ~{suggestion.estimated_budget} TL
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Contact Info */}
+                              <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                <div className="text-sm">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span>👤</span>
+                                    <span className="font-medium text-gray-900 dark:text-white">
+                                      {suggestion.contact_name}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                                    <span>📧</span>
+                                    <span>{suggestion.contact_email}</span>
+                                  </div>
+                                  {suggestion.contact_phone && (
+                                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 mt-1">
+                                      <span>📱</span>
+                                      <span>{suggestion.contact_phone}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Location & Notes */}
+                              {(suggestion.suggested_location || suggestion.additional_notes) && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                  {suggestion.suggested_location && (
+                                    <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
+                                      <span>📍</span>
+                                      <span>{suggestion.suggested_location}</span>
+                                    </div>
+                                  )}
+                                  {suggestion.additional_notes && (
+                                    <div className="flex items-start gap-1 text-sm text-gray-600 dark:text-gray-400">
+                                      <span>📝</span>
+                                      <span className="line-clamp-2">{suggestion.additional_notes}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                                📅 Önerilme: {new Date(suggestion.created_at).toLocaleDateString('tr-TR')} • 
+                                ⚡ Öncelik: {suggestion.priority_level === 'high' ? '🔴 Yüksek' : 
+                                           suggestion.priority_level === 'urgent' ? '🚨 Acil' : '🟡 Normal'}
+                              </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            {suggestion.status === 'pending' && (
+                              <div className="flex flex-row sm:flex-col gap-2 sm:flex-shrink-0">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={async () => {
+                                    try {
+                                      await updateEventSuggestion.mutateAsync({
+                                        id: suggestion.id,
+                                        status: 'approved',
+                                        reviewer_id: user?.id,
+                                        reviewed_at: new Date().toISOString()
+                                      });
+                                      toast.success('Öneri onaylandı!');
+                                    } catch (error) {
+                                      toast.error('Hata oluştu');
+                                    }
+                                  }}
+                                  className="flex-1 sm:flex-none h-9 text-xs sm:text-sm hover:bg-green-50 hover:border-green-300 hover:text-green-600 dark:hover:bg-green-900/20 transition-colors"
+                                >
+                                  <span>✅ Onayla</span>
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={async () => {
+                                    const reason = prompt('Reddetme sebebini belirtin:');
+                                    if (reason) {
+                                      try {
+                                        await updateEventSuggestion.mutateAsync({
+                                          id: suggestion.id,
+                                          status: 'rejected',
+                                          reviewer_id: user?.id,
+                                          reviewer_notes: reason,
+                                          reviewed_at: new Date().toISOString()
+                                        });
+                                        toast.success('Öneri reddedildi');
+                                      } catch (error) {
+                                        toast.error('Hata oluştu');
+                                      }
+                                    }
+                                  }}
+                                  className="flex-1 sm:flex-none h-9 text-xs sm:text-sm hover:bg-red-50 hover:border-red-300 hover:text-red-600 dark:hover:bg-red-900/20 transition-colors"
+                                >
+                                  <span>❌ Reddet</span>
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      
+                      {/* Empty State */}
+                      {(!eventSuggestions || eventSuggestions?.length === 0) && (
+                        <div className="text-center py-12 sm:py-16">
+                          <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                            <MessageSquare className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400" />
+                          </div>
+                          <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                            Henüz etkinlik önerisi bulunmuyor
+                          </h3>
+                          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+                            Kullanıcılar etkinlik önermeye başladığında buradan değerlendirebilirsiniz
+                          </p>
+                        </div>
                       )}
                     </div>
                   </CardContent>

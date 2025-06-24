@@ -26,6 +26,14 @@ import { tr } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
+import { 
+  getEventTypeLabel, 
+  getEventStatusLabel, 
+  getEventTypeColor, 
+  getEventStatusColor,
+  type EventType,
+  type EventStatus 
+} from '@/constants/eventConstants';
 
 import PageContainer from '@/components/ui/page-container';
 import LoadingPage from '@/components/ui/loading-page';
@@ -79,47 +87,7 @@ const EtkinlikDetay = () => {
     }
   };
 
-  const getEventTypeColor = (type: string) => {
-    const colors: Record<string, string> = {
-      'atolye': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-      'konferans': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
-      'sosyal': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-      'egitim': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
-      'seminer': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
-    };
-    return colors[type] || 'bg-gray-100 text-gray-800';
-  };
-
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      'upcoming': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-      'ongoing': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-      'completed': 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300',
-      'cancelled': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
-    };
-    return colors[status] || 'bg-gray-100 text-gray-800';
-  };
-
-  const getEventTypeLabel = (type: string) => {
-    const types: Record<string, string> = {
-      'atolye': 'Atölye',
-      'konferans': 'Konferans',
-      'sosyal': 'Sosyal',
-      'egitim': 'Eğitim',
-      'seminer': 'Seminer'
-    };
-    return types[type] || type;
-  };
-
-  const getStatusLabel = (status: string) => {
-    const statuses: Record<string, string> = {
-      'upcoming': 'Yaklaşan',
-      'ongoing': 'Devam Eden',
-      'completed': 'Tamamlandı',
-      'cancelled': 'İptal Edildi'
-    };
-    return statuses[status] || status;
-  };
+  // Event type ve status helper functions artık constants'tan geliyor
 
   const formatEventDate = (dateString: string) => {
     return format(new Date(dateString), 'dd MMMM yyyy', { locale: tr });
@@ -230,121 +198,180 @@ const EtkinlikDetay = () => {
 
   return (
     <PageContainer background="gradient">
-      {/* Header */}
-      <div className="mb-8">
+      {/* Mobile-First Header */}
+      <div className="mb-6 sm:mb-8">
+        {/* Back Button - Mobile Optimized */}
         <Button 
           variant="ghost" 
           onClick={() => navigate('/etkinlikler')}
-          className="mb-4"
+          className="mb-4 h-12 px-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-xl border border-white/20 dark:border-slate-700/20 hover:bg-white/80 dark:hover:bg-slate-800/80"
         >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Etkinliklere Dön
+          <ArrowLeft className="h-5 w-5 mr-2" />
+          <span className="font-medium">Etkinliklere Dön</span>
         </Button>
         
-        <div className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl p-8 shadow-lg">
-          <div className="flex flex-col lg:flex-row gap-8">
-            {/* Featured Image */}
-            {event.featured_image && (
-              <div className="lg:w-1/3">
-                <div className="aspect-video rounded-lg overflow-hidden">
-                  <LazyImage
-                    src={event.featured_image}
-                    alt={event.title}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+        {/* Main Header Card - Mobile First Design */}
+        <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-lg rounded-2xl shadow-xl border border-white/30 dark:border-slate-700/30 overflow-hidden">
+          {/* Featured Image - Full Width on Mobile */}
+          {event.featured_image && (
+            <div className="relative">
+              <div className="aspect-video sm:aspect-[21/9] w-full overflow-hidden">
+                <LazyImage
+                  src={event.featured_image}
+                  alt={event.title}
+                  className="w-full h-full object-cover"
+                />
               </div>
-            )}
-            
-            {/* Event Info */}
-            <div className={`${event.featured_image ? 'lg:w-2/3' : 'w-full'}`}>
-              <div className="flex flex-wrap gap-2 mb-4">
-                <Badge className={getEventTypeColor(event.event_type)}>
-                  {getEventTypeLabel(event.event_type)}
+              {/* Overlay Badges on Image */}
+              <div className="absolute top-4 left-4 flex flex-wrap gap-2">
+                <Badge className={`${getEventStatusColor(event.status as EventStatus)} shadow-lg backdrop-blur-sm`}>
+                  {getEventStatusLabel(event.status as EventStatus)}
                 </Badge>
-                <Badge className={getStatusColor(event.status)}>
-                  {getStatusLabel(event.status)}
+                {event.price && event.price > 0 && (
+                  <Badge className="bg-green-600 text-white shadow-lg backdrop-blur-sm">
+                    💰 {event.price} {event.currency || 'TL'}
+                  </Badge>
+                )}
+              </div>
+              {event.registration_required && (
+                <div className="absolute top-4 right-4">
+                  <Badge className="bg-blue-600 text-white shadow-lg backdrop-blur-sm">
+                    📝 Kayıt Gerekli
+                  </Badge>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Event Info - Mobile Optimized Layout */}
+          <div className="p-4 sm:p-6 lg:p-8">
+            {/* Badges - Only show if no featured image */}
+            {!event.featured_image && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                <Badge className={getEventTypeColor(event.event_type as EventType)}>
+                  {getEventTypeLabel(event.event_type as EventType)}
+                </Badge>
+                <Badge className={getEventStatusColor(event.status as EventStatus)}>
+                  {getEventStatusLabel(event.status as EventStatus)}
                 </Badge>
                 {event.registration_required && (
                   <Badge variant="outline" className="text-blue-600 border-blue-600">
                     📝 Kayıt Gerekli
                   </Badge>
                 )}
+                {event.price && event.price > 0 && (
+                  <Badge className="bg-green-600 text-white">
+                    💰 {event.price} {event.currency || 'TL'}
+                  </Badge>
+                )}
               </div>
+            )}
+            
+            {/* Event Type Badge - Always Show */}
+            <div className="mb-4">
+              <Badge className={`${getEventTypeColor(event.event_type as EventType)} text-sm px-3 py-1`}>
+                {getEventTypeLabel(event.event_type as EventType)}
+              </Badge>
+            </div>
+            
+            {/* Title - Mobile Optimized */}
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white mb-4 sm:mb-6 leading-tight">
+              {event.title}
+            </h1>
               
-              <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
-                {event.title}
-              </h1>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
-                  <Calendar className="h-5 w-5" />
-                  <div>
-                    <div className="font-medium">{formatEventDate(event.event_date)}</div>
-                    <div className="text-sm">
-                      {formatEventTime(event.event_date)}
+            {/* Event Details - Mobile-First Cards */}
+            <div className="space-y-4 mb-6">
+              {/* Date & Time Card */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+                <div className="flex items-start gap-3">
+                  <Calendar className="h-6 w-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-1" />
+                  <div className="flex-1">
+                    <div className="font-semibold text-blue-900 dark:text-blue-100 text-base sm:text-lg">
+                      {formatEventDate(event.event_date)}
+                    </div>
+                    <div className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                      🕐 {formatEventTime(event.event_date)}
                       {event.end_date && ` - ${formatEventTime(event.end_date)}`}
                     </div>
                   </div>
                 </div>
-                
-                {event.location && (
-                  <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
-                    <MapPin className="h-5 w-5" />
-                    <div>
-                      <div className="font-medium cursor-pointer hover:text-blue-600" onClick={openMapsLocation}>
-                        {event.location}
+              </div>
+              
+              {/* Location Card */}
+              {event.location && (
+                <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 border border-green-200 dark:border-green-800">
+                  <div className="flex items-start gap-3">
+                    <MapPin className="h-6 w-6 text-green-600 dark:text-green-400 flex-shrink-0 mt-1" />
+                    <div className="flex-1">
+                      <div 
+                        className="font-semibold text-green-900 dark:text-green-100 text-base cursor-pointer hover:text-green-700 dark:hover:text-green-200 transition-colors"
+                        onClick={openMapsLocation}
+                      >
+                        📍 {event.location}
                       </div>
                       {(event.latitude && event.longitude) && (
-                        <div className="text-sm text-blue-600 cursor-pointer" onClick={openMapsLocation}>
-                          Haritada Görüntüle →
-                        </div>
+                        <button 
+                          className="text-sm text-green-700 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200 mt-1 flex items-center gap-1"
+                          onClick={openMapsLocation}
+                        >
+                          🗺️ Haritada Görüntüle
+                          <span className="text-xs">→</span>
+                        </button>
                       )}
                     </div>
                   </div>
-                )}
-                
-                {event.max_participants && (
-                  <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
-                    <Users className="h-5 w-5" />
-                    <span>Maksimum {event.max_participants} katılımcı</span>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
               
-              {/* Registration Button */}
-              {(event.has_custom_form || (event.registration_required && event.status === 'upcoming')) && (
-                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                  <Button 
-                    size="lg" 
-                    className="w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 text-white font-semibold text-base px-8 py-3"
-                    onClick={handleRegistration}
-                    disabled={event.status === 'completed' || event.status === 'cancelled'}
-                  >
-                    <UserPlus className="h-5 w-5 mr-2" />
-                    {event.status === 'completed' ? 'Etkinlik Tamamlandı' :
-                     event.status === 'cancelled' ? 'Etkinlik İptal Edildi' :
-                     event.has_custom_form ? '📝 Kayıt Formunu Doldur' : 
-                     event.registration_link ? '🔗 Kayıt Sayfasına Git' : 
-                     '✨ Etkinliğe Kayıt Ol'}
-                  </Button>
+              {/* Participants Card */}
+              {event.max_participants && (
+                <div className="bg-orange-50 dark:bg-orange-900/20 rounded-xl p-4 border border-orange-200 dark:border-orange-800">
+                  <div className="flex items-center gap-3">
+                    <Users className="h-6 w-6 text-orange-600 dark:text-orange-400 flex-shrink-0" />
+                    <div className="font-semibold text-orange-900 dark:text-orange-100">
+                      👥 Maksimum {event.max_participants} katılımcı
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+              
+            {/* Registration Button - Mobile Optimized */}
+            {(event.has_custom_form || (event.registration_required && event.status === 'upcoming')) && (
+              <div className="space-y-4">
+                <Button 
+                  size="lg" 
+                  className="w-full h-14 text-base sm:text-lg font-bold bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 text-white rounded-xl"
+                  onClick={handleRegistration}
+                  disabled={event.status === 'completed' || event.status === 'cancelled'}
+                >
+                  <UserPlus className="h-6 w-6 mr-3" />
+                  {event.status === 'completed' ? '✅ Etkinlik Tamamlandı' :
+                   event.status === 'cancelled' ? '❌ Etkinlik İptal Edildi' :
+                   event.has_custom_form ? '📝 Kayıt Formunu Doldur' : 
+                   event.registration_link ? '🔗 Kayıt Sayfasına Git' : 
+                   '✨ Etkinliğe Kayıt Ol'}
+                </Button>
+                
+                {/* Additional Info Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {event.price && event.price > 0 && (
-                    <div className="bg-green-50 dark:bg-green-900/20 px-4 py-2 rounded-lg border border-green-200 dark:border-green-800">
+                    <div className="bg-green-50 dark:bg-green-900/20 px-4 py-3 rounded-xl border border-green-200 dark:border-green-800 text-center sm:text-left">
                       <span className="text-green-700 dark:text-green-300 font-semibold">
                         💰 Ücret: {event.price} {event.currency || 'TL'}
                       </span>
                     </div>
                   )}
                   {event.status === 'ongoing' && (
-                    <div className="bg-orange-50 dark:bg-orange-900/20 px-4 py-2 rounded-lg border border-orange-200 dark:border-orange-800">
+                    <div className="bg-orange-50 dark:bg-orange-900/20 px-4 py-3 rounded-xl border border-orange-200 dark:border-orange-800 text-center sm:text-left">
                       <span className="text-orange-700 dark:text-orange-300 font-semibold">
                         🔴 Etkinlik Devam Ediyor
                       </span>
                     </div>
                   )}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
