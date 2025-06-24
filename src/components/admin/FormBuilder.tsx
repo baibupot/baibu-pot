@@ -7,10 +7,78 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Trash2, Plus, MoveUp, MoveDown, Download, Users, Eye, FileText, Settings, Clock } from 'lucide-react';
+import { Trash2, Plus, MoveUp, MoveDown, Download, Users, Eye, FileText, Settings, Clock, FileImage, ExternalLink } from 'lucide-react';
 import { useCreateFormField, useFormFields, useFormResponses } from '@/hooks/useSupabaseData';
 import { exportToExcel, formatFormResponsesForExcel } from '@/utils/excelExport';
 import { toast } from 'sonner';
+
+// 🔒 Admin file utilities - Güvenli dekont görüntüleme
+const downloadBase64File = (base64Data: string, fileName: string) => {
+  try {
+    const link = document.createElement('a');
+    link.href = base64Data;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success(`📎 ${fileName} başarıyla indirildi`);
+  } catch (error) {
+    toast.error('❌ Dosya indirilemedi');
+    console.error('Download error:', error);
+  }
+};
+
+const openBase64FileInNewTab = (base64Data: string, fileName: string) => {
+  try {
+    const newWindow = window.open();
+    if (newWindow) {
+      newWindow.document.write(`
+        <html>
+          <head>
+            <title>${fileName}</title>
+            <style>
+              body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+              img { max-width: 100%; height: auto; }
+              .header { background: #f5f5f5; padding: 10px; margin-bottom: 20px; border-radius: 5px; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h3>📎 ${fileName}</h3>
+              <button onclick="window.print()">🖨️ Yazdır</button>
+              <button onclick="window.close()">❌ Kapat</button>
+            </div>
+            ${base64Data.startsWith('data:image/') 
+              ? `<img src="${base64Data}" alt="${fileName}" />` 
+              : `<iframe src="${base64Data}" width="100%" height="600px"></iframe>`
+            }
+          </body>
+        </html>
+      `);
+    }
+  } catch (error) {
+    toast.error('❌ Dosya açılamadı');
+    console.error('Preview error:', error);
+  }
+};
+
+const getFileIcon = (fileName: string) => {
+  const ext = fileName?.toLowerCase().split('.').pop();
+  switch (ext) {
+    case 'jpg':
+    case 'jpeg':
+    case 'png':
+    case 'gif':
+      return '🖼️';
+    case 'pdf':
+      return '📄';
+    case 'doc':
+    case 'docx':
+      return '📝';
+    default:
+      return '📎';
+  }
+};
 
 interface FormField {
   id?: string;
@@ -277,29 +345,92 @@ const FormBuilder = ({ formId, formType, onSave, formTitle }: FormBuilderProps) 
                   Son Kayıt Olanlar
                 </h4>
                 <div className="space-y-3">
-                  {formResponses.slice(0, 5).map((response, index) => (
-                    <div key={response.id} className="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-md">
-                        {index + 1}
+                  {formResponses.slice(0, 5).map((response, index) => {
+                    // 🔒 File fields'ları tespit et
+                    const fileFields = existingFields?.filter(field => field.field_type === 'file') || [];
+                    const responseFiles = fileFields.map(field => ({
+                      fieldName: field.field_name,
+                      fieldLabel: field.field_label,
+                      fileName: response.response_data[field.field_name],
+                      base64Data: response.response_data[`${field.field_name}_file`]
+                    })).filter(file => file.fileName && file.base64Data);
+
+                    return (
+                      <div key={response.id} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                        {/* Kullanıcı Bilgileri */}
+                        <div className="flex items-center gap-4 mb-3">
+                          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-md">
+                            {index + 1}
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-900 dark:text-gray-100">
+                              {response.user_name || 'Anonim Kullanıcı'}
+                            </div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                              {response.user_email || 'E-posta belirtilmemiş'}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                              {new Date(response.submitted_at).toLocaleDateString('tr-TR')}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {new Date(response.submitted_at).toLocaleTimeString('tr-TR')}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 🔒 File Attachments - Güvenli Dekont Görüntüleme */}
+                        {responseFiles.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+                            <div className="flex items-center gap-2 mb-2">
+                              <FileImage className="h-4 w-4 text-blue-600" />
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                📎 Yüklenen Dosyalar ({responseFiles.length})
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              {responseFiles.map((file, fileIndex) => (
+                                <div key={fileIndex} className="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 rounded border">
+                                  <span className="text-lg">{getFileIcon(file.fileName)}</span>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-xs font-medium text-gray-600 dark:text-gray-400 truncate">
+                                      {file.fieldLabel}
+                                    </div>
+                                    <div className="text-sm text-gray-900 dark:text-gray-100 truncate">
+                                      {file.fileName}
+                                    </div>
+                                  </div>
+                                  <div className="flex gap-1">
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => openBase64FileInNewTab(file.base64Data, file.fileName)}
+                                      className="h-8 w-8 p-0 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                      title="Dosyayı Görüntüle"
+                                    >
+                                      <Eye className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => downloadBase64File(file.base64Data, file.fileName)}
+                                      className="h-8 w-8 p-0 hover:bg-green-50 dark:hover:bg-green-900/20"
+                                      title="Dosyayı İndir"
+                                    >
+                                      <Download className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900 dark:text-gray-100">
-                          {response.user_name || 'Anonim Kullanıcı'}
-                        </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {response.user_email || 'E-posta belirtilmemiş'}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                          {new Date(response.submitted_at).toLocaleDateString('tr-TR')}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {new Date(response.submitted_at).toLocaleTimeString('tr-TR')}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 {formResponses.length > 5 && (
                   <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">

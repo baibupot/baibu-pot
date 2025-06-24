@@ -14,6 +14,16 @@ interface FormData {
   [key: string]: string | string[] | File | null;
 }
 
+// 🔒 Güvenli dosya işleme utility fonksiyonu
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(error);
+  });
+};
+
 interface EventRegistrationFormProps {
   eventId: string;
   eventTitle: string;
@@ -43,11 +53,35 @@ const EventRegistrationForm = ({
     }));
   };
 
-  const handleFileChange = (fieldName: string, file: File | null) => {
-    setFormData(prev => ({
-      ...prev,
-      [fieldName]: file
-    }));
+  const handleFileChange = async (fieldName: string, file: File | null) => {
+    if (file) {
+      // Dosya boyutu kontrolü (4MB limit - base64 expansion için)
+      const maxSize = 4 * 1024 * 1024; // 4MB
+      if (file.size > maxSize) {
+        toast.error(`❌ ${fieldName} dosyası 4MB'dan küçük olmalıdır`);
+        return;
+      }
+
+      try {
+        // Dosyayı base64'e çevir
+        const base64 = await fileToBase64(file);
+        setFormData(prev => ({
+          ...prev,
+          [fieldName]: file.name, // Dosya adı (görüntüleme için)
+          [`${fieldName}_file`]: base64 // Base64 içerik (güvenli saklama için)
+        }));
+        toast.success(`✅ ${file.name} başarıyla yüklendi`);
+      } catch (error) {
+        toast.error(`❌ ${file.name} yüklenirken hata oluştu`);
+        console.error('File conversion error:', error);
+      }
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [fieldName]: null,
+        [`${fieldName}_file`]: null
+      }));
+    }
   };
 
   const handleMultiSelectChange = (fieldName: string, value: string, checked: boolean) => {
@@ -107,11 +141,11 @@ const EventRegistrationForm = ({
         }
       }
 
-      // File size validation (5MB limit)
-      if (field.field_type === 'file' && value instanceof File) {
-        const maxSize = 5 * 1024 * 1024; // 5MB
-        if (value.size > maxSize) {
-          errors.push(`${field.field_label} dosyası 5MB'dan küçük olmalıdır`);
+      // File validation - kontrol base64 field'ından yapılır
+      if (field.field_type === 'file' && field.required) {
+        const base64Value = formData[`${fieldName}_file`];
+        if (!base64Value || typeof base64Value !== 'string') {
+          errors.push(`${field.field_label} dosyası yüklenmelidir`);
         }
       }
     }
@@ -131,12 +165,11 @@ const EventRegistrationForm = ({
 
     setIsSubmitting(true);
     try {
-      // JSON uyumlu formData oluştur (File tiplerini string'e çevir)
+      // 🔒 Güvenli JSON formData oluştur (base64 dosyalar dahil)
       const jsonFormData: Record<string, any> = {};
       Object.entries(formData).forEach(([key, value]) => {
-        if (value instanceof File) {
-          jsonFormData[key] = value.name; // Dosya adını sakla
-        } else {
+        // File objelerini artık işlemiyoruz, base64'ler zaten string olarak gelir
+        if (value !== null && value !== undefined) {
           jsonFormData[key] = value;
         }
       });
@@ -275,10 +308,19 @@ const EventRegistrationForm = ({
               onChange={(e) => handleFileChange(field.field_name, e.target.files?.[0] || null)}
               className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
               required={field.required}
+              accept="image/*,.pdf,.doc,.docx"
             />
             <p className="text-xs text-gray-500">
-              Maksimum dosya boyutu: 5MB
+              📎 Maksimum dosya boyutu: 4MB | Desteklenen formatlar: JPG, PNG, PDF, DOC
             </p>
+            {formData[field.field_name] && (
+              <div className="mt-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700">
+                <p className="text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
+                  <span>✅</span>
+                  <span>{formData[field.field_name] as string} başarıyla yüklendi</span>
+                </p>
+              </div>
+            )}
           </div>
         );
 
