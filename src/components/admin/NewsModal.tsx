@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -7,12 +6,17 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import type { Database } from '@/integrations/supabase/types';
+
+type Tables = Database['public']['Tables'];
+type NewsData = Tables['news']['Insert'];
+type NewsRow = Tables['news']['Row'];
 
 interface NewsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (newsData: any) => void;
-  initialData?: any;
+  onSave: (newsData: NewsData) => void;
+  initialData?: NewsRow;
 }
 
 const NewsModal = ({ isOpen, onClose, onSave, initialData }: NewsModalProps) => {

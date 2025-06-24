@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -7,12 +6,17 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import type { Database } from '@/integrations/supabase/types';
+
+type Tables = Database['public']['Tables'];
+type InternshipData = Tables['internships']['Insert'];
+type InternshipRow = Tables['internships']['Row'];
 
 interface InternshipModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (internshipData: any) => void;
-  initialData?: any;
+  onSave: (internshipData: InternshipData) => void;
+  initialData?: InternshipRow;
 }
 
 const InternshipModal = ({ isOpen, onClose, onSave, initialData }: InternshipModalProps) => {
@@ -27,16 +31,19 @@ const InternshipModal = ({ isOpen, onClose, onSave, initialData }: InternshipMod
     application_link: initialData?.application_link || '',
     internship_type: initialData?.internship_type || 'zorunlu',
     salary_info: initialData?.salary_info || '',
-    duration_months: initialData?.duration_months || '',
+    duration_months: initialData?.duration_months?.toString() || '',
     active: initialData?.active ?? true,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({
+    
+    const internshipData: InternshipData = {
       ...formData,
       duration_months: formData.duration_months ? parseInt(formData.duration_months) : null,
-    });
+    };
+    
+    onSave(internshipData);
     onClose();
   };
 

@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -193,8 +194,10 @@ const EventCalendar: React.FC<EventCalendarProps> = ({ events }) => {
                       {format(new Date(event.event_date), 'HH:mm', { locale: tr })}
                       {event.location && ` • ${event.location}`}
                     </div>
-                    <Button size="sm" variant="outline" className="w-full mt-2 text-xs">
-                      Detaylar
+                    <Button size="sm" variant="outline" className="w-full mt-2 text-xs" asChild>
+                      <Link to={`/etkinlikler/${event.slug}`}>
+                        Detaylar
+                      </Link>
                     </Button>
                   </div>
                 ))}

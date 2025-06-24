@@ -17,6 +17,7 @@ import Urunler from '@/pages/Urunler';
 import GizlilikPolitikasi from '@/pages/GizlilikPolitikasi';
 import SiteHaritasi from '@/pages/SiteHaritasi';
 import DergiDetay from '@/pages/DergiDetay';
+import EtkinlikDetay from '@/pages/EtkinlikDetay';
 import NotFound from '@/pages/NotFound';
 
 const queryClient = new QueryClient({
@@ -38,6 +39,7 @@ function App() {
           <Route path="/dergi" element={<Dergi />} />
           <Route path="/dergi/:id" element={<DergiDetay />} />
           <Route path="/etkinlikler" element={<Etkinlikler />} />
+          <Route path="/etkinlikler/:slug" element={<EtkinlikDetay />} />
           <Route path="/anketler" element={<Anketler />} />
           <Route path="/sponsorlar" element={<Sponsorlar />} />
           <Route path="/urunler" element={<Urunler />} />

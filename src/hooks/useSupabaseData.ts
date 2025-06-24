@@ -996,3 +996,81 @@ export const useArticleSubmissions = () => {
     },
   });
 };
+
+// Event Sponsors hooks - YENİ ÖZELLİK
+export const useEventSponsors = (eventId?: string) => {
+  return useQuery({
+    queryKey: ['event_sponsors', eventId],
+    queryFn: async () => {
+      let query = supabase
+        .from('event_sponsors')
+        .select('*')
+        .order('sort_order', { ascending: true });
+      
+      if (eventId) {
+        query = query.eq('event_id', eventId);
+      }
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    },
+  });
+};
+
+export const useCreateEventSponsor = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (sponsorData: Tables['event_sponsors']['Insert']) => {
+      const { data, error } = await supabase
+        .from('event_sponsors')
+        .insert([sponsorData])
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['event_sponsors'] });
+      queryClient.invalidateQueries({ queryKey: ['event_sponsors', variables.event_id] });
+    },
+  });
+};
+
+export const useUpdateEventSponsor = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, ...updateData }: { id: string } & Tables['event_sponsors']['Update']) => {
+      const { data, error } = await supabase
+        .from('event_sponsors')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['event_sponsors'] });
+    },
+  });
+};
+
+export const useDeleteEventSponsor = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('event_sponsors')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['event_sponsors'] });
+    },
+  });
+};

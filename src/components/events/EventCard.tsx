@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, MapPin, Users, ExternalLink } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Calendar, Clock, MapPin, Users, ExternalLink, Image, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
@@ -16,9 +18,15 @@ interface Event {
   event_type: string;
   max_participants?: number;
   registration_required: boolean;
+  registration_link?: string;
   featured_image?: string;
+  gallery_images?: string[];
   status: string;
   slug: string;
+  price?: number;
+  currency?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 interface EventCardProps {
@@ -26,6 +34,8 @@ interface EventCardProps {
 }
 
 const EventCard: React.FC<EventCardProps> = ({ event }) => {
+  const [showGallery, setShowGallery] = useState(false);
+
   const getEventTypeColor = (type: string) => {
     const colors: Record<string, string> = {
       'atolye': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
@@ -90,8 +100,15 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
             </CardTitle>
           </div>
           {event.featured_image && (
-            <div className="w-full sm:w-32 h-20 bg-slate-200 dark:bg-slate-700 rounded-lg flex items-center justify-center">
-              <span className="text-slate-500 dark:text-slate-400 text-sm">Görsel</span>
+            <div className="w-full sm:w-32 h-20 rounded-lg overflow-hidden">
+              <img 
+                src={event.featured_image} 
+                alt={event.title}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = '/placeholder.svg';
+                }}
+              />
             </div>
           )}
         </div>
@@ -127,19 +144,77 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
               <span>Maksimum {event.max_participants} katılımcı</span>
             </div>
           )}
+          
+          {event.price && event.price > 0 && (
+            <div className="flex items-center gap-2 text-sm text-green-600 font-medium">
+              <span>💰 {event.price} {event.currency || 'TL'}</span>
+            </div>
+          )}
         </div>
         
         <div className="flex flex-col sm:flex-row gap-2">
-          <Button variant="outline" className="flex-1">
-            Detayları Görüntüle
+          <Button variant="outline" className="flex-1" asChild>
+            <Link to={`/etkinlikler/${event.slug}`}>
+              <Eye className="h-4 w-4 mr-2" />
+              Detayları Görüntüle
+            </Link>
           </Button>
+          
+          {event.gallery_images && event.gallery_images.length > 0 && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowGallery(true)}
+              className="flex items-center gap-2"
+            >
+              <Image className="h-4 w-4" />
+              Galeri ({event.gallery_images.length})
+            </Button>
+          )}
+          
           {event.registration_required && event.status === 'upcoming' && (
-            <Button className="flex-1 flex items-center gap-2">
+            <Button 
+              className="flex-1 flex items-center gap-2"
+              onClick={() => {
+                if (event.registration_link) {
+                  window.open(event.registration_link, '_blank');
+                } else {
+                  alert('Kayıt linki henüz belirlenmemiş. Lütfen organizatörlerle iletişime geçin.');
+                }
+              }}
+            >
               Kayıt Ol
               <ExternalLink className="h-4 w-4" />
             </Button>
           )}
         </div>
+
+        {/* Galeri Modal */}
+        <Dialog open={showGallery} onOpenChange={setShowGallery}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>{event.title} - Galeri</DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
+              {event.gallery_images?.map((imageUrl, index) => (
+                <div key={index} className="relative group">
+                  <img
+                    src={imageUrl}
+                    alt={`${event.title} galeri ${index + 1}`}
+                    className="w-full h-32 object-cover rounded-lg hover:scale-105 transition-transform cursor-pointer"
+                    onClick={() => window.open(imageUrl, '_blank')}
+                    onError={(e) => {
+                      e.currentTarget.src = '/placeholder.svg';
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity rounded-lg flex items-center justify-center">
+                    <Eye className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );

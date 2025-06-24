@@ -523,10 +523,10 @@ const MagazineModal = ({ isOpen, onClose, onSave, initialData }: MagazineModalPr
   
   // Form validasyonunu sadece burada kontrol et (infinite loop'u önlemek için)
   const canSubmit = () => {
-    return formData.title.trim() !== '' && 
-           formData.description.trim() !== '' &&
-           (formData.cover_image.trim() !== '' || selectedCoverFile) &&
-           (formData.pdf_file.trim() !== '' || selectedPdfFile) &&
+    return (formData.title || '').trim() !== '' && 
+           (formData.description || '').trim() !== '' &&
+           ((formData.cover_image || '').trim() !== '' || selectedCoverFile) &&
+           ((formData.pdf_file || '').trim() !== '' || selectedPdfFile) &&
            formData.issue_number && formData.issue_number >= 1;
   };
 

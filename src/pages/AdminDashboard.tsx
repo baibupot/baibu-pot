@@ -32,6 +32,7 @@ import SponsorModal from '@/components/admin/SponsorModal';
 import SurveyModal from '@/components/admin/SurveyModal';
 import TeamMemberModal from '@/components/admin/TeamMemberModal';
 import UserRoleManagement from '@/components/admin/UserRoleManagement';
+
 import { useNews, useEvents, useMagazineIssues, useSurveys, useSponsors, useTeamMembers, useAcademicDocuments, useInternships, useContactMessages, useUsers, useUserRoles, useMagazineAnalytics, useMagazineContributors, useArticleSubmissions } from '@/hooks/useSupabaseData';
 import { deleteMagazineFilesByUrls } from '@/utils/githubStorageHelper';
 import { getGitHubStorageConfig, isGitHubStorageConfigured } from '@/integrations/github/config';
@@ -261,21 +262,67 @@ const AdminDashboard = () => {
 
   const handleSaveEvent = async (eventData: any) => {
     try {
+      const { sponsors, ...eventDataWithoutSponsors } = eventData;
+      let savedEventId: string;
+      
       if (editingItem) {
+        // Etkinlik güncelleme
         const { error } = await supabase
           .from('events')
-          .update(eventData)
+          .update(eventDataWithoutSponsors)
           .eq('id', editingItem.id);
         if (error) throw error;
+        savedEventId = editingItem.id;
+        
+        // Mevcut sponsorları sil
+        await supabase
+          .from('event_sponsors')
+          .delete()
+          .eq('event_id', savedEventId);
+          
         toast.success('Etkinlik güncellendi');
       } else {
-        const { error } = await supabase
+        // Yeni etkinlik ekleme
+        const { data, error } = await supabase
           .from('events')
-          .insert([{ ...eventData, created_by: user?.id }]);
+          .insert([{ ...eventDataWithoutSponsors, created_by: user?.id }])
+          .select()
+          .single();
         if (error) throw error;
+        savedEventId = data.id;
         toast.success('Etkinlik eklendi');
       }
+      
+      // Sponsorları kaydet
+      if (sponsors && sponsors.length > 0 && savedEventId) {
+        const sponsorInserts = sponsors.map((sponsor: any) => ({
+          event_id: savedEventId,
+          sponsor_name: sponsor.sponsor_name,
+          sponsor_logo: sponsor.sponsor_logo,
+          sponsor_website: sponsor.sponsor_website,
+          sponsor_type: sponsor.sponsor_type,
+          sort_order: sponsor.sort_order
+        }));
+        
+        const { error: sponsorError } = await supabase
+          .from('event_sponsors')
+          .insert(sponsorInserts);
+          
+        if (sponsorError) {
+          console.error('Sponsor kaydetme hatası:', sponsorError);
+          toast.error('Etkinlik kaydedildi ancak sponsorlar kaydedilemedi');
+        } else if (sponsors.length > 0) {
+          toast.success(`${sponsors.length} sponsor başarıyla kaydedildi`);
+        }
+      }
+      
       setEditingItem(null);
+      
+      // Sayfayı yenile ki veriler güncellensin
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+      
     } catch (error) {
       toast.error('Bir hata oluştu');
       console.error('Error saving event:', error);
@@ -659,7 +706,7 @@ const AdminDashboard = () => {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
             {/* Responsive tab list */}
             <div className="overflow-x-auto">
-              <TabsList className="grid w-max grid-flow-col gap-1 md:w-full md:grid-cols-5 lg:grid-cols-11">
+              <TabsList className="grid w-max grid-flow-col gap-1 md:w-full md:grid-cols-6 lg:grid-cols-12">
                 <TabsTrigger value="overview" className="text-xs whitespace-nowrap">
                   <LayoutDashboard className="h-4 w-4 mr-1" />
                   Genel
@@ -732,6 +779,7 @@ const AdminDashboard = () => {
                     Mesajlar
                   </TabsTrigger>
                 )}
+
               </TabsList>
             </div>
 
@@ -1552,6 +1600,8 @@ const AdminDashboard = () => {
                 </Card>
               </TabsContent>
             )}
+
+
           </Tabs>
         </div>
 

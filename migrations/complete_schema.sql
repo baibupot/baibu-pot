@@ -75,8 +75,12 @@ CREATE TABLE public.events (
     event_date TIMESTAMP WITH TIME ZONE NOT NULL,
     end_date TIMESTAMP WITH TIME ZONE,
     location TEXT,
+    latitude DECIMAL(10, 8), -- Harita için enlem
+    longitude DECIMAL(11, 8), -- Harita için boylam
     event_type TEXT NOT NULL DEFAULT 'seminer' CHECK (event_type IN ('atolye', 'konferans', 'sosyal', 'egitim', 'seminer')),
     max_participants INTEGER,
+    price DECIMAL(10,2), -- Etkinlik ücreti
+    currency TEXT DEFAULT 'TL', -- Para birimi
     registration_required BOOLEAN DEFAULT false,
     registration_link TEXT,
     featured_image TEXT,
@@ -344,6 +348,18 @@ CREATE TABLE public.article_submissions (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Event sponsors tablosu (etkinlik-sponsor ilişkisi)
+CREATE TABLE public.event_sponsors (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    event_id UUID REFERENCES public.events(id) ON DELETE CASCADE,
+    sponsor_name TEXT NOT NULL,
+    sponsor_logo TEXT, -- GitHub'dan logo URL'i
+    sponsor_website TEXT, -- Sponsor web sitesi
+    sponsor_type TEXT NOT NULL DEFAULT 'destekci' CHECK (sponsor_type IN ('ana', 'destekci', 'medya', 'yerel')),
+    sort_order INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- ====================================================================
 -- 3. TRİGGER FONKSİYONLARI
 -- ====================================================================
@@ -430,6 +446,7 @@ ALTER TABLE public.magazine_sponsors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.magazine_reads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.magazine_page_reads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.article_submissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.event_sponsors ENABLE ROW LEVEL SECURITY;
 
 -- *** ESNEk VE GÜVENLİ POLİTİKALAR ***
 
@@ -518,6 +535,10 @@ CREATE POLICY "magazine_page_reads_all_admin_only" ON public.magazine_page_reads
 CREATE POLICY "article_submissions_insert_policy" ON public.article_submissions FOR INSERT WITH CHECK (true);
 CREATE POLICY "article_submissions_select_own" ON public.article_submissions FOR SELECT USING (auth.uid() IS NOT NULL);
 CREATE POLICY "article_submissions_all_policy" ON public.article_submissions FOR ALL USING (auth.uid() IS NOT NULL);
+
+-- Event sponsors politikaları
+CREATE POLICY "event_sponsors_select_policy" ON public.event_sponsors FOR SELECT USING (true);
+CREATE POLICY "event_sponsors_all_policy" ON public.event_sponsors FOR ALL USING (auth.uid() IS NOT NULL);
 
 -- ====================================================================
 -- 6. YETKİLERİ AYARLA

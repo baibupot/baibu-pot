@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -6,12 +5,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import type { Database } from '@/integrations/supabase/types';
+
+type Tables = Database['public']['Tables'];
+type SurveyData = Tables['surveys']['Insert'];
+type SurveyRow = Tables['surveys']['Row'];
 
 interface SurveyModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (surveyData: any) => void;
-  initialData?: any;
+  onSave: (surveyData: SurveyData) => void;
+  initialData?: SurveyRow;
 }
 
 const SurveyModal = ({ isOpen, onClose, onSave, initialData }: SurveyModalProps) => {

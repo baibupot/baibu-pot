@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -6,12 +5,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { X, Plus } from 'lucide-react';
+import type { Database } from '@/integrations/supabase/types';
+
+type Tables = Database['public']['Tables'];
+type AcademicDocumentData = Tables['academic_documents']['Insert'];
+type AcademicDocumentRow = Tables['academic_documents']['Row'];
 
 interface AcademicDocumentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (documentData: any) => void;
-  initialData?: any;
+  onSave: (documentData: AcademicDocumentData) => void;
+  initialData?: AcademicDocumentRow;
 }
 
 const AcademicDocumentModal = ({ isOpen, onClose, onSave, initialData }: AcademicDocumentModalProps) => {
@@ -21,7 +27,7 @@ const AcademicDocumentModal = ({ isOpen, onClose, onSave, initialData }: Academi
     category: initialData?.category || 'ders_notlari',
     file_url: initialData?.file_url || '',
     file_type: initialData?.file_type || '',
-    file_size: initialData?.file_size || '',
+    file_size: initialData?.file_size?.toString() || '',
     tags: initialData?.tags ? initialData.tags.join(', ') : '',
     author: initialData?.author || '',
   });
@@ -29,11 +35,14 @@ const AcademicDocumentModal = ({ isOpen, onClose, onSave, initialData }: Academi
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const tagsArray = formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
-    onSave({
+    
+    const documentData: AcademicDocumentData = {
       ...formData,
       tags: tagsArray,
       file_size: formData.file_size ? parseInt(formData.file_size) : null,
-    });
+    };
+    
+    onSave(documentData);
     onClose();
   };
 

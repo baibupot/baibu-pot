@@ -446,4 +446,231 @@ export const testGitHubAccess = async (config: GitHubStorageConfig): Promise<str
   } catch (error) {
     return `❌ Test hatası: ${error instanceof Error ? error.message : 'Unknown error'}`;
   }
+};
+
+/**
+ * Etkinlik dosyalarını organize etmek için path oluşturucu
+ */
+export const createEventPaths = (eventId: string, eventSlug: string) => {
+  const year = new Date().getFullYear();
+  const month = String(new Date().getMonth() + 1).padStart(2, '0');
+  
+  return {
+    featuredImagePath: `etkinlikler/${year}/${month}/${eventSlug}/featured-image.jpg`,
+    galleryFolder: `etkinlikler/${year}/${eventSlug}/galeri/`,
+    documentsFolder: `etkinlikler/${year}/${eventSlug}/belgeler/`,
+    folder: `etkinlikler/${year}/${eventSlug}/`
+  };
+};
+
+/**
+ * Etkinlik galeri resimlerini GitHub'a yükle
+ */
+export const uploadEventGalleryImages = async (
+  config: GitHubStorageConfig,
+  eventSlug: string,
+  images: File[]
+): Promise<{
+  success: boolean;
+  uploadedUrls: string[];
+  failedUploads: { file: string; error: string }[];
+}> => {
+  const paths = createEventPaths('', eventSlug);
+  const uploadedUrls: string[] = [];
+  const failedUploads: { file: string; error: string }[] = [];
+
+  for (let i = 0; i < images.length; i++) {
+    const file = images[i];
+    const fileName = `galeri-${i + 1}-${Date.now()}.${file.name.split('.').pop()}`;
+    const filePath = `${paths.galleryFolder}${fileName}`;
+
+    try {
+      const result = await uploadFileObjectToGitHub(
+        config,
+        file,
+        filePath,
+        `Add gallery image ${i + 1} for event ${eventSlug}`
+      );
+
+      if (result.success && result.rawUrl) {
+        uploadedUrls.push(result.rawUrl);
+      } else {
+        failedUploads.push({
+          file: file.name,
+          error: result.error || 'Unknown error'
+        });
+      }
+    } catch (error) {
+      failedUploads.push({
+        file: file.name,
+        error: error instanceof Error ? error.message : 'Upload failed'
+      });
+    }
+  }
+
+  return {
+    success: failedUploads.length === 0,
+    uploadedUrls,
+    failedUploads
+  };
+};
+
+/**
+ * Etkinlik öne çıkan görselini GitHub'a yükle
+ */
+export const uploadEventFeaturedImage = async (
+  config: GitHubStorageConfig,
+  eventSlug: string,
+  imageFile: File
+): Promise<GitHubUploadResult> => {
+  const paths = createEventPaths('', eventSlug);
+  const fileExtension = imageFile.name.split('.').pop();
+  const filePath = `etkinlikler/${new Date().getFullYear()}/${eventSlug}/featured-image.${fileExtension}`;
+
+  return await uploadFileObjectToGitHub(
+    config,
+    imageFile,
+    filePath,
+    `Update featured image for event ${eventSlug}`
+  );
+};
+
+/**
+ * Etkinlik belgelerini GitHub'a yükle (PDF, DOC vs.)
+ */
+export const uploadEventDocuments = async (
+  config: GitHubStorageConfig,
+  eventSlug: string,
+  documents: File[]
+): Promise<{
+  success: boolean;
+  uploadedDocuments: { name: string; url: string; size: number }[];
+  failedUploads: { file: string; error: string }[];
+}> => {
+  const paths = createEventPaths('', eventSlug);
+  const uploadedDocuments: { name: string; url: string; size: number }[] = [];
+  const failedUploads: { file: string; error: string }[] = [];
+
+  for (const file of documents) {
+    const fileName = `${Date.now()}-${file.name}`;
+    const filePath = `${paths.documentsFolder}${fileName}`;
+
+    try {
+      const result = await uploadFileObjectToGitHub(
+        config,
+        file,
+        filePath,
+        `Add document ${file.name} for event ${eventSlug}`
+      );
+
+      if (result.success && result.rawUrl) {
+        uploadedDocuments.push({
+          name: file.name,
+          url: result.rawUrl,
+          size: file.size
+        });
+      } else {
+        failedUploads.push({
+          file: file.name,
+          error: result.error || 'Unknown error'
+        });
+      }
+    } catch (error) {
+      failedUploads.push({
+        file: file.name,
+        error: error instanceof Error ? error.message : 'Upload failed'
+      });
+    }
+  }
+
+  return {
+    success: failedUploads.length === 0,
+    uploadedDocuments,
+    failedUploads
+  };
+};
+
+/**
+ * Etkinlik ile ilgili tüm dosyaları GitHub'dan sil
+ */
+export const deleteEventFilesFromGitHub = async (
+  config: GitHubStorageConfig,
+  eventSlug: string,
+  specificFiles?: {
+    featuredImage?: string;
+    galleryImages?: string[];
+    documents?: string[];
+  }
+): Promise<GitHubDeleteResult> => {
+  const deletedFiles: string[] = [];
+  const errors: string[] = [];
+
+  try {
+    // Öne çıkan görseli sil
+    if (specificFiles?.featuredImage) {
+      const featuredPath = extractGitHubPath(specificFiles.featuredImage);
+      if (featuredPath) {
+        const result = await deleteFileFromGitHub(
+          config,
+          featuredPath,
+          `Delete featured image for event ${eventSlug}`
+        );
+        if (result.success && result.deletedFiles) {
+          deletedFiles.push(...result.deletedFiles);
+        } else if (result.error) {
+          errors.push(`Featured image: ${result.error}`);
+        }
+      }
+    }
+
+    // Galeri resimlerini sil
+    if (specificFiles?.galleryImages) {
+      for (const imageUrl of specificFiles.galleryImages) {
+        const imagePath = extractGitHubPath(imageUrl);
+        if (imagePath) {
+          const result = await deleteFileFromGitHub(
+            config,
+            imagePath,
+            `Delete gallery image for event ${eventSlug}`
+          );
+          if (result.success && result.deletedFiles) {
+            deletedFiles.push(...result.deletedFiles);
+          } else if (result.error) {
+            errors.push(`Gallery image: ${result.error}`);
+          }
+        }
+      }
+    }
+
+    // Belgeleri sil
+    if (specificFiles?.documents) {
+      for (const docUrl of specificFiles.documents) {
+        const docPath = extractGitHubPath(docUrl);
+        if (docPath) {
+          const result = await deleteFileFromGitHub(
+            config,
+            docPath,
+            `Delete document for event ${eventSlug}`
+          );
+          if (result.success && result.deletedFiles) {
+            deletedFiles.push(...result.deletedFiles);
+          } else if (result.error) {
+            errors.push(`Document: ${result.error}`);
+          }
+        }
+      }
+    }
+
+    return {
+      success: errors.length === 0,
+      deletedFiles,
+      error: errors.length > 0 ? errors.join(', ') : undefined
+    };
+
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Event files delete failed'
+    };
+  }
 }; 

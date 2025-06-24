@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -7,12 +6,17 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import type { Database } from '@/integrations/supabase/types';
+
+type Tables = Database['public']['Tables'];
+type SponsorData = Tables['sponsors']['Insert'];
+type SponsorRow = Tables['sponsors']['Row'];
 
 interface SponsorModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (sponsorData: any) => void;
-  initialData?: any;
+  onSave: (sponsorData: SponsorData) => void;
+  initialData?: SponsorRow;
 }
 
 const SponsorModal = ({ isOpen, onClose, onSave, initialData }: SponsorModalProps) => {
