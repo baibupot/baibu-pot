@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +5,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trash2, Plus, MoveUp, MoveDown, Download, Users } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import { Trash2, Plus, MoveUp, MoveDown, Download, Users, Eye, FileText, Settings, Clock } from 'lucide-react';
 import { useCreateFormField, useFormFields, useFormResponses } from '@/hooks/useSupabaseData';
 import { exportToExcel, formatFormResponsesForExcel } from '@/utils/excelExport';
 import { toast } from 'sonner';
@@ -39,6 +40,7 @@ const FormBuilder = ({ formId, formType, onSave, formTitle }: FormBuilderProps) 
     sort_order: 0,
   });
   const [options, setOptions] = useState('');
+  const [showPreview, setShowPreview] = useState(false);
 
   const { data: existingFields } = useFormFields(formId, formType);
   const { data: formResponses = [] } = useFormResponses(formId, formType);
@@ -73,9 +75,28 @@ const FormBuilder = ({ formId, formType, onSave, formTitle }: FormBuilderProps) 
       .replace(/^_|_$/g, '');
   };
 
+  // Alan türü bilgileri
+  const fieldTypes = {
+    text: { emoji: '📝', name: 'Kısa Metin', desc: 'Ad, soyad gibi kısa bilgiler için' },
+    email: { emoji: '📧', name: 'E-posta', desc: 'E-posta adresi için (otomatik doğrulama)' },
+    number: { emoji: '🔢', name: 'Sayı', desc: 'Yaş, miktar gibi sayısal değerler için' },
+    tel: { emoji: '📱', name: 'Telefon', desc: 'Telefon numarası için' },
+    textarea: { emoji: '📄', name: 'Uzun Metin', desc: 'Mesaj, açıklama gibi uzun metinler için' },
+    select: { emoji: '📋', name: 'Açılır Liste', desc: 'Seçeneklerden birini seçebilir' },
+    radio: { emoji: '🔘', name: 'Tekli Seçim', desc: 'Seçeneklerden sadece birini seçebilir' },
+    checkbox: { emoji: '☑️', name: 'Çoklu Seçim', desc: 'Birden fazla seçenek seçilebilir' },
+    file: { emoji: '📎', name: 'Dosya Yükleme', desc: 'CV, belge vs. dosya yükleyebilir' },
+    date: { emoji: '📅', name: 'Tarih', desc: 'Doğum tarihi gibi tarih seçimi için' }
+  };
+
   const addField = () => {
     if (!newField.field_label.trim()) {
-      toast.error('Lütfen alan adını giriniz');
+      toast.error('❌ Lütfen alan adını giriniz');
+      return;
+    }
+
+    if (['select', 'radio', 'checkbox'].includes(newField.field_type) && !options.trim()) {
+      toast.error('❌ Bu alan türü için seçenekler girmelisiniz');
       return;
     }
 
@@ -84,7 +105,7 @@ const FormBuilder = ({ formId, formType, onSave, formTitle }: FormBuilderProps) 
 
     const fieldToAdd = {
       ...newField,
-      field_name: autoFieldName, // Otomatik oluşturulan değişken adı
+      field_name: autoFieldName,
       sort_order: fields.length,
       options: ['select', 'radio', 'checkbox'].includes(newField.field_type) 
         ? options.split('\n').filter(opt => opt.trim()) 
@@ -101,11 +122,13 @@ const FormBuilder = ({ formId, formType, onSave, formTitle }: FormBuilderProps) 
       sort_order: 0,
     });
     setOptions('');
+    toast.success('✅ Alan başarıyla eklendi!');
   };
 
   const removeField = (index: number) => {
     const newFields = fields.filter((_, i) => i !== index);
     setFields(newFields.map((field, i) => ({ ...field, sort_order: i })));
+    toast.success('🗑️ Alan kaldırıldı');
   };
 
   const moveField = (index: number, direction: 'up' | 'down') => {
@@ -115,6 +138,7 @@ const FormBuilder = ({ formId, formType, onSave, formTitle }: FormBuilderProps) 
     if (targetIndex >= 0 && targetIndex < newFields.length) {
       [newFields[index], newFields[targetIndex]] = [newFields[targetIndex], newFields[index]];
       setFields(newFields.map((field, i) => ({ ...field, sort_order: i })));
+      toast.success(`⬆️ Alan ${direction === 'up' ? 'yukarı' : 'aşağı'} taşındı`);
     }
   };
 
@@ -134,239 +158,461 @@ const FormBuilder = ({ formId, formType, onSave, formTitle }: FormBuilderProps) 
           });
         }
       }
-      toast.success('Form başarıyla kaydedildi');
+      toast.success('🎉 Form başarıyla kaydedildi!');
       onSave?.();
     } catch (error) {
       console.error('Error saving form:', error);
-      toast.error('Form kaydedilirken hata oluştu');
+      toast.error('❌ Form kaydedilirken hata oluştu');
     }
   };
 
   const exportResponses = () => {
     if (formResponses.length === 0) {
-      toast.error('Dışa aktarılacak yanıt bulunamadı');
+      toast.error('❌ Dışa aktarılacak yanıt bulunamadı');
       return;
     }
 
     const formattedData = formatFormResponsesForExcel(formResponses);
     const filename = `${formTitle || formType}_yanitlari_${new Date().toLocaleDateString('tr-TR')}`;
     exportToExcel(formattedData, filename);
-    toast.success('Yanıtlar Excel dosyası olarak indirildi');
+    toast.success('📊 Yanıtlar Excel dosyası olarak indirildi!');
   };
 
   return (
-    <div className="space-y-6">
-      {/* Form Responses Section - ÖNE ÇIKARILDI */}
+    <div className="space-y-8">
+      {/* FORM YANITLARI - Öncelikli Bölüm */}
       {existingFields && existingFields.length > 0 && (
-        <Card className="border-2 border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/10">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span className="flex items-center text-blue-800 dark:text-blue-300">
-                <Users className="mr-2 h-5 w-5" />
-                📋 Bu Etkinliğin Form Yanıtları ({formResponses.length})
-              </span>
-              <Button
-                onClick={exportResponses}
-                variant="outline"
-                size="sm"
-                disabled={formResponses.length === 0}
-                className="bg-blue-600 text-white hover:bg-blue-700 border-blue-600"
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Excel'e Aktar
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {formResponses.length === 0 ? (
-              <div className="text-center py-6">
-                <div className="text-6xl mb-4">📝</div>
-                <p className="text-blue-600 dark:text-blue-400 font-medium">
-                  Henüz bu etkinlik için kayıt bulunmuyor
-                </p>
-                <p className="text-sm text-blue-500 dark:text-blue-500 mt-2">
-                  Form alanları oluşturduktan sonra katılımcılar kayıt olabilir
-                </p>
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 p-8 rounded-2xl border-2 border-blue-200 dark:border-blue-700 shadow-lg">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6">
+            <div className="flex items-center gap-3 mb-4 lg:mb-0">
+              <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-md">
+                <Users className="h-6 w-6 text-white" />
               </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="flex flex-wrap gap-4 text-sm">
-                  <div className="bg-blue-100 dark:bg-blue-900/30 px-3 py-2 rounded-lg">
-                    <span className="font-medium text-blue-800 dark:text-blue-300">
-                      📊 Toplam Yanıt: {formResponses.length}
-                    </span>
-                  </div>
-                  <div className="bg-green-100 dark:bg-green-900/30 px-3 py-2 rounded-lg">
-                    <span className="font-medium text-green-800 dark:text-green-300">
-                      📅 Son Yanıt: {new Date(formResponses[0]?.submitted_at).toLocaleDateString('tr-TR')}
-                    </span>
-                  </div>
-                  <div className="bg-purple-100 dark:bg-purple-900/30 px-3 py-2 rounded-lg">
-                    <span className="font-medium text-purple-800 dark:text-purple-300">
-                      ⏰ Son Yanıt: {new Date(formResponses[0]?.submitted_at).toLocaleTimeString('tr-TR')}
-                    </span>
+              <div>
+                <h3 className="text-2xl font-bold text-blue-800 dark:text-blue-300">
+                  📋 Etkinlik Kayıtları
+                </h3>
+                <p className="text-blue-600 dark:text-blue-400">Bu etkinlik için gelen form yanıtları</p>
+              </div>
+            </div>
+              <Button
+              type="button"
+                onClick={exportResponses}
+                disabled={formResponses.length === 0}
+              size="lg"
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg"
+              >
+              <Download className="mr-2 h-5 w-5" />
+              Excel'e Aktar ({formResponses.length})
+              </Button>
+          </div>
+
+            {formResponses.length === 0 ? (
+            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border-2 border-dashed border-blue-300 dark:border-blue-600">
+              <div className="text-8xl mb-4">📝</div>
+              <h4 className="text-xl font-semibold text-blue-800 dark:text-blue-300 mb-2">
+                Henüz kayıt bulunmuyor
+              </h4>
+              <p className="text-blue-600 dark:text-blue-400 max-w-md mx-auto">
+                Form alanlarını oluşturduktan sonra katılımcılar bu formla etkinliğinize kayıt olabilir
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* İstatistikler */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                      <span className="text-xl">📊</span>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-blue-600">{formResponses.length}</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">Toplam Kayıt</div>
+                    </div>
                   </div>
                 </div>
-                
-                <div className="bg-white dark:bg-slate-800 p-4 rounded-lg border">
-                  <h4 className="font-medium mb-3 text-slate-900 dark:text-slate-100">Son 3 Kayıt:</h4>
-                  <div className="space-y-2">
-                    {formResponses.slice(0, 3).map((response, index) => (
-                      <div key={response.id} className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-700 rounded">
-                        <div className="flex items-center gap-2">
-                          <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                            {index + 1}
-                          </span>
-                          <span className="font-medium">{response.user_name || 'Anonim'}</span>
-                          <span className="text-xs text-slate-500">{response.user_email}</span>
+                <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                      <span className="text-xl">📅</span>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-green-600">
+                        {formResponses.length > 0 ? new Date(formResponses[0]?.submitted_at).toLocaleDateString('tr-TR') : '-'}
+                      </div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">Son Kayıt Tarihi</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                      <Clock className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-purple-600">
+                        {formResponses.length > 0 ? new Date(formResponses[0]?.submitted_at).toLocaleTimeString('tr-TR') : '-'}
+                      </div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">Son Kayıt Saati</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Son Kayıtlar */}
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border shadow-sm">
+                <h4 className="font-semibold mb-4 flex items-center gap-2 text-gray-900 dark:text-gray-100">
+                  <span className="text-xl">👥</span>
+                  Son Kayıt Olanlar
+                </h4>
+                <div className="space-y-3">
+                  {formResponses.slice(0, 5).map((response, index) => (
+                    <div key={response.id} className="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-md">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900 dark:text-gray-100">
+                          {response.user_name || 'Anonim Kullanıcı'}
                         </div>
-                        <span className="text-xs text-slate-500">
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          {response.user_email || 'E-posta belirtilmemiş'}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-medium text-gray-600 dark:text-gray-300">
                           {new Date(response.submitted_at).toLocaleDateString('tr-TR')}
-                        </span>
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {new Date(response.submitted_at).toLocaleTimeString('tr-TR')}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {formResponses.length > 5 && (
+                  <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                    +{formResponses.length - 5} kayıt daha var
+                  </div>
+                )}
+              </div>
+              </div>
+            )}
+        </div>
+      )}
+
+      {/* YENİ ALAN EKLEME BÖLÜMÜ */}
+      <div className="bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/10 dark:to-green-900/10 p-8 rounded-2xl border border-emerald-200 dark:border-emerald-700 shadow-lg">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-12 h-12 bg-emerald-600 rounded-xl flex items-center justify-center shadow-md">
+            <Plus className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <h3 className="text-2xl font-bold text-emerald-800 dark:text-emerald-300">
+              ➕ Yeni Form Alanı Ekle
+            </h3>
+            <p className="text-emerald-600 dark:text-emerald-400">Katılımcılardan hangi bilgileri almak istiyorsunuz?</p>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border shadow-sm space-y-6">
+          {/* Alan Türü Seçimi */}
+            <div>
+            <Label className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 block">
+              🎯 Alan Türünü Seçin
+            </Label>
+              <Select value={newField.field_type} onValueChange={(value) => setNewField(prev => ({ ...prev, field_type: value }))}>
+              <SelectTrigger className="h-14 text-base">
+                <SelectValue placeholder="Hangi tür bilgi almak istiyorsunuz?" />
+                </SelectTrigger>
+              <SelectContent className="max-h-80">
+                {Object.entries(fieldTypes).map(([key, type]) => (
+                  <SelectItem key={key} value={key} className="p-4 cursor-pointer">
+                    <div className="flex items-start gap-3">
+                      <span className="text-2xl">{type.emoji}</span>
+                      <div>
+                        <div className="font-medium">{type.name}</div>
+                        <div className="text-sm text-gray-500">{type.desc}</div>
+                      </div>
+                    </div>
+                  </SelectItem>
+                ))}
+                </SelectContent>
+              </Select>
+            {newField.field_type && (
+              <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                  <span className="text-xl">{fieldTypes[newField.field_type as keyof typeof fieldTypes]?.emoji}</span>
+                  <span className="font-medium">
+                    Seçili: {fieldTypes[newField.field_type as keyof typeof fieldTypes]?.name}
+                  </span>
+            </div>
+                <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
+                  {fieldTypes[newField.field_type as keyof typeof fieldTypes]?.desc}
+                </p>
+            </div>
+            )}
+          </div>
+
+          {/* Alan Adı */}
+          <div>
+            <Label htmlFor="field_label" className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2 block">
+              📝 Alan Adı (Katılımcıların göreceği isim)
+            </Label>
+            <Input
+              id="field_label"
+              value={newField.field_label}
+              onChange={(e) => setNewField(prev => ({ ...prev, field_label: e.target.value }))}
+              placeholder="Örnek: Ad Soyad, Telefon Numarası, Meslek, Doğum Tarihi..."
+              className="h-12 text-base"
+            />
+
+          </div>
+
+          {/* Seçenekler (eğer gerekirse) */}
+          {['select', 'radio', 'checkbox'].includes(newField.field_type) && (
+            <div>
+              <Label htmlFor="options" className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2 block">
+                📋 Seçenekler (Her satıra bir seçenek yazın)
+              </Label>
+              <Textarea
+                id="options"
+                value={options}
+                onChange={(e) => setOptions(e.target.value)}
+                placeholder="Örnek:&#10;Seçenek 1&#10;Seçenek 2&#10;Seçenek 3&#10;&#10;Her satıra bir seçenek yazın..."
+                rows={4}
+                className="text-base"
+              />
+              {options && (
+                <div className="mt-3 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                  <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300 mb-2">
+                    <span>👀</span>
+                    <span className="font-medium">Önizleme:</span>
+                  </div>
+                  <div className="space-y-1">
+                    {options.split('\n').filter(opt => opt.trim()).map((option, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          {index + 1}
+                        </Badge>
+                        <span className="text-sm">{option.trim()}</span>
                       </div>
                     ))}
                   </div>
                 </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Form Builder Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Yeni Alan Ekle</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="field_type">Alan Türü</Label>
-              <Select value={newField.field_type} onValueChange={(value) => setNewField(prev => ({ ...prev, field_type: value }))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="text">Metin</SelectItem>
-                  <SelectItem value="email">E-posta</SelectItem>
-                  <SelectItem value="number">Sayı</SelectItem>
-                  <SelectItem value="tel">Telefon</SelectItem>
-                  <SelectItem value="textarea">Uzun Metin</SelectItem>
-                  <SelectItem value="select">Seçim Listesi</SelectItem>
-                  <SelectItem value="radio">Tekli Seçim</SelectItem>
-                  <SelectItem value="checkbox">Çoklu Seçim</SelectItem>
-                  <SelectItem value="file">Dosya Yükleme</SelectItem>
-                  <SelectItem value="date">Tarih</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="field_label">Alan Adı (Kullanıcıların Göreceği İsim)</Label>
-              <Input
-                id="field_label"
-                value={newField.field_label}
-                onChange={(e) => setNewField(prev => ({ ...prev, field_label: e.target.value }))}
-                placeholder="Örnek: Ad Soyad, Telefon Numarası, Meslek..."
-              />
-              {newField.field_label && (
-                <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-sm">
-                  <span className="text-blue-700 dark:text-blue-300">
-                    ✨ Otomatik değişken adı: <code className="bg-blue-100 dark:bg-blue-800 px-1 rounded">{generateFieldName(newField.field_label)}</code>
-                  </span>
-                </div>
               )}
-            </div>
-          </div>
-
-          {['select', 'radio', 'checkbox'].includes(newField.field_type) && (
-            <div>
-              <Label htmlFor="options">Seçenekler (Her satıra bir seçenek)</Label>
-              <textarea
-                id="options"
-                className="w-full p-2 border rounded"
-                rows={3}
-                value={options}
-                onChange={(e) => setOptions(e.target.value)}
-                placeholder="Seçenek 1&#10;Seçenek 2&#10;Seçenek 3"
-              />
             </div>
           )}
 
-          <div className="flex items-center space-x-2">
+          {/* Zorunlu Alan Switchi */}
+          <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
             <Switch
               id="required"
               checked={newField.required}
               onCheckedChange={(checked) => setNewField(prev => ({ ...prev, required: checked }))}
             />
-            <Label htmlFor="required">Zorunlu Alan</Label>
+            <div className="flex-1">
+              <Label htmlFor="required" className="text-base font-medium cursor-pointer">
+                ⚠️ Zorunlu Alan
+              </Label>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Katılımcılar bu alanı doldurmak zorunda olsun mu?
+              </p>
+            </div>
           </div>
 
-          <Button type="button" onClick={addField} className="w-full">
-            <Plus className="mr-2 h-4 w-4" />
+          {/* Alan Ekleme Butonu */}
+          <Button 
+            type="button" 
+            onClick={addField} 
+            size="lg"
+            className="w-full h-14 text-lg bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 shadow-lg"
+            disabled={!newField.field_label.trim()}
+          >
+            <Plus className="mr-3 h-6 w-6" />
             Alan Ekle
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Form Alanları ({fields.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
+      {/* FORM ALANLARI LİSTESİ */}
+      <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/10 dark:to-pink-900/10 p-8 rounded-2xl border border-purple-200 dark:border-purple-700 shadow-lg">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6">
+          <div className="flex items-center gap-3 mb-4 lg:mb-0">
+            <div className="w-12 h-12 bg-purple-600 rounded-xl flex items-center justify-center shadow-md">
+              <FileText className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-2xl font-bold text-purple-800 dark:text-purple-300">
+                📝 Form Alanları
+              </h3>
+              <p className="text-purple-600 dark:text-purple-400">
+                {fields.length > 0 ? `${fields.length} alan eklendi` : 'Henüz alan eklenmemiş'}
+              </p>
+            </div>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setShowPreview(!showPreview)}
+            disabled={fields.length === 0}
+            className="border-purple-300 text-purple-700 hover:bg-purple-50 dark:border-purple-600 dark:text-purple-400 dark:hover:bg-purple-900/20"
+          >
+            <Eye className="mr-2 h-4 w-4" />
+            {showPreview ? 'Önizlemeyi Gizle' : 'Form Önizlemesi'}
+          </Button>
+        </div>
+
           {fields.length === 0 ? (
-            <p className="text-muted-foreground text-center py-4">Henüz alan eklenmemiş</p>
-          ) : (
-            <div className="space-y-2">
+          <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border-2 border-dashed border-purple-300 dark:border-purple-600">
+            <div className="text-8xl mb-4">📋</div>
+            <h4 className="text-xl font-semibold text-purple-800 dark:text-purple-300 mb-2">
+              Henüz form alanı eklenmemiş
+            </h4>
+            <p className="text-purple-600 dark:text-purple-400 max-w-md mx-auto">
+              Yukarıdaki "Yeni Form Alanı Ekle" bölümünden katılımcılardan almak istediğiniz bilgileri tanımlayın
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Form Alanları Listesi */}
+            <div className="space-y-3">
               {fields.map((field, index) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded">
+                <div key={index} className="bg-white dark:bg-gray-800 p-6 rounded-xl border shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                   <div className="flex-1">
-                    <div className="font-medium">{field.field_label}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {field.field_type} • {field.field_name} {field.required && '• Zorunlu'}
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="text-2xl">{fieldTypes[field.field_type as keyof typeof fieldTypes]?.emoji}</span>
+                        <div>
+                          <div className="font-semibold text-lg text-gray-900 dark:text-gray-100">
+                            {field.field_label}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
+                            <Badge variant="secondary">
+                              {fieldTypes[field.field_type as keyof typeof fieldTypes]?.name}
+                            </Badge>
+                            <Badge variant="outline" className="font-mono text-xs">
+                              {field.field_name}
+                            </Badge>
+                            {field.required && (
+                              <Badge variant="destructive" className="text-xs">
+                                ⚠️ Zorunlu
+                              </Badge>
+                            )}
+                          </div>
+                    </div>
                     </div>
                     {field.options && field.options.length > 0 && (
-                      <div className="text-xs text-muted-foreground mt-1">
-                        Seçenekler: {field.options.join(', ')}
+                        <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                          <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Seçenekler:</div>
+                          <div className="flex flex-wrap gap-1">
+                            {field.options.map((option, optIndex) => (
+                              <Badge key={optIndex} variant="outline" className="text-xs">
+                                {option}
+                              </Badge>
+                            ))}
+                          </div>
                       </div>
                     )}
                   </div>
-                  <div className="flex items-center space-x-1">
+                                        <div className="flex items-center gap-2">
                     <Button
+                        type="button"
                       variant="ghost"
                       size="sm"
                       onClick={() => moveField(index, 'up')}
                       disabled={index === 0}
+                        className="hover:bg-blue-50 dark:hover:bg-blue-900/20"
                     >
                       <MoveUp className="h-4 w-4" />
                     </Button>
                     <Button
+                        type="button"
                       variant="ghost"
                       size="sm"
                       onClick={() => moveField(index, 'down')}
                       disabled={index === fields.length - 1}
+                        className="hover:bg-blue-50 dark:hover:bg-blue-900/20"
                     >
                       <MoveDown className="h-4 w-4" />
                     </Button>
                     <Button
+                        type="button"
                       variant="ghost"
                       size="sm"
                       onClick={() => removeField(index)}
+                        className="hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600"
                     >
-                      <Trash2 className="h-4 w-4 text-red-500" />
+                        <Trash2 className="h-4 w-4" />
                     </Button>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
-          )}
-          
-          {fields.length > 0 && (
-            <Button onClick={saveForm} className="w-full mt-4" disabled={createFormField.isPending}>
-              {createFormField.isPending ? 'Kaydediliyor...' : 'Formu Kaydet'}
+
+            {/* Form Önizlemesi */}
+            {showPreview && (
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border-2 border-dashed border-purple-300 dark:border-purple-600">
+                <h4 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-900 dark:text-gray-100">
+                  <Eye className="h-5 w-5" />
+                  👀 Form Önizlemesi
+                </h4>
+                <div className="space-y-4 max-w-md">
+                  {fields.map((field, index) => (
+                    <div key={index} className="space-y-2">
+                      <Label className="text-sm font-medium">
+                        {field.field_label}
+                        {field.required && <span className="text-red-500 ml-1">*</span>}
+                      </Label>
+                      {field.field_type === 'textarea' ? (
+                        <Textarea placeholder={`${field.field_label} giriniz...`} disabled />
+                      ) : field.field_type === 'select' ? (
+                        <Select disabled>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seçiniz..." />
+                          </SelectTrigger>
+                        </Select>
+                      ) : field.field_type === 'radio' && field.options ? (
+                        <div className="space-y-2">
+                          {field.options.map((option, optIndex) => (
+                            <div key={optIndex} className="flex items-center space-x-2">
+                              <input type="radio" disabled />
+                              <span className="text-sm">{option}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : field.field_type === 'checkbox' && field.options ? (
+                        <div className="space-y-2">
+                          {field.options.map((option, optIndex) => (
+                            <div key={optIndex} className="flex items-center space-x-2">
+                              <input type="checkbox" disabled />
+                              <span className="text-sm">{option}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <Input 
+                          type={field.field_type} 
+                          placeholder={`${field.field_label} giriniz...`} 
+                          disabled 
+                        />
+                      )}
+                    </div>
+                  ))}
+                  <Button disabled className="w-full mt-6">
+                    Kayıt Ol
             </Button>
-          )}
-        </CardContent>
-      </Card>
+                </div>
+                <div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
+                  ℹ️ Bu sadece önizleme - gerçek form etkinlik sayfasında görünecek
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
