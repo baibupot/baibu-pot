@@ -23,7 +23,9 @@ import {
   Package,
   Clock,
   CheckCircle,
-  XCircle
+  XCircle,
+  Send,
+  Mail
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ThemeProvider } from '@/components/ThemeProvider';
@@ -43,6 +45,7 @@ import { useNews, useEvents, useMagazineIssues, useSurveys, useSponsors, useTeam
 import { deleteMagazineFilesByUrls } from '@/utils/githubStorageHelper';
 import { getGitHubStorageConfig, isGitHubStorageConfigured } from '@/integrations/github/config';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 
 interface User {
   id: string;
@@ -51,12 +54,7 @@ interface User {
   userRoles?: string[]; // Changed from single role to array of roles
 }
 
-// Simple toast replacement with alert
-const toast = {
-  success: (message: string) => alert(`✅ ${message}`),
-  error: (message: string) => alert(`❌ ${message}`),
-  info: (message: string) => alert(`ℹ️ ${message}`)
-};
+// Toast bildirimleri sonner ile yönetiliyor
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -449,7 +447,7 @@ const AdminDashboard = () => {
           .update(magazineData)
           .eq('id', editingItem.id);
         if (error) throw error;
-        alert('✅ Dergi güncellendi');
+        toast.success('Dergi güncellendi');
       } else {
         // Temiz veri oluştur
         const cleanInsertData = {
@@ -480,14 +478,14 @@ const AdminDashboard = () => {
             .update(cleanInsertData)
             .eq('issue_number', cleanInsertData.issue_number);
           if (error) throw error;
-          alert(`✅ Sayı ${cleanInsertData.issue_number} güncellendi!`);
+          toast.success(`Sayı ${cleanInsertData.issue_number} güncellendi!`);
         } else {
           // Yeni kayıt ekle
           const { error } = await supabase
             .from('magazine_issues')
             .insert([cleanInsertData]);
           if (error) throw error;
-          alert('✅ Dergi eklendi');
+          toast.success('Dergi eklendi');
         }
       }
       setEditingItem(null);
@@ -499,7 +497,7 @@ const AdminDashboard = () => {
       }, 1000);
       
     } catch (error) {
-      alert('❌ Bir hata oluştu: ' + (error as any)?.message);
+      toast.error('Bir hata oluştu: ' + (error as any)?.message);
       console.error('Error saving magazine:', error);
       throw error; // MagazineModal'da error handling için
     }
@@ -610,7 +608,7 @@ const AdminDashboard = () => {
           .single();
 
         if (magazine) {
-          alert(`🗂️ Dergi "${magazine.title}" siliniyor...\n\n📋 İşlemler:\n✓ Veritabanından silme\n✓ GitHub'dan PDF silme\n✓ GitHub'dan kapak silme`);
+          toast.info(`Dergi "${magazine.title}" siliniyor...`);
           
           // GitHub'dan dosyaları sil (arka planda)
           if (isGitHubStorageConfigured()) {
@@ -625,15 +623,15 @@ const AdminDashboard = () => {
               );
               
               if (deleteResult.success && deleteResult.deletedFiles && deleteResult.deletedFiles.length > 0) {
-                alert(`✅ GitHub'dan ${deleteResult.deletedFiles.length} dosya silindi:\n${deleteResult.deletedFiles.join('\n')}`);
+                toast.success(`GitHub'dan ${deleteResult.deletedFiles.length} dosya silindi`);
               } else if (deleteResult.error) {
-                alert(`⚠️ GitHub silme hatası: ${deleteResult.error}\n\nVeritabanından silme işlemi devam ediyor...`);
+                toast.error(`GitHub silme hatası: ${deleteResult.error}`);
               }
             } catch (githubError) {
-              alert(`⚠️ GitHub bağlantı hatası: ${githubError}\n\nVeritabanından silme işlemi devam ediyor...`);
+              toast.error(`GitHub bağlantı hatası: ${githubError}`);
             }
           } else {
-            alert('ℹ️ GitHub Storage yapılandırılmamış - sadece veritabanından siliniyor');
+            toast.info('GitHub Storage yapılandırılmamış - sadece veritabanından siliniyor');
           }
         }
       }

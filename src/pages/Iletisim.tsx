@@ -20,6 +20,7 @@ const Iletisim = () => {
     message: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
   
   const createContactMessage = useCreateContactMessage();
 
@@ -42,10 +43,17 @@ const Iletisim = () => {
         status: 'unread'
       });
       
-      toast.success('Mesajınız başarıyla gönderildi!');
-      setFormData({ name: '', email: '', subject: '', message: '' });
+      setIsSubmitted(true);
+      toast.success('🎉 Mesajınız başarıyla gönderildi! Teşekkür ederiz.');
+      
+      // 4 saniye sonra formu sıfırla ve normal haline döndür
+      setTimeout(() => {
+        setFormData({ name: '', email: '', subject: '', message: '' });
+        setIsSubmitted(false);
+      }, 4000);
+      
     } catch (error) {
-      toast.error('Mesaj gönderilirken bir hata oluştu.');
+      toast.error('❌ Mesaj gönderilirken bir hata oluştu. Lütfen tekrar deneyin.');
       console.error('Contact form error:', error);
     } finally {
       setIsSubmitting(false);
@@ -56,19 +64,6 @@ const Iletisim = () => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
-
-  if (isSubmitting) {
-    return (
-      <PageContainer>
-        <LoadingPage 
-          title="Mesaj Gönderiliyor"
-          message="Mesajınız iletiliyor, lütfen bekleyin..."
-          icon={Send}
-          variant="minimal"
-        />
-      </PageContainer>
-    );
-  }
 
   return (
     <PageContainer background="gradient">
@@ -281,15 +276,53 @@ const Iletisim = () => {
           <Card className="card-hover group overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-3 text-xl">
-                <Send className="h-6 w-6 text-cyan-500" />
-                Mesaj Gönder
+                {isSubmitted ? (
+                  <>
+                    <CheckCircle className="h-6 w-6 text-green-500" />
+                    Mesaj Gönderildi
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-6 w-6 text-cyan-500" />
+                    Mesaj Gönder
+                  </>
+                )}
               </CardTitle>
               <p className="text-slate-600 dark:text-slate-400">
-                Aşağıdaki formu doldurarak bizimle iletişime geçebilirsiniz.
+                {isSubmitted 
+                  ? "Mesajınız başarıyla gönderildi! Size en kısa sürede geri dönüş yapacağız."
+                  : "Aşağıdaki formu doldurarak bizimle iletişime geçebilirsiniz."
+                }
               </p>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
+              {isSubmitted ? (
+                <div className="text-center py-12 space-y-6">
+                  <div className="text-6xl mb-6">🎉</div>
+                  <h3 className="text-2xl font-bold text-green-600 dark:text-green-400">
+                    Mesajınız Başarıyla Gönderildi!
+                  </h3>
+                  <div className="space-y-3 text-slate-600 dark:text-slate-400">
+                    <p className="text-lg">
+                      <strong>{formData.name}</strong>, mesajınız için teşekkür ederiz.
+                    </p>
+                    <p>
+                      "<strong>{formData.subject}</strong>" konulu mesajınızı aldık ve en kısa sürede size geri dönüş yapacağız.
+                    </p>
+                    {formData.email && (
+                      <p className="text-sm">
+                        📧 Yanıtımızı <strong>{formData.email}</strong> adresine göndereceğiz.
+                      </p>
+                    )}
+                  </div>
+                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mt-6">
+                    <p className="text-sm text-green-700 dark:text-green-300">
+                      ⏱️ Form birkaç saniye içinde sıfırlanacak...
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                   <Label htmlFor="name" className="text-base font-medium">
                     Adınız Soyadınız <span className="text-red-500">*</span>
@@ -302,6 +335,7 @@ const Iletisim = () => {
                     onChange={handleInputChange}
                     placeholder="Adınızı ve soyadınızı girin"
                     className="mt-2 h-12 bg-white/80 dark:bg-slate-700/80"
+                    disabled={isSubmitting}
                     required
                   />
                 </div>
@@ -316,6 +350,7 @@ const Iletisim = () => {
                     onChange={handleInputChange}
                     placeholder="ornek@email.com (isteğe bağlı)"
                     className="mt-2 h-12 bg-white/80 dark:bg-slate-700/80"
+                    disabled={isSubmitting}
                   />
                   <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
                     E-posta adresinizi girmek isteğe bağlıdır, ancak yanıt verebilmemiz için önerilir.
@@ -334,6 +369,7 @@ const Iletisim = () => {
                     onChange={handleInputChange}
                     placeholder="Mesajınızın konusunu girin"
                     className="mt-2 h-12 bg-white/80 dark:bg-slate-700/80"
+                    disabled={isSubmitting}
                     required
                   />
                 </div>
@@ -350,6 +386,7 @@ const Iletisim = () => {
                     placeholder="Mesajınızı buraya yazın... Detaylı bilgi vermeniz, size daha iyi yardımcı olmamızı sağlar."
                     rows={6}
                     className="mt-2 bg-white/80 dark:bg-slate-700/80 resize-none"
+                    disabled={isSubmitting}
                     required
                   />
                 </div>
@@ -376,6 +413,7 @@ const Iletisim = () => {
                   <span className="text-red-500">*</span> işaretli alanlar zorunludur.
                 </p>
               </form>
+              )}
             </CardContent>
           </Card>
         </div>

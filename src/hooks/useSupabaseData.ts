@@ -861,13 +861,12 @@ export const useCreateContactMessage = () => {
   
   return useMutation({
     mutationFn: async (message: Tables['contact_messages']['Insert']) => {
-      const { data, error } = await supabase
+      // 🔒 Anonim kullanıcılar için SELECT kaldırıldı - sadece INSERT
+      const { error } = await supabase
         .from('contact_messages')
-        .insert([message])
-        .select()
-        .single();
+        .insert([message]);
       if (error) throw error;
-      return data;
+      return { success: true }; // Basit success response
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contact_messages'] });
