@@ -3207,6 +3207,15 @@ const AdminDashboard = () => {
           isOpen={designRequestDetailModalOpen}
           onClose={() => setDesignRequestDetailModalOpen(false)}
           request={selectedDesignRequest}
+          onUpdate={async (id, updateData) => {
+            try {
+              await updateProductDesignRequest.mutateAsync({ id, ...updateData });
+              toast.success('✅ Tasarım talebi başarıyla güncellendi!');
+            } catch (error) {
+              console.error('Update error:', error);
+              toast.error('❌ Güncelleme sırasında hata oluştu');
+            }
+          }}
         />
 
         {/* Confirmation Dialog for Status Changes */}

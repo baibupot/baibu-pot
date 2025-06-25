@@ -1308,9 +1308,20 @@ export const useUpdateProductDesignRequest = () => {
   
   return useMutation({
     mutationFn: async ({ id, ...updateData }: { id: string } & Tables['product_design_requests']['Update']) => {
+      // 👤 Admin editing yaparken reviewer_id'yi otomatik set et
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const finalUpdateData = {
+        ...updateData,
+        // Eğer admin tarafından güncelleme yapılıyorsa reviewer_id set et
+        ...(user && (updateData.priority_level || updateData.estimated_cost || updateData.estimated_time_days || updateData.reviewer_notes) && {
+          reviewer_id: user.id
+        })
+      };
+
       const { data, error } = await supabase
         .from('product_design_requests')
-        .update(updateData)
+        .update(finalUpdateData)
         .eq('id', id)
         .select()
         .single();
