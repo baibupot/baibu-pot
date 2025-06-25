@@ -91,7 +91,7 @@ const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ isOpen, onClose
       case 'email':
         const emailSubject = `BAİBÜ PÖT Ürün Bilgi Talebi: ${product.name}`;
         const emailBody = `Merhaba BAİBÜ PÖT,\n\n${productInfo}\n\nTeşekkürler.`;
-        window.open(`mailto:info@baibupot.com?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`, '_blank');
+        window.open(`mailto:baibupsikolojitoplulugu@gmail.com?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`, '_blank');
         break;
       case 'instagram':
         // Instagram'a yönlendir ve mesajı clipboard'a kopyala
