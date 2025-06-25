@@ -228,7 +228,6 @@ const GizlilikPolitikasi = () => {
                     📧 BAİBÜ Psikoloji Öğrencileri Topluluğu
                   </p>
                   <div className="space-y-2">
-                    <p><span className="font-medium">E-posta:</span> gizlilik@baibupsikologitopluluğu.org</p>
                     <p><span className="font-medium">İletişim Formu:</span> <a href="/iletisim" className="text-purple-600 dark:text-purple-400 hover:underline font-medium">İletişim Sayfası</a></p>
                   </div>
                 </div>

@@ -39,7 +39,7 @@ import ThemeToggle from '@/components/admin/ThemeToggle';
 import FormResponsesModal from '@/components/admin/FormResponsesModal';
 import { EVENT_TYPES, EVENT_STATUSES } from '@/constants/eventConstants';
 
-import { useNews, useEvents, useMagazineIssues, useSurveys, useSponsors, useTeamMembers, useAcademicDocuments, useInternships, useContactMessages, useUsers, useUserRoles, useMagazineAnalytics, useMagazineContributors, useArticleSubmissions, useEventSuggestions, useUpdateEventSuggestion } from '@/hooks/useSupabaseData';
+import { useNews, useEvents, useMagazineIssues, useSurveys, useSponsors, useTeamMembers, useAcademicDocuments, useInternships, useContactMessages, useUpdateContactMessage, useDeleteContactMessage, useUsers, useUserRoles, useMagazineAnalytics, useMagazineContributors, useArticleSubmissions, useEventSuggestions, useUpdateEventSuggestion } from '@/hooks/useSupabaseData';
 import { deleteMagazineFilesByUrls } from '@/utils/githubStorageHelper';
 import { getGitHubStorageConfig, isGitHubStorageConfigured } from '@/integrations/github/config';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -78,6 +78,11 @@ const AdminDashboard = () => {
   const [articleDeleteModalOpen, setArticleDeleteModalOpen] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState<any>(null);
   
+  // Message modal states - YENİ
+  const [messageDetailModalOpen, setMessageDetailModalOpen] = useState(false);
+  const [messageDeleteModalOpen, setMessageDeleteModalOpen] = useState(false);
+  const [selectedMessage, setSelectedMessage] = useState<any>(null);
+  
   // Form Responses modal states - YENİ
   const [responseModalOpen, setResponseModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
@@ -101,6 +106,10 @@ const AdminDashboard = () => {
   const { data: articleSubmissions } = useArticleSubmissions();
   const { data: eventSuggestions } = useEventSuggestions();
   const updateEventSuggestion = useUpdateEventSuggestion();
+  
+  // Contact message mutations
+  const updateContactMessage = useUpdateContactMessage();
+  const deleteContactMessage = useDeleteContactMessage();
 
   // Gerçek dergi istatistikleri hesaplama
   const calculateMagazineStats = () => {
@@ -678,6 +687,55 @@ const AdminDashboard = () => {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
       toast.error('Makale silinirken hata: ' + errorMessage);
+    }
+  };
+
+  // Message handlers - YENİ
+  const handleViewMessageDetail = (message: any) => {
+    setSelectedMessage(message);
+    setMessageDetailModalOpen(true);
+  };
+
+  const handleDeleteMessage = (message: any) => {
+    setSelectedMessage(message);
+    setMessageDeleteModalOpen(true);
+  };
+
+  const confirmDeleteMessage = async () => {
+    if (!selectedMessage) return;
+    
+    try {
+      await deleteContactMessage.mutateAsync(selectedMessage.id);
+      toast.success('✅ Mesaj başarıyla silindi');
+      setMessageDeleteModalOpen(false);
+      setSelectedMessage(null);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
+      toast.error('❌ Mesaj silinirken hata: ' + errorMessage);
+    }
+  };
+
+  const handleMarkAsRead = async (messageId: string) => {
+    try {
+      await updateContactMessage.mutateAsync({ 
+        id: messageId, 
+        status: 'read' 
+      });
+      toast.success('✅ Mesaj okundu olarak işaretlendi');
+    } catch (error) {
+      toast.error('❌ Mesaj güncellenirken hata oluştu');
+    }
+  };
+
+  const handleMarkAsReplied = async (messageId: string) => {
+    try {
+      await updateContactMessage.mutateAsync({ 
+        id: messageId, 
+        status: 'replied' 
+      });
+      toast.success('✅ Mesaj yanıtlandı olarak işaretlendi');
+    } catch (error) {
+      toast.error('❌ Mesaj güncellenirken hata oluştu');
     }
   };
 
@@ -2095,10 +2153,32 @@ const AdminDashboard = () => {
                             </div>
                           </div>
                           <div className="flex space-x-2 flex-shrink-0">
-                            <Button variant="outline" size="sm">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => handleViewMessageDetail(message)}
+                              title="Mesajı Detaylı Görüntüle"
+                            >
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button variant="outline" size="sm">
+                            {message.status === 'unread' && (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleMarkAsRead(message.id)}
+                                title="Okundu Olarak İşaretle"
+                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => handleDeleteMessage(message)}
+                              title="Mesajı Sil"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -2399,6 +2479,205 @@ const AdminDashboard = () => {
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
                     🗑️ Sil
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Message Detail Modal - YENİ */}
+        <Dialog open={messageDetailModalOpen} onOpenChange={setMessageDetailModalOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold flex items-center gap-2">
+                <MessageSquare className="h-5 w-5" />
+                💬 Mesaj Detayları
+              </DialogTitle>
+            </DialogHeader>
+            
+            {selectedMessage && (
+              <div className="space-y-6 mt-4">
+                {/* Mesaj Bilgileri */}
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <h3 className="font-semibold text-blue-800 dark:text-blue-300 mb-3">📋 Mesaj Bilgileri</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-blue-600 dark:text-blue-400">Gönderen</label>
+                      <p className="text-lg font-semibold text-blue-900 dark:text-blue-100">{selectedMessage.name}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-blue-600 dark:text-blue-400">E-posta</label>
+                      <p className="text-lg text-blue-900 dark:text-blue-100">
+                        {selectedMessage.email ? (
+                          <a href={`mailto:${selectedMessage.email}`} className="hover:underline text-blue-600">
+                            {selectedMessage.email}
+                          </a>
+                        ) : (
+                          <span className="text-gray-500 italic">E-posta verilmemiş</span>
+                        )}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-blue-600 dark:text-blue-400">Durum</label>
+                      <div className="flex gap-2 items-center">
+                        <Badge variant={selectedMessage.status === 'unread' ? 'default' : 'secondary'}>
+                          {selectedMessage.status === 'unread' ? '📭 Okunmadı' : 
+                           selectedMessage.status === 'read' ? '📖 Okundu' : 
+                           selectedMessage.status === 'replied' ? '✅ Yanıtlandı' : '📁 Arşivlendi'}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-blue-600 dark:text-blue-400">Gönderim Tarihi</label>
+                      <p className="text-lg text-blue-900 dark:text-blue-100">
+                        {new Date(selectedMessage.created_at).toLocaleDateString('tr-TR', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Konu */}
+                <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+                  <h3 className="font-semibold text-green-800 dark:text-green-300 mb-3">📝 Konu</h3>
+                  <p className="text-lg text-green-900 dark:text-green-100 font-medium">
+                    {selectedMessage.subject}
+                  </p>
+                </div>
+
+                {/* Mesaj İçeriği */}
+                <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <h3 className="font-semibold text-gray-800 dark:text-gray-300 mb-3">💬 Mesaj İçeriği</h3>
+                  <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border min-h-[200px]">
+                    <p className="text-gray-900 dark:text-gray-100 leading-relaxed whitespace-pre-wrap">
+                      {selectedMessage.message}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Hızlı Aksiyonlar */}
+                <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
+                  <h3 className="font-semibold text-purple-800 dark:text-purple-300 mb-3">⚡ Hızlı Aksiyonlar</h3>
+                  <div className="flex flex-wrap gap-3">
+                    {selectedMessage.email && (
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          const subject = `Re: ${selectedMessage.subject}`;
+                          const body = `Merhaba ${selectedMessage.name},\n\n${selectedMessage.subject} konulu mesajınızla ilgili...\n\n---\nOrijinal Mesajınız:\n${selectedMessage.message}`;
+                          window.open(`mailto:${selectedMessage.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+                        }}
+                        className="bg-blue-600 text-white hover:bg-blue-700"
+                      >
+                        <Mail className="h-4 w-4 mr-2" />
+                        📧 E-posta ile Yanıtla
+                      </Button>
+                    )}
+                    
+                    {selectedMessage.status === 'unread' && (
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          handleMarkAsRead(selectedMessage.id);
+                          setSelectedMessage({...selectedMessage, status: 'read'});
+                        }}
+                        className="bg-green-600 text-white hover:bg-green-700"
+                      >
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        ✅ Okundu İşaretle
+                      </Button>
+                    )}
+                    
+                    {selectedMessage.status !== 'replied' && (
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          handleMarkAsReplied(selectedMessage.id);
+                          setSelectedMessage({...selectedMessage, status: 'replied'});
+                        }}
+                        className="bg-emerald-600 text-white hover:bg-emerald-700"
+                      >
+                        <Send className="h-4 w-4 mr-2" />
+                        📮 Yanıtlandı İşaretle
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Footer Buttons */}
+                <div className="flex justify-end gap-3 pt-4 border-t">
+                  <Button variant="outline" onClick={() => setMessageDetailModalOpen(false)}>
+                    ❌ Kapat
+                  </Button>
+                  <Button 
+                    variant="destructive" 
+                    onClick={() => {
+                      setMessageDetailModalOpen(false);
+                      handleDeleteMessage(selectedMessage);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    🗑️ Mesajı Sil
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Message Delete Modal - YENİ */}
+        <Dialog open={messageDeleteModalOpen} onOpenChange={setMessageDeleteModalOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold flex items-center gap-2 text-red-600">
+                <Trash2 className="h-5 w-5" />
+                🗑️ Mesajı Sil
+              </DialogTitle>
+              <DialogDescription>
+                Bu işlem geri alınamaz. Mesaj kalıcı olarak silinecektir.
+              </DialogDescription>
+            </DialogHeader>
+            
+            {selectedMessage && (
+              <div className="space-y-4 mt-4">
+                <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border border-red-200 dark:border-red-800">
+                  <h4 className="font-medium text-red-800 dark:text-red-300 mb-2">Silinecek Mesaj:</h4>
+                  <p className="text-sm font-semibold">{selectedMessage.subject}</p>
+                  <p className="text-sm text-red-600 dark:text-red-400">Gönderen: {selectedMessage.name}</p>
+                  <p className="text-sm text-red-600 dark:text-red-400">
+                    Tarih: {new Date(selectedMessage.created_at).toLocaleDateString('tr-TR')}
+                  </p>
+                </div>
+                
+                <div className="flex gap-3 justify-end">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setMessageDeleteModalOpen(false)}
+                  >
+                    ❌ İptal
+                  </Button>
+                  <Button 
+                    variant="destructive" 
+                    onClick={confirmDeleteMessage}
+                    disabled={deleteContactMessage.isPending}
+                  >
+                    {deleteContactMessage.isPending ? (
+                      <>
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" />
+                        Siliniyor...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        🗑️ Sil
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>

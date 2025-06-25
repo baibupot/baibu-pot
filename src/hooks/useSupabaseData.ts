@@ -875,6 +875,43 @@ export const useCreateContactMessage = () => {
   });
 };
 
+export const useUpdateContactMessage = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, ...updateData }: { id: string } & Tables['contact_messages']['Update']) => {
+      const { data, error } = await supabase
+        .from('contact_messages')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contact_messages'] });
+    },
+  });
+};
+
+export const useDeleteContactMessage = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('contact_messages')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contact_messages'] });
+    },
+  });
+};
+
 // Comments hooks
 export const useComments = (entityType: string, entityId: string) => {
   return useQuery({
