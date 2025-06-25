@@ -222,8 +222,8 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
                   // External registration (Google Forms, Eventbrite, etc.)
                   window.open(event.registration_link, '_blank');
                 } else if (event.has_custom_form) {
-                  // Internal custom form
-                  window.location.href = `/etkinlikler/${event.slug}#kayit-formu`;
+                  // Internal custom form - Navigate to detail page, let detail page handle form
+                  window.location.href = `/etkinlikler/${event.slug}`;
                 } else {
                   // No registration method set up
                   alert('Kayıt sistemi henüz hazırlanmıştır. Lütfen etkinlik detaylarından organizatörlerle iletişime geçin.');

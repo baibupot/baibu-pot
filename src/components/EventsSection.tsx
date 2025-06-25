@@ -1,10 +1,14 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useEvents } from '@/hooks/useSupabaseData';
+import { 
+  getEventTypeLabel, 
+  getEventTypeColor,
+  type EventType 
+} from '@/constants/eventConstants';
 
 const EventsSection = () => {
   const { data: events = [], isLoading } = useEvents();
@@ -14,34 +18,6 @@ const EventsSection = () => {
     .filter(event => event.status === 'upcoming' && new Date(event.event_date) > new Date())
     .sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime())
     .slice(0, 3);
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'atolye':
-        return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200';
-      case 'konferans':
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
-      case 'sosyal':
-        return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
-      case 'egitim':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-      case 'seminer':
-        return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200';
-      default:
-        return 'bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-200';
-    }
-  };
-
-  const getTypeLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      'atolye': 'Atölye',
-      'konferans': 'Konferans',
-      'sosyal': 'Sosyal',
-      'egitim': 'Eğitim',
-      'seminer': 'Seminer'
-    };
-    return labels[type] || type;
-  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('tr-TR', {
@@ -56,6 +32,12 @@ const EventsSection = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  // Format price display - DİĞER SAYFALARDA OLDUĞU GİBİ
+  const formatPrice = (price?: number, currency: string = 'TL') => {
+    if (!price || price === 0) return '🆓 Ücretsiz';
+    return `💰 ${price.toLocaleString('tr-TR')} ${currency}`;
   };
 
   if (isLoading) {
@@ -85,14 +67,12 @@ const EventsSection = () => {
             <Card key={event.id} className="group hover:shadow-lg transition-all duration-300 border-0 shadow-md bg-white dark:bg-slate-800">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <Badge className={getTypeColor(event.event_type)}>
-                    {getTypeLabel(event.event_type)}
+                  <Badge className={getEventTypeColor(event.event_type as EventType)}>
+                    {getEventTypeLabel(event.event_type as EventType)}
                   </Badge>
-                  {event.max_participants && (
-                    <span className="text-sm text-slate-500 dark:text-slate-400">
-                      {event.max_participants} kişi
-                    </span>
-                  )}
+                  <Badge className={`${event.price && event.price > 0 ? 'bg-green-600' : 'bg-blue-600'} text-white`}>
+                    {formatPrice(event.price, event.currency)}
+                  </Badge>
                 </div>
                 
                 <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-4 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors duration-200">
@@ -112,6 +92,12 @@ const EventsSection = () => {
                     <div className="flex items-start">
                       <span className="font-medium w-16 mt-0.5">Yer:</span>
                       <span className="flex-1">{event.location}</span>
+                    </div>
+                  )}
+                  {event.max_participants && (
+                    <div className="flex items-center">
+                      <span className="font-medium w-16">Kontenjan:</span>
+                      <span>{event.max_participants} kişi</span>
                     </div>
                   )}
                 </div>
