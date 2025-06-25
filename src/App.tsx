@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { Toaster } from 'sonner';
 import useScrollToTop from '@/hooks/useScrollToTop';
 import Index from '@/pages/Index';
 import Haberler from '@/pages/Haberler';
@@ -67,6 +68,12 @@ function App() {
         <Router>
           <AppRoutes />
         </Router>
+        <Toaster 
+          position="top-right"
+          expand={true}
+          richColors
+          closeButton
+        />
       </QueryClientProvider>
     </ThemeProvider>
   );
