@@ -877,4 +877,246 @@ export const optimizeProductImage = async (
   // TODO: Gelecekte canvas ile resim optimizasyonu eklenebilir
   // Şimdilik orijinal dosyayı döndür
   return imageFile;
+};
+
+// ====================================================================
+// TASARIM TALEPLERİ (PRODUCT DESIGN REQUESTS) FONKSİYONLARI 🎨
+// ====================================================================
+
+/**
+ * Tasarım talebi dosyalarını organize etmek için path oluşturucu
+ */
+export const createDesignRequestPaths = (requestId: string, designTitle: string) => {
+  const year = new Date().getFullYear();
+  const month = String(new Date().getMonth() + 1).padStart(2, '0');
+  const sanitizedTitle = designTitle
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, '-')
+    .substring(0, 50);
+  
+  return {
+    inspirationFolder: `tasarim-talepleri/${year}/${month}/${sanitizedTitle}-${requestId}/ilham-gorselleri/`,
+    attachmentsFolder: `tasarim-talepleri/${year}/${month}/${sanitizedTitle}-${requestId}/ek-dosyalar/`,
+    mainFolder: `tasarim-talepleri/${year}/${month}/${sanitizedTitle}-${requestId}/`
+  };
+};
+
+/**
+ * Tasarım talebi ilham görsellerini GitHub'a yükle
+ */
+export const uploadDesignRequestInspirationImages = async (
+  config: GitHubStorageConfig,
+  requestId: string,
+  designTitle: string,
+  images: File[]
+): Promise<{
+  success: boolean;
+  uploadedUrls: string[];
+  failedUploads: { file: string; error: string }[];
+}> => {
+  const paths = createDesignRequestPaths(requestId, designTitle);
+  const uploadedUrls: string[] = [];
+  const failedUploads: { file: string; error: string }[] = [];
+
+  for (let i = 0; i < images.length; i++) {
+    const file = images[i];
+    
+    // Güvenli dosya adı oluştur
+    const fileExtension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const safeFileName = `ilham-${i + 1}-${Date.now()}.${fileExtension}`;
+    const filePath = `${paths.inspirationFolder}${safeFileName}`;
+
+    try {
+      // Resim optimizasyonu (sadece resim dosyaları için)
+      let fileToUpload = file;
+      if (file.type.startsWith('image/')) {
+        fileToUpload = await optimizeDesignRequestImage(file);
+      }
+
+      const result = await uploadFileObjectToGitHub(
+        config,
+        fileToUpload,
+        filePath,
+        `Add inspiration image ${i + 1} for design request: ${designTitle}`
+      );
+
+      if (result.success && result.rawUrl) {
+        uploadedUrls.push(result.rawUrl);
+      } else {
+        failedUploads.push({
+          file: file.name,
+          error: result.error || 'Unknown upload error'
+        });
+      }
+    } catch (error) {
+      failedUploads.push({
+        file: file.name,
+        error: error instanceof Error ? error.message : 'Processing error'
+      });
+    }
+  }
+
+  return {
+    success: failedUploads.length === 0,
+    uploadedUrls,
+    failedUploads
+  };
+};
+
+/**
+ * Tasarım talebi resimlerini optimize et
+ */
+export const optimizeDesignRequestImage = async (
+  imageFile: File,
+  maxSize: number = 2 * 1024 * 1024 // 2MB default (inspiration images can be larger)
+): Promise<File> => {
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = () => {
+      // İlham görselleri için daha geniş boyut limitleri
+      const maxWidth = 1500;
+      const maxHeight = 1500;
+      
+      let { width, height } = img;
+      
+      // Boyut kontrolü
+      if (width > maxWidth || height > maxHeight) {
+        const ratio = Math.min(maxWidth / width, maxHeight / height);
+        width *= ratio;
+        height *= ratio;
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      
+      // Resmi çiz
+      ctx?.drawImage(img, 0, 0, width, height);
+      
+      // Canvas'ı blob'a çevir
+      canvas.toBlob((blob) => {
+        if (blob && blob.size <= maxSize) {
+          const optimizedFile = new File([blob], imageFile.name, {
+            type: 'image/jpeg',
+            lastModified: Date.now()
+          });
+          resolve(optimizedFile);
+        } else {
+          // Kaliteyi düşür
+          canvas.toBlob((smallerBlob) => {
+            if (smallerBlob) {
+              const optimizedFile = new File([smallerBlob], imageFile.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now()
+              });
+              resolve(optimizedFile);
+            } else {
+              resolve(imageFile);
+            }
+          }, 'image/jpeg', 0.7);
+        }
+      }, 'image/jpeg', 0.85);
+    };
+    
+    img.onerror = () => resolve(imageFile);
+    img.src = URL.createObjectURL(imageFile);
+  });
+};
+
+/**
+ * Tasarım talebi dosyalarını GitHub'dan sil (admin silme işlemi için)
+ */
+export const deleteDesignRequestFilesFromGitHub = async (
+  config: GitHubStorageConfig,
+  requestId: string,
+  designTitle: string,
+  inspirationImageUrls?: string[]
+): Promise<GitHubDeleteResult> => {
+  try {
+    const deletedFiles: string[] = [];
+    const errors: string[] = [];
+
+    // İlham görsellerini sil
+    if (inspirationImageUrls && inspirationImageUrls.length > 0) {
+      for (const imageUrl of inspirationImageUrls) {
+        if (imageUrl && imageUrl.includes('raw.githubusercontent.com')) {
+          const imagePath = extractGitHubPath(imageUrl);
+          if (imagePath) {
+            const deleteResult = await deleteFileFromGitHub(
+              config,
+              imagePath,
+              `Delete inspiration image for design request: ${designTitle}`
+            );
+
+            if (deleteResult.success && deleteResult.deletedFiles) {
+              deletedFiles.push(...deleteResult.deletedFiles);
+            } else if (deleteResult.error) {
+              errors.push(`Image: ${deleteResult.error}`);
+            }
+          }
+        }
+      }
+    }
+
+    return {
+      success: errors.length === 0,
+      deletedFiles,
+      error: errors.length > 0 ? errors.join(', ') : undefined
+    };
+
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Design request delete failed'
+    };
+  }
+};
+
+/**
+ * Tasarım talebi için tüm GitHub dosyalarını sil (klasör temizliği)
+ */
+export const deleteAllDesignRequestFilesFromGitHub = async (
+  config: GitHubStorageConfig,
+  requestId: string,
+  designTitle: string,
+  existingInspirationImages?: string[]
+): Promise<GitHubDeleteResult> => {
+  try {
+    const deletedFiles: string[] = [];
+    const errors: string[] = [];
+
+    // Mevcut inspiration images'ları URL'lerden sil
+    if (existingInspirationImages && existingInspirationImages.length > 0) {
+      const deleteResult = await deleteDesignRequestFilesFromGitHub(
+        config,
+        requestId,
+        designTitle,
+        existingInspirationImages
+      );
+
+      if (deleteResult.success && deleteResult.deletedFiles) {
+        deletedFiles.push(...deleteResult.deletedFiles);
+      } else if (deleteResult.error) {
+        errors.push(deleteResult.error);
+      }
+    }
+
+    // TODO: Klasör silme işlemi (GitHub API ile klasör silme biraz karmaşık)
+    // Şimdilik dosya bazlı silme yapıyoruz
+
+    return {
+      success: errors.length === 0,
+      deletedFiles,
+      error: errors.length > 0 ? errors.join(', ') : undefined
+    };
+
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Complete design request delete failed'
+    };
+  }
 }; 

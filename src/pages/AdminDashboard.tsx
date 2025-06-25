@@ -37,12 +37,13 @@ import SponsorModal from '@/components/admin/SponsorModal';
 import SurveyModal from '@/components/admin/SurveyModal';
 import TeamMemberModal from '@/components/admin/TeamMemberModal';
 import ProductModal from '@/components/admin/ProductModal';
+import ProductDesignRequestDetailModal from '@/components/admin/ProductDesignRequestDetailModal';
 import UserRoleManagement from '@/components/admin/UserRoleManagement';
 import ThemeToggle from '@/components/admin/ThemeToggle';
 import FormResponsesModal from '@/components/admin/FormResponsesModal';
 import { EVENT_TYPES, EVENT_STATUSES } from '@/constants/eventConstants';
 
-import { useNews, useEvents, useMagazineIssues, useSurveys, useSponsors, useTeamMembers, useAcademicDocuments, useInternships, useContactMessages, useUpdateContactMessage, useDeleteContactMessage, useUsers, useUserRoles, useMagazineAnalytics, useMagazineContributors, useArticleSubmissions, useEventSuggestions, useUpdateEventSuggestion, useProducts } from '@/hooks/useSupabaseData';
+import { useNews, useEvents, useMagazineIssues, useSurveys, useSponsors, useTeamMembers, useAcademicDocuments, useInternships, useContactMessages, useUpdateContactMessage, useDeleteContactMessage, useUsers, useUserRoles, useMagazineAnalytics, useMagazineContributors, useArticleSubmissions, useEventSuggestions, useUpdateEventSuggestion, useProducts, useProductDesignRequests, useUpdateProductDesignRequest } from '@/hooks/useSupabaseData';
 import { deleteMagazineFilesByUrls, deleteAllProductFilesFromGitHub } from '@/utils/githubStorageHelper';
 import { getGitHubStorageConfig, isGitHubStorageConfigured } from '@/integrations/github/config';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -88,6 +89,12 @@ const AdminDashboard = () => {
   const [responseModalOpen, setResponseModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
 
+  // Product Design Request modal states - YENİ
+  const [designRequestDetailModalOpen, setDesignRequestDetailModalOpen] = useState(false);
+  const [selectedDesignRequest, setSelectedDesignRequest] = useState<any>(null);
+  const [confirmationModalOpen, setConfirmationModalOpen] = useState(false);
+  const [pendingStatusChange, setPendingStatusChange] = useState<{ id: string; status: string; action: string } | null>(null);
+
   // Data hooks
   const { data: users } = useUsers();
   const { data: userRoles } = useUserRoles();
@@ -108,6 +115,10 @@ const AdminDashboard = () => {
   const { data: articleSubmissions } = useArticleSubmissions();
   const { data: eventSuggestions } = useEventSuggestions();
   const updateEventSuggestion = useUpdateEventSuggestion();
+  
+  // Product Design Requests hooks
+  const { data: productDesignRequests } = useProductDesignRequests();
+  const updateProductDesignRequest = useUpdateProductDesignRequest();
   
   // Contact message mutations
   const updateContactMessage = useUpdateContactMessage();
@@ -764,6 +775,43 @@ const AdminDashboard = () => {
     } catch (error) {
       toast.error('❌ Mesaj güncellenirken hata oluştu');
     }
+  };
+
+  // Product Design Request handlers
+  const handleViewDesignRequestDetail = (request: any) => {
+    setSelectedDesignRequest(request);
+    setDesignRequestDetailModalOpen(true);
+  };
+
+  const handleStatusChangeConfirmation = (id: string, newStatus: string, action: string) => {
+    setPendingStatusChange({ id, status: newStatus, action });
+    setConfirmationModalOpen(true);
+  };
+
+  const confirmStatusChange = async () => {
+    if (!pendingStatusChange) return;
+    
+    try {
+      await updateProductDesignRequest.mutateAsync({ 
+        id: pendingStatusChange.id, 
+        status: pendingStatusChange.status,
+        reviewed_at: new Date().toISOString(),
+        reviewer_id: user?.id 
+      });
+      
+      toast.success(`✅ Talep durumu başarıyla güncellendi: ${pendingStatusChange.action}`);
+    } catch (error) {
+      console.error('Error updating design request:', error);
+      toast.error('❌ Durum güncellenirken bir hata oluştu');
+    } finally {
+      setConfirmationModalOpen(false);
+      setPendingStatusChange(null);
+    }
+  };
+
+  const cancelStatusChange = () => {
+    setConfirmationModalOpen(false);
+    setPendingStatusChange(null);
   };
 
   if (!user) {
@@ -2332,6 +2380,259 @@ const AdminDashboard = () => {
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Product Design Requests Bölümü */}
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-xl flex items-center justify-center shadow-lg">
+                      <span className="text-2xl">🎨</span>
+                    </div>
+                    <div>
+                      <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+                        Özel Tasarım Talepleri
+                      </h3>
+                      <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+                        Kullanıcılardan gelen özel tasarım taleplerini değerlendirin ve onaylayın
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Design Request Stats Cards */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 sm:p-6 rounded-xl shadow-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-blue-100 text-xs sm:text-sm font-medium">📥 Toplam</p>
+                          <p className="text-lg sm:text-2xl font-bold">
+                            {productDesignRequests?.length || 0}
+                          </p>
+                        </div>
+                        <Package className="h-6 w-6 sm:h-8 sm:w-8 text-blue-200" />
+                      </div>
+                    </div>
+                    <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 text-white p-4 sm:p-6 rounded-xl shadow-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-yellow-100 text-xs sm:text-sm font-medium">⏳ Bekleyen</p>
+                          <p className="text-lg sm:text-2xl font-bold">
+                            {productDesignRequests?.filter(r => r.status === 'pending').length || 0}
+                          </p>
+                        </div>
+                        <Clock className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-200" />
+                      </div>
+                    </div>
+                    <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-4 sm:p-6 rounded-xl shadow-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-green-100 text-xs sm:text-sm font-medium">✅ Onaylanan</p>
+                          <p className="text-lg sm:text-2xl font-bold">
+                            {productDesignRequests?.filter(r => r.status === 'approved').length || 0}
+                          </p>
+                        </div>
+                        <CheckCircle className="h-6 w-6 sm:h-8 sm:w-8 text-green-200" />
+                      </div>
+                    </div>
+                    <div className="bg-gradient-to-br from-red-500 to-red-600 text-white p-4 sm:p-6 rounded-xl shadow-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-red-100 text-xs sm:text-sm font-medium">❌ Reddedilen</p>
+                          <p className="text-lg sm:text-2xl font-bold">
+                            {productDesignRequests?.filter(r => r.status === 'rejected').length || 0}
+                          </p>
+                        </div>
+                        <XCircle className="h-6 w-6 sm:h-8 sm:w-8 text-red-200" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Design Requests List */}
+                  <Card className="overflow-hidden">
+                    <CardHeader className="bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-900">
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        🎨 Tasarım Talep Listesi
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                        {productDesignRequests?.map(request => (
+                          <div key={request.id} className="p-4 sm:p-6 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                            <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <h5 className="font-semibold text-gray-900 dark:text-white text-base sm:text-lg">
+                                    {request.design_title}
+                                  </h5>
+                                  <Badge 
+                                    className={`${
+                                      request.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300' :
+                                      request.status === 'approved' || request.status === 'in_design' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
+                                      'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
+                                    }`}
+                                  >
+                                    {request.status === 'pending' ? '⏳ Beklemede' :
+                                     request.status === 'approved' ? '✅ Onaylandı' :
+                                     request.status === 'in_design' ? '🎨 Tasarımda' :
+                                     request.status === 'completed' ? '🎉 Tamamlandı' :
+                                     '❌ Reddedildi'}
+                                  </Badge>
+                                  <Badge variant="outline" className="capitalize">
+                                    {request.product_category}
+                                  </Badge>
+                                </div>
+                                <p className="text-gray-600 dark:text-gray-300 text-sm sm:text-base mb-3 line-clamp-2">
+                                  {request.design_description}
+                                </p>
+                                <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                                  <span className="flex items-center gap-1">
+                                    <span>👤</span>
+                                    {request.contact_name}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <span>📧</span>
+                                    {request.contact_email}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <span>📅</span>
+                                    {new Date(request.created_at).toLocaleDateString('tr-TR')}
+                                  </span>
+                                  {request.target_price_min && request.target_price_max && (
+                                    <span className="flex items-center gap-1">
+                                      <span>💰</span>
+                                      {request.target_price_min}-{request.target_price_max} TL
+                                    </span>
+                                  )}
+                                  {request.quantity_needed && (
+                                    <span className="flex items-center gap-1">
+                                      <span>📊</span>
+                                      {request.quantity_needed} adet
+                                    </span>
+                                  )}
+                                  {request.deadline_date && (
+                                    <span className="flex items-center gap-1">
+                                      <span>⏰</span>
+                                      Son: {new Date(request.deadline_date).toLocaleDateString('tr-TR')}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              
+                              {/* Action Buttons */}
+                              <div className="flex flex-col sm:flex-row gap-2">
+                                {/* Detay Görme Butonu - Her zaman görünür */}
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleViewDesignRequestDetail(request)}
+                                  className="h-8 text-xs px-3 border-blue-300 text-blue-600 hover:bg-blue-50 dark:border-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/20"
+                                >
+                                  👁️ Detay
+                                </Button>
+
+                                {/* Status-based Action Buttons */}
+                                {request.status === 'pending' && (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleStatusChangeConfirmation(request.id, 'approved', 'Onaylandı')}
+                                      className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 h-8 text-xs"
+                                    >
+                                      ✅ Onayla
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleStatusChangeConfirmation(request.id, 'rejected', 'Reddedildi')}
+                                      className="border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20 px-3 py-1 h-8 text-xs"
+                                    >
+                                      ❌ Reddet
+                                    </Button>
+                                  </>
+                                )}
+                                
+                                {request.status === 'approved' && (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleStatusChangeConfirmation(request.id, 'in_design', 'Tasarıma Başlandı')}
+                                      className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 h-8 text-xs"
+                                    >
+                                      🎨 Tasarıma Başla
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleStatusChangeConfirmation(request.id, 'pending', 'Beklemede')}
+                                      className="border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-900/20 px-3 py-1 h-8 text-xs"
+                                    >
+                                      🔄 Geri Al
+                                    </Button>
+                                  </>
+                                )}
+                                
+                                {request.status === 'in_design' && (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleStatusChangeConfirmation(request.id, 'completed', 'Tamamlandı')}
+                                      className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 h-8 text-xs"
+                                    >
+                                      🎉 Tamamlandı
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleStatusChangeConfirmation(request.id, 'approved', 'Onaylandı')}
+                                      className="border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-900/20 px-3 py-1 h-8 text-xs"
+                                    >
+                                      🔄 Geri Al
+                                    </Button>
+                                  </>
+                                )}
+                                
+                                {request.status === 'rejected' && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleStatusChangeConfirmation(request.id, 'pending', 'Beklemede')}
+                                    className="border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-900/20 px-3 py-1 h-8 text-xs"
+                                  >
+                                    🔄 Yeniden Değerlendir
+                                  </Button>
+                                )}
+                                
+                                {request.status === 'completed' && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleStatusChangeConfirmation(request.id, 'in_design', 'Tasarımda')}
+                                    className="border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-900/20 px-3 py-1 h-8 text-xs"
+                                  >
+                                    🔄 Geri Al
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        
+                        {/* Empty State */}
+                        {(!productDesignRequests || productDesignRequests?.length === 0) && (
+                          <div className="text-center py-12 sm:py-16">
+                            <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-4 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                              <Package className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400" />
+                            </div>
+                            <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                              Henüz tasarım talebi bulunmuyor
+                            </h3>
+                            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+                              Kullanıcılar ürünler sayfasından özel tasarım taleplerini gönderebilirler
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               </TabsContent>
             )}
 
@@ -2892,6 +3193,66 @@ const AdminDashboard = () => {
                       <>
                         <Trash2 className="h-4 w-4 mr-2" />
                         🗑️ Sil
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Product Design Request Detail Modal */}
+        <ProductDesignRequestDetailModal
+          isOpen={designRequestDetailModalOpen}
+          onClose={() => setDesignRequestDetailModalOpen(false)}
+          request={selectedDesignRequest}
+        />
+
+        {/* Confirmation Dialog for Status Changes */}
+        <Dialog open={confirmationModalOpen} onOpenChange={cancelStatusChange}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold flex items-center gap-2">
+                ⚠️ Durum Değişikliği Onayı
+              </DialogTitle>
+              <DialogDescription>
+                Bu işlemi gerçekleştirmek istediğinizden emin misiniz?
+              </DialogDescription>
+            </DialogHeader>
+            
+            {pendingStatusChange && (
+              <div className="space-y-4 mt-4">
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                  <h4 className="font-medium text-yellow-800 dark:text-yellow-300 mb-2">💼 Değişiklik Detayları:</h4>
+                  <div className="space-y-1 text-sm">
+                    <p><strong>Yeni Durum:</strong> {pendingStatusChange.action}</p>
+                    <p className="text-yellow-600 dark:text-yellow-400">
+                      Bu değişiklik geri alınabilir ancak bildirim e-postası gönderilecektir.
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex gap-3 justify-end">
+                  <Button 
+                    variant="outline" 
+                    onClick={cancelStatusChange}
+                  >
+                    ❌ İptal
+                  </Button>
+                  <Button 
+                    onClick={confirmStatusChange}
+                    disabled={updateProductDesignRequest.isPending}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    {updateProductDesignRequest.isPending ? (
+                      <>
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" />
+                        Güncelleniyor...
+                      </>
+                    ) : (
+                      <>
+                        ✅ Onayla
                       </>
                     )}
                   </Button>

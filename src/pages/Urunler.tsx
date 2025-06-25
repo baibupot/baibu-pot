@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Package, ShoppingBag, Tag, Star, CheckCircle, AlertCircle, XCircle, Eye } from 'lucide-react';
-import { useProducts } from '@/hooks/useSupabaseData';
+import { useProducts, useCreateProductDesignRequest } from '@/hooks/useSupabaseData';
 import LazyImage from '@/components/LazyImage';
 import PageContainer from '@/components/ui/page-container';
 import PageHero from '@/components/ui/page-hero';
@@ -11,16 +11,20 @@ import LoadingPage from '@/components/ui/loading-page';
 import ErrorState from '@/components/ui/error-state';
 import EmptyState from '@/components/ui/empty-state';
 import ProductDetailModal from '@/components/ProductDetailModal';
+import ProductDesignRequestModal from '@/components/ProductDesignRequestModal';
+import { toast } from 'sonner';
 import type { Database } from '@/integrations/supabase/types';
 
 type Tables = Database['public']['Tables'];
 
 const Urunler = () => {
   const { data: products, isLoading, error } = useProducts();
+  const createDesignRequest = useCreateProductDesignRequest();
   
-  // Modal state
+  // Modal states
   const [selectedProduct, setSelectedProduct] = useState<Tables['products']['Row'] | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDesignRequestModalOpen, setIsDesignRequestModalOpen] = useState(false);
 
   const handleProductClick = (product: Tables['products']['Row']) => {
     setSelectedProduct(product);
@@ -30,6 +34,17 @@ const Urunler = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedProduct(null);
+  };
+
+  // Tasarım talebi gönderme fonksiyonu
+  const handleDesignRequest = async (requestData: Tables['product_design_requests']['Insert']) => {
+    try {
+      await createDesignRequest.mutateAsync(requestData);
+      toast.success('🎉 Özel tasarım talebiniz başarıyla gönderildi! Yakında size dönüş yapacağız.');
+    } catch (error) {
+      console.error('Error submitting design request:', error);
+      throw error; // Modal kendi error handling'ini yapsın
+    }
   };
 
   const getStockIcon = (status: string | null) => {
@@ -260,18 +275,34 @@ const Urunler = () => {
       </section>
 
       {/* Call to Action */}
-      <section className="py-16 text-center">
-        <div className="max-w-2xl mx-auto space-y-6">
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-white">
-            Özel Tasarım Talebi
-          </h2>
-          <p className="text-lg text-slate-600 dark:text-slate-400">
-            Aklınızda özel bir tasarım mı var? Bizimle iletişime geçin, size özel ürünler tasarlayalım.
-          </p>
-          <Button size="lg" variant="outline" className="group">
-            <Package className="h-5 w-5 mr-2 group-hover:rotate-12 transition-transform duration-200" />
-            Özel Tasarım Talebi
-          </Button>
+      <section className="py-16">
+        <div className="bg-gradient-to-br from-cyan-50 via-blue-50 to-purple-50 dark:from-cyan-950 dark:via-blue-950 dark:to-purple-950 rounded-2xl p-12 text-center relative overflow-hidden">
+          {/* Background decoration */}
+          <div className="absolute inset-0 opacity-20">
+            <div className="absolute top-0 left-1/4 w-72 h-72 bg-cyan-300 rounded-full mix-blend-multiply filter blur-xl animate-pulse"></div>
+            <div className="absolute bottom-0 right-1/4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl animate-pulse animation-delay-2000"></div>
+          </div>
+          
+          <div className="relative z-10 max-w-2xl mx-auto space-y-8">
+            <div className="text-6xl mb-6">🎨</div>
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white">
+              Özel Tasarım Talebi
+            </h2>
+            <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
+              Aklınızda özel bir tasarım mı var? Bizimle iletişime geçin, ürünleri tasarlayalım. 
+              Kendi stilinizi yansıtan, anlamlı ve kaliteli ürünler için taleplerinizi bekliyoruz.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button 
+                size="lg" 
+                className="group bg-cyan-600 hover:bg-cyan-700 text-white"
+                onClick={() => setIsDesignRequestModalOpen(true)}
+              >
+                <Package className="h-5 w-5 mr-2 group-hover:rotate-12 transition-transform duration-200" />
+                🎯 Özel Tasarım Talebi Gönder
+              </Button>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -283,6 +314,13 @@ const Urunler = () => {
           onClose={closeModal}
         />
       )}
+
+      {/* Product Design Request Modal */}
+      <ProductDesignRequestModal
+        isOpen={isDesignRequestModalOpen}
+        onClose={() => setIsDesignRequestModalOpen(false)}
+        onSubmit={handleDesignRequest}
+      />
     </PageContainer>
   );
 };

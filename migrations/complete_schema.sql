@@ -356,6 +356,42 @@ CREATE TABLE public.products (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Özel Tasarım Talepleri
+CREATE TABLE public.product_design_requests (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    design_title TEXT NOT NULL,
+    design_description TEXT NOT NULL,
+    product_category TEXT NOT NULL CHECK (product_category IN ('kirtasiye', 'giyim', 'aksesuar', 'diger')),
+    target_price_min DECIMAL(10,2),
+    target_price_max DECIMAL(10,2),
+    currency TEXT DEFAULT 'TL',
+    quantity_needed INTEGER,
+    usage_purpose TEXT,
+    design_preferences TEXT,
+    color_preferences TEXT[],
+    size_preferences TEXT[],
+    inspiration_images TEXT[],
+    special_requirements TEXT,
+    deadline_date DATE,
+    contact_name TEXT NOT NULL,
+    contact_email TEXT NOT NULL,
+    contact_phone TEXT,
+    contact_student_number TEXT,
+    additional_notes TEXT,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'under_review', 'in_design', 'approved', 'rejected', 'completed')),
+    priority_level TEXT DEFAULT 'normal' CHECK (priority_level IN ('low', 'normal', 'high', 'urgent')),
+    estimated_cost DECIMAL(10,2),
+    estimated_time_days INTEGER,
+    reviewer_id UUID REFERENCES public.users(id),
+    reviewer_notes TEXT,
+    reviewed_at TIMESTAMP WITH TIME ZONE,
+    design_files TEXT[],
+    prototype_images TEXT[],
+    final_product_images TEXT[],
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- ====================================================================
 -- 6. FORM VE İLETİŞİM
 -- ====================================================================
@@ -471,6 +507,7 @@ CREATE TRIGGER handle_updated_at_products BEFORE UPDATE ON public.products FOR E
 CREATE TRIGGER handle_updated_at_magazine_contributors BEFORE UPDATE ON public.magazine_contributors FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER handle_updated_at_article_submissions BEFORE UPDATE ON public.article_submissions FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER handle_updated_at_event_suggestions BEFORE UPDATE ON public.event_suggestions FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+CREATE TRIGGER handle_updated_at_product_design_requests BEFORE UPDATE ON public.product_design_requests FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
 -- ====================================================================
 -- 9. GÜVENLİK POLİTİKALARI (RLS)
@@ -498,6 +535,7 @@ ALTER TABLE public.magazine_sponsors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.magazine_reads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.magazine_page_reads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.article_submissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.product_design_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.event_sponsors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.event_suggestions ENABLE ROW LEVEL SECURITY;
 
@@ -589,6 +627,12 @@ CREATE POLICY "event_suggestions_insert_policy" ON public.event_suggestions FOR 
 CREATE POLICY "event_suggestions_select_admin_policy" ON public.event_suggestions FOR SELECT USING (auth.uid() IS NOT NULL);
 CREATE POLICY "event_suggestions_update_admin_policy" ON public.event_suggestions FOR UPDATE USING (auth.uid() IS NOT NULL);
 CREATE POLICY "event_suggestions_delete_admin_policy" ON public.event_suggestions FOR DELETE USING (auth.uid() IS NOT NULL);
+
+-- Product Design Requests Policies
+CREATE POLICY "product_design_requests_insert_policy" ON public.product_design_requests FOR INSERT WITH CHECK (true);
+CREATE POLICY "product_design_requests_select_admin_policy" ON public.product_design_requests FOR SELECT USING (auth.uid() IS NOT NULL);
+CREATE POLICY "product_design_requests_update_admin_policy" ON public.product_design_requests FOR UPDATE USING (auth.uid() IS NOT NULL);
+CREATE POLICY "product_design_requests_delete_admin_policy" ON public.product_design_requests FOR DELETE USING (auth.uid() IS NOT NULL);
 
 -- ====================================================================
 -- 10. YETKİLERİ AYARLA

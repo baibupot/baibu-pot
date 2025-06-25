@@ -95,7 +95,7 @@ export const useNews = (published = true) => {
       return data;
     },
     staleTime: 3 * 60 * 1000, // 3 dakika fresh (news orta sıklıkta değişir)
-    cacheTime: 10 * 60 * 1000, // 10 dakika cache
+    gcTime: 10 * 60 * 1000, // 10 dakika cache
     refetchOnWindowFocus: false,
   });
 };
@@ -169,7 +169,7 @@ export const useEvents = () => {
       return data;
     },
     staleTime: 2 * 60 * 1000, // 2 dakika fresh tut (events sık değişmez)
-    cacheTime: 10 * 60 * 1000, // 10 dakika cache'de tut
+    gcTime: 10 * 60 * 1000, // 10 dakika cache'de tut
     refetchOnWindowFocus: false, // Pencere focus'ta refetch etme
   });
 };
@@ -400,7 +400,7 @@ export const useMagazineIssues = (published = true) => {
       return data;
     },
     staleTime: 5 * 60 * 1000, // 5 dakika fresh (magazine daha az değişir)
-    cacheTime: 15 * 60 * 1000, // 15 dakika cache
+    gcTime: 15 * 60 * 1000, // 15 dakika cache
     refetchOnWindowFocus: false,
   });
 };
@@ -1264,6 +1264,116 @@ export const useDeleteEventSuggestion = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['event_suggestions'] });
+    },
+  });
+};
+
+// Product Design Requests hooks (admin + public)
+export const useProductDesignRequests = () => {
+  return useQuery({
+    queryKey: ['product_design_requests'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('product_design_requests')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    // Güvenlik: Sadece giriş yapmış kullanıcılar için çalışır
+    enabled: true, // RLS politikası zaten kontrol ediyor
+  });
+};
+
+export const useCreateProductDesignRequest = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (requestData: Tables['product_design_requests']['Insert']) => {
+      // 🔒 Anonim kullanıcılar için SELECT kaldırıldı - sadece INSERT
+      const { error } = await supabase
+        .from('product_design_requests')
+        .insert([requestData]);
+      if (error) throw error;
+      return { success: true }; // Basit success response
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['product_design_requests'] });
+    },
+  });
+};
+
+export const useUpdateProductDesignRequest = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, ...updateData }: { id: string } & Tables['product_design_requests']['Update']) => {
+      const { data, error } = await supabase
+        .from('product_design_requests')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['product_design_requests'] });
+    },
+  });
+};
+
+export const useDeleteProductDesignRequest = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (id: string) => {
+      // 🔍 Önce request'i al (GitHub cleanup için inspiration images lazım)
+      const { data: request, error: fetchError } = await supabase
+        .from('product_design_requests')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (fetchError) throw fetchError;
+      
+      // 🗑️ GitHub'dan inspiration images'ları sil
+      if (request?.inspiration_images && request.inspiration_images.length > 0) {
+        try {
+          const { getGitHubStorageConfig } = await import('@/integrations/github/config');
+          const { deleteDesignRequestFilesFromGitHub } = await import('@/utils/githubStorageHelper');
+          
+          const githubConfig = getGitHubStorageConfig();
+          if (githubConfig) {
+            await deleteDesignRequestFilesFromGitHub(
+              githubConfig,
+              request.id,
+              request.design_title || 'deleted-request',
+              request.inspiration_images
+            );
+          }
+        } catch (githubError) {
+          console.warn('GitHub cleanup failed:', githubError);
+          // GitHub cleanup başarısız olsa da database'den silmeye devam et
+        }
+      }
+      
+      // 🗑️ Database'den sil
+      const { error } = await supabase
+        .from('product_design_requests')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      
+      return { deletedId: id, cleanedUpFiles: request?.inspiration_images || [] };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['product_design_requests'] });
+      
+      // Success message ile file cleanup bilgisi
+      if (result.cleanedUpFiles.length > 0) {
+        console.log(`✅ Design request deleted with ${result.cleanedUpFiles.length} GitHub files cleaned up`);
+      }
     },
   });
 };
