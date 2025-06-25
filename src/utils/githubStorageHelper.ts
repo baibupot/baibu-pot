@@ -673,4 +673,208 @@ export const deleteEventFilesFromGitHub = async (
       error: error instanceof Error ? error.message : 'Event files delete failed'
     };
   }
+};
+
+// ====================================================================
+// ÜRÜN (PRODUCT) FONKSİYONLARI - YENİ ÖZELLİK 🛍️
+// ====================================================================
+
+/**
+ * Ürün dosyalarını organize etmek için path oluşturucu
+ */
+export const createProductPaths = (productId: string, productName: string) => {
+  const year = new Date().getFullYear();
+  const month = String(new Date().getMonth() + 1).padStart(2, '0');
+  
+  // URL-safe product name oluştur
+  const safeName = productName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .substring(0, 50);
+  
+  return {
+    imageFolder: `urunler/${year}/${month}/${safeName}/`,
+    mainImagePath: `urunler/${year}/${month}/${safeName}/ana-resim.jpg`,
+    galleryFolder: `urunler/${year}/${month}/${safeName}/galeri/`,
+    folder: `urunler/${year}/${month}/${safeName}/`
+  };
+};
+
+/**
+ * Ürün ana resmini GitHub'a yükle
+ */
+export const uploadProductMainImage = async (
+  config: GitHubStorageConfig,
+  productId: string,
+  productName: string,
+  imageFile: File
+): Promise<GitHubUploadResult> => {
+  const paths = createProductPaths(productId, productName);
+  const fileExtension = imageFile.name.split('.').pop() || 'jpg';
+  const filePath = `${paths.imageFolder}ana-resim.${fileExtension}`;
+
+  return await uploadFileObjectToGitHub(
+    config,
+    imageFile,
+    filePath,
+    `Upload main image for product ${productName}`
+  );
+};
+
+/**
+ * Ürün galeri resimlerini GitHub'a yükle
+ */
+export const uploadProductImages = async (
+  config: GitHubStorageConfig,
+  productId: string,
+  productName: string,
+  images: File[]
+): Promise<{
+  success: boolean;
+  uploadedUrls: string[];
+  failedUploads: { file: string; error: string }[];
+}> => {
+  const paths = createProductPaths(productId, productName);
+  const uploadedUrls: string[] = [];
+  const failedUploads: { file: string; error: string }[] = [];
+
+  for (let i = 0; i < images.length; i++) {
+    const file = images[i];
+    const fileExtension = file.name.split('.').pop() || 'jpg';
+    const fileName = `resim-${i + 1}-${Date.now()}.${fileExtension}`;
+    const filePath = `${paths.galleryFolder}${fileName}`;
+
+    try {
+      const result = await uploadFileObjectToGitHub(
+        config,
+        file,
+        filePath,
+        `Add product image ${i + 1} for ${productName}`
+      );
+
+      if (result.success && result.rawUrl) {
+        uploadedUrls.push(result.rawUrl);
+      } else {
+        failedUploads.push({
+          file: file.name,
+          error: result.error || 'Unknown error'
+        });
+      }
+    } catch (error) {
+      failedUploads.push({
+        file: file.name,
+        error: error instanceof Error ? error.message : 'Upload failed'
+      });
+    }
+  }
+
+  return {
+    success: failedUploads.length === 0,
+    uploadedUrls,
+    failedUploads
+  };
+};
+
+/**
+ * Ürün resimlerini GitHub'dan sil
+ */
+export const deleteProductImagesFromGitHub = async (
+  config: GitHubStorageConfig,
+  imageUrls: string[],
+  productName?: string
+): Promise<GitHubDeleteResult> => {
+  const deletedFiles: string[] = [];
+  const errors: string[] = [];
+
+  try {
+    for (const imageUrl of imageUrls) {
+      if (imageUrl && imageUrl.includes('raw.githubusercontent.com')) {
+        const imagePath = extractGitHubPath(imageUrl);
+        if (imagePath) {
+          const result = await deleteFileFromGitHub(
+            config,
+            imagePath,
+            `Delete product image for ${productName || 'product'}`
+          );
+          
+          if (result.success && result.deletedFiles) {
+            deletedFiles.push(...result.deletedFiles);
+          } else if (result.error) {
+            errors.push(`Image delete: ${result.error}`);
+          }
+        }
+      }
+    }
+
+    return {
+      success: errors.length === 0,
+      deletedFiles,
+      error: errors.length > 0 ? errors.join(', ') : undefined
+    };
+
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Product images delete failed'
+    };
+  }
+};
+
+/**
+ * Ürün ile ilgili tüm dosyaları GitHub'dan sil
+ */
+export const deleteAllProductFilesFromGitHub = async (
+  config: GitHubStorageConfig,
+  productId: string,
+  productName: string,
+  existingImages?: string[]
+): Promise<GitHubDeleteResult> => {
+  try {
+    // Eğer mevcut resim URL'leri verilmişse onları sil
+    if (existingImages && existingImages.length > 0) {
+      return await deleteProductImagesFromGitHub(config, existingImages, productName);
+    }
+
+    // Yoksa klasör bazında silme işlemi yapılabilir (gelecekte)
+    return {
+      success: true,
+      deletedFiles: [],
+      error: undefined
+    };
+
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Product files delete failed'
+    };
+  }
+};
+
+/**
+ * Ürün kategorisine göre resim optimizasyonu
+ */
+export const optimizeProductImage = async (
+  imageFile: File,
+  category: 'kirtasiye' | 'giyim' | 'aksesuar' | 'diger',
+  maxSize: number = 1024 * 1024 // 1MB default
+): Promise<File> => {
+  // Kategori bazında optimizasyon ayarları
+  const categorySettings = {
+    kirtasiye: { quality: 0.8, maxWidth: 800, maxHeight: 600 },
+    giyim: { quality: 0.9, maxWidth: 1200, maxHeight: 1200 },
+    aksesuar: { quality: 0.85, maxWidth: 1000, maxHeight: 1000 },
+    diger: { quality: 0.8, maxWidth: 800, maxHeight: 600 }
+  };
+
+  const settings = categorySettings[category];
+  
+  // Dosya boyutu kontrolü
+  if (imageFile.size <= maxSize) {
+    return imageFile; // Zaten uygun boyutta
+  }
+
+  // TODO: Gelecekte canvas ile resim optimizasyonu eklenebilir
+  // Şimdilik orijinal dosyayı döndür
+  return imageFile;
 }; 

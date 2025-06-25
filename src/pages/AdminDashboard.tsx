@@ -36,16 +36,18 @@ import MagazineModal from '@/components/admin/MagazineModal';
 import SponsorModal from '@/components/admin/SponsorModal';
 import SurveyModal from '@/components/admin/SurveyModal';
 import TeamMemberModal from '@/components/admin/TeamMemberModal';
+import ProductModal from '@/components/admin/ProductModal';
 import UserRoleManagement from '@/components/admin/UserRoleManagement';
 import ThemeToggle from '@/components/admin/ThemeToggle';
 import FormResponsesModal from '@/components/admin/FormResponsesModal';
 import { EVENT_TYPES, EVENT_STATUSES } from '@/constants/eventConstants';
 
-import { useNews, useEvents, useMagazineIssues, useSurveys, useSponsors, useTeamMembers, useAcademicDocuments, useInternships, useContactMessages, useUpdateContactMessage, useDeleteContactMessage, useUsers, useUserRoles, useMagazineAnalytics, useMagazineContributors, useArticleSubmissions, useEventSuggestions, useUpdateEventSuggestion } from '@/hooks/useSupabaseData';
-import { deleteMagazineFilesByUrls } from '@/utils/githubStorageHelper';
+import { useNews, useEvents, useMagazineIssues, useSurveys, useSponsors, useTeamMembers, useAcademicDocuments, useInternships, useContactMessages, useUpdateContactMessage, useDeleteContactMessage, useUsers, useUserRoles, useMagazineAnalytics, useMagazineContributors, useArticleSubmissions, useEventSuggestions, useUpdateEventSuggestion, useProducts } from '@/hooks/useSupabaseData';
+import { deleteMagazineFilesByUrls, deleteAllProductFilesFromGitHub } from '@/utils/githubStorageHelper';
 import { getGitHubStorageConfig, isGitHubStorageConfigured } from '@/integrations/github/config';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import type { Tables } from '@/integrations/supabase/types';
 
 interface User {
   id: string;
@@ -69,6 +71,7 @@ const AdminDashboard = () => {
   const [sponsorModalOpen, setSponsorModalOpen] = useState(false);
   const [surveyModalOpen, setSurveyModalOpen] = useState(false);
   const [teamMemberModalOpen, setTeamMemberModalOpen] = useState(false);
+  const [productModalOpen, setProductModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   
   // Article modal states - YENİ
@@ -97,6 +100,7 @@ const AdminDashboard = () => {
   const { data: contactMessages } = useContactMessages();
   const { data: sponsors } = useSponsors(false);
   const { data: teamMembers } = useTeamMembers(false);
+  const { data: products } = useProducts(false);
   
   // Dergi istatistikleri için yeni hook'lar
   const { data: magazineReads } = useMagazineAnalytics();
@@ -572,6 +576,29 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleSaveProduct = async (productData: any) => {
+    try {
+      if (editingItem) {
+        const { error } = await supabase
+          .from('products')
+          .update(productData)
+          .eq('id', editingItem.id);
+        if (error) throw error;
+        toast.success('Ürün güncellendi');
+      } else {
+        const { error } = await supabase
+          .from('products')
+          .insert([{ ...productData, created_by: user?.id }]);
+        if (error) throw error;
+        toast.success('Ürün eklendi');
+      }
+      setEditingItem(null);
+    } catch (error) {
+      toast.error('Bir hata oluştu');
+      console.error('Error saving product:', error);
+    }
+  };
+
   // Type-safe item types
   type EditableItem = 
     | Tables['news']['Row']
@@ -579,9 +606,10 @@ const AdminDashboard = () => {
     | Tables['magazine_issues']['Row']
     | Tables['sponsors']['Row']
     | Tables['surveys']['Row']
-    | Tables['team_members']['Row'];
+    | Tables['team_members']['Row']
+    | Tables['products']['Row'];
 
-  const openEditModal = (item: EditableItem, type: 'news' | 'event' | 'magazine' | 'sponsor' | 'survey' | 'team') => {
+  const openEditModal = (item: EditableItem, type: 'news' | 'event' | 'magazine' | 'sponsor' | 'survey' | 'team' | 'product') => {
     setEditingItem(item);
     if (type === 'news') setNewsModalOpen(true);
     else if (type === 'event') setEventModalOpen(true);
@@ -589,11 +617,12 @@ const AdminDashboard = () => {
     else if (type === 'sponsor') setSponsorModalOpen(true);
     else if (type === 'survey') setSurveyModalOpen(true);
     else if (type === 'team') setTeamMemberModalOpen(true);
+    else if (type === 'product') setProductModalOpen(true);
   };
 
   const handleDelete = async (
     id: string, 
-    tableName: 'news' | 'events' | 'magazine_issues' | 'sponsors' | 'surveys' | 'team_members'
+    tableName: 'news' | 'events' | 'magazine_issues' | 'sponsors' | 'surveys' | 'team_members' | 'products'
   ) => {
     if (!confirm('Bu öğeyi silmek istediğinizden emin misiniz?')) return;
     
@@ -2124,6 +2153,188 @@ const AdminDashboard = () => {
               </TabsContent>
             )}
 
+            {/* Products Tab */}
+            {hasPermission('products') && (
+              <TabsContent value="products" className="space-y-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <h2 className="text-2xl font-bold">🛍️ Ürün Yönetimi</h2>
+                  <Button onClick={() => { setEditingItem(null); setProductModalOpen(true); }}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Yeni Ürün
+                  </Button>
+                </div>
+
+                {/* Product Stats Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Toplam Ürün</CardTitle>
+                      <Package className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{products?.length || 0}</div>
+                      <p className="text-xs text-muted-foreground">
+                        {products?.filter(p => p.available).length || 0} satışta
+                      </p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Kırtasiye</CardTitle>
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {products?.filter(p => p.category === 'kirtasiye').length || 0}
+                      </div>
+                      <p className="text-xs text-muted-foreground">ürün</p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Giyim</CardTitle>
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {products?.filter(p => p.category === 'giyim').length || 0}
+                      </div>
+                      <p className="text-xs text-muted-foreground">ürün</p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Aksesuar</CardTitle>
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {products?.filter(p => p.category === 'aksesuar').length || 0}
+                      </div>
+                      <p className="text-xs text-muted-foreground">ürün</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Products List */}
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      {products?.map(product => (
+                        <div key={product.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg gap-4 hover:shadow-lg transition-shadow">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start gap-4">
+                              {/* Product Image */}
+                              {product.images && product.images.length > 0 && (
+                                <div className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
+                                  <img 
+                                    src={product.images[0]} 
+                                    alt={product.name}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).src = '/placeholder.svg';
+                                    }}
+                                  />
+                                </div>
+                              )}
+                              
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-medium truncate text-lg">{product.name}</h3>
+                                {product.description && (
+                                  <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                                    {product.description}
+                                  </p>
+                                )}
+                                
+                                <div className="flex flex-wrap items-center gap-2 mt-2">
+                                  <Badge variant="outline" className="capitalize">
+                                    {product.category}
+                                  </Badge>
+                                  
+                                  {product.price && product.price > 0 ? (
+                                    <Badge variant="outline" className="text-green-600 border-green-300">
+                                      💰 {product.price} {product.currency}
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="text-blue-600 border-blue-300">
+                                      🆓 Ücretsiz
+                                    </Badge>
+                                  )}
+                                  
+                                  <Badge variant={product.available ? "default" : "secondary"}>
+                                    {product.available ? "Satışta" : "Stokta Yok"}
+                                  </Badge>
+                                  
+                                  {product.features && product.features.length > 0 && (
+                                    <Badge variant="outline" className="text-purple-600 border-purple-300">
+                                      ✨ {product.features.length} özellik
+                                    </Badge>
+                                  )}
+                                  
+                                  {product.images && product.images.length > 1 && (
+                                    <Badge variant="outline" className="text-cyan-600 border-cyan-300">
+                                      📸 {product.images.length} resim
+                                    </Badge>
+                                  )}
+                                </div>
+                                
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  Oluşturulma: {new Date(product.created_at).toLocaleDateString('tr-TR')}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="flex space-x-2 flex-shrink-0">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => openEditModal(product, 'product')}
+                              className="hover:bg-blue-50 hover:border-blue-300 dark:hover:bg-blue-900/20 dark:hover:border-blue-600 transition-colors"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => handleDelete(product.id, 'products')}
+                              className="hover:bg-red-50 hover:border-red-300 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:border-red-600 dark:hover:text-red-400 transition-colors"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      
+                      {(!products || products?.length === 0) && (
+                        <div className="text-center py-12">
+                          <div className="w-24 h-24 mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                            <Package className="h-10 w-10 text-gray-400" />
+                          </div>
+                          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                            Henüz ürün bulunmuyor
+                          </h3>
+                          <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
+                            İlk ürününüzü ekleyerek başlayın
+                          </p>
+                          <Button 
+                            onClick={() => { setEditingItem(null); setProductModalOpen(true); }}
+                            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            İlk Ürünü Ekle
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            )}
+
             {/* Messages Tab */}
             {hasPermission('messages') && (
               <TabsContent value="messages" className="space-y-6">
@@ -2236,6 +2447,13 @@ const AdminDashboard = () => {
           onClose={() => { setTeamMemberModalOpen(false); setEditingItem(null); }}
           onSave={handleSaveTeamMember}
           initialData={editingItem}
+        />
+
+        <ProductModal
+          isOpen={productModalOpen}
+          onClose={() => { setProductModalOpen(false); setEditingItem(null); }}
+          onSave={handleSaveProduct}
+          product={editingItem}
         />
 
         {/* Form Responses Modal */}

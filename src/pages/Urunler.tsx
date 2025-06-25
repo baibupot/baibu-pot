@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Package, ShoppingBag, Tag, Star, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
+import { Package, ShoppingBag, Tag, Star, CheckCircle, AlertCircle, XCircle, Eye } from 'lucide-react';
 import { useProducts } from '@/hooks/useSupabaseData';
 import LazyImage from '@/components/LazyImage';
 import PageContainer from '@/components/ui/page-container';
@@ -10,9 +10,27 @@ import PageHero from '@/components/ui/page-hero';
 import LoadingPage from '@/components/ui/loading-page';
 import ErrorState from '@/components/ui/error-state';
 import EmptyState from '@/components/ui/empty-state';
+import ProductDetailModal from '@/components/ProductDetailModal';
+import type { Database } from '@/integrations/supabase/types';
+
+type Tables = Database['public']['Tables'];
 
 const Urunler = () => {
   const { data: products, isLoading, error } = useProducts();
+  
+  // Modal state
+  const [selectedProduct, setSelectedProduct] = useState<Tables['products']['Row'] | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleProductClick = (product: Tables['products']['Row']) => {
+    setSelectedProduct(product);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedProduct(null);
+  };
 
   const getStockIcon = (status: string | null) => {
     switch (status) {
@@ -137,7 +155,8 @@ const Urunler = () => {
           {products.map((product) => (
             <Card 
               key={product.id} 
-              className="card-hover group overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm"
+              className="card-hover group overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm cursor-pointer hover:shadow-xl transition-all duration-300"
+              onClick={() => handleProductClick(product)}
             >
               <CardHeader className="p-0">
                 <div className="h-64 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center relative overflow-hidden">
@@ -174,6 +193,13 @@ const Urunler = () => {
                       {getStockIcon(product.stock_status)}
                       {getStockText(product.stock_status)}
                     </Badge>
+                  </div>
+
+                  {/* Click to View Overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-full p-3 shadow-lg">
+                      <Eye className="h-6 w-6 text-cyan-600 dark:text-cyan-400" />
+                    </div>
                   </div>
                 </div>
               </CardHeader>
@@ -212,13 +238,17 @@ const Urunler = () => {
                   <Button 
                     className="w-full group-hover:shadow-lg transition-all duration-200"
                     disabled={product.stock_status === 'out_of_stock'}
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent card click when button is clicked
+                      handleProductClick(product);
+                    }}
                   >
                     {product.stock_status === 'out_of_stock' ? (
                       'Stokta Yok'
                     ) : (
                       <>
-                        <ShoppingBag className="h-4 w-4 mr-2" />
-                        Satın Al
+                        <Eye className="h-4 w-4 mr-2" />
+                        Detayları Gör
                       </>
                     )}
                   </Button>
@@ -244,6 +274,15 @@ const Urunler = () => {
           </Button>
         </div>
       </section>
+
+      {/* Product Detail Modal */}
+      {selectedProduct && (
+        <ProductDetailModal
+          product={selectedProduct}
+          isOpen={isModalOpen}
+          onClose={closeModal}
+        />
+      )}
     </PageContainer>
   );
 };
