@@ -18,23 +18,63 @@ export const useTheme = () => {
   return context;
 };
 
+// 🎯 Sistem temasını ve kaydedilen temayı kontrol et (flicker önleme)
+const getInitialTheme = (): Theme => {
+  // Önce localStorage'dan kontrol et
+  if (typeof window !== 'undefined') {
+    const savedTheme = localStorage.getItem('baibu-pot-theme') as Theme;
+    if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
+      return savedTheme;
+    }
+    
+    // Eğer kaydedilen tema yoksa sistem temasını kullan
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return 'dark';
+    }
+  }
+  
+  return 'light'; // Fallback
+};
+
+// 🎯 HTML'e temayı hemen uygula (sayfa yüklenmeden önce)
+const applyThemeToDocument = (theme: Theme) => {
+  if (typeof document !== 'undefined') {
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add(theme);
+  }
+};
+
 interface ThemeProviderProps {
   children: React.ReactNode;
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const [theme, setTheme] = useState<Theme>('light');
+  // 🎯 Hemen doğru tema ile başla (flicker yok)
+  const [theme, setTheme] = useState<Theme>(() => {
+    const initialTheme = getInitialTheme();
+    applyThemeToDocument(initialTheme); // Hemen uygula
+    return initialTheme;
+  });
 
+  // 🎯 Sistem tema değişikliğini dinle
   useEffect(() => {
-    const savedTheme = localStorage.getItem('baibu-pot-theme') as Theme;
-    if (savedTheme) {
-      setTheme(savedTheme);
-    }
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    
+    const handleSystemThemeChange = (e: MediaQueryListEvent) => {
+      // Sadece kaydedilen tema yoksa sistem temasını uygula
+      const savedTheme = localStorage.getItem('baibu-pot-theme');
+      if (!savedTheme) {
+        setTheme(e.matches ? 'dark' : 'light');
+      }
+    };
+
+    mediaQuery.addEventListener('change', handleSystemThemeChange);
+    return () => mediaQuery.removeEventListener('change', handleSystemThemeChange);
   }, []);
 
+  // 🎯 Tema değişikliğinde kaydet ve uygula
   useEffect(() => {
-    document.documentElement.classList.remove('light', 'dark');
-    document.documentElement.classList.add(theme);
+    applyThemeToDocument(theme);
     localStorage.setItem('baibu-pot-theme', theme);
   }, [theme]);
 

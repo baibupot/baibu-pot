@@ -174,6 +174,22 @@ export const useEvents = () => {
   });
 };
 
+export const useEvent = (id: string) => {
+  return useQuery({
+    queryKey: ['events', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('id', id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id,
+  });
+};
+
 export const useCreateEvent = () => {
   const queryClient = useQueryClient();
   
@@ -268,6 +284,48 @@ export const useCreateFormField = () => {
   });
 };
 
+export const useUpdateFormField = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, ...updateData }: { id: string } & Tables['form_fields']['Update']) => {
+      const { data, error } = await supabase
+        .from('form_fields')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ 
+        queryKey: ['form_fields', data.form_id, data.form_type] 
+      });
+    },
+  });
+};
+
+export const useDeleteFormField = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, form_id, form_type }: { id: string; form_id: string; form_type: string }) => {
+      const { error } = await supabase
+        .from('form_fields')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      return { id, form_id, form_type };
+    },
+    onSuccess: (variables) => {
+      queryClient.invalidateQueries({ 
+        queryKey: ['form_fields', variables.form_id, variables.form_type] 
+      });
+    },
+  });
+};
+
 // Form responses hooks
 export const useFormResponses = (formId: string, formType: string) => {
   return useQuery({
@@ -290,18 +348,35 @@ export const useCreateFormResponse = () => {
   
   return useMutation({
     mutationFn: async (responseData: Tables['form_responses']['Insert']) => {
-      const { data, error } = await supabase
+      // 🔒 Anonim kullanıcılar için SELECT kaldırıldı - sadece INSERT
+      const { error } = await supabase
         .from('form_responses')
-        .insert([responseData])
-        .select()
-        .single();
+        .insert([responseData]);
       if (error) throw error;
-      return data;
+      return { success: true }; // Basit success response
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ 
         queryKey: ['form_responses', variables.form_id, variables.form_type] 
       });
+    },
+  });
+};
+
+export const useDeleteFormResponse = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('form_responses')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      // Form responses cache'ini invalidate et
+      queryClient.invalidateQueries({ queryKey: ['form_responses'] });
     },
   });
 };

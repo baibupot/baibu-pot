@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Calendar, Clock, MapPin, Users, ExternalLink, Image, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -84,16 +84,16 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
   return (
     <Card className="group hover:shadow-xl hover:scale-[1.02] transition-all duration-300 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg">
       {/* Mobile-First Header with Image */}
-      {event.featured_image && (
+          {event.featured_image && (
         <div className="relative h-48 sm:h-56 md:h-40 w-full overflow-hidden rounded-t-xl">
-          <img 
-            src={event.featured_image} 
-            alt={event.title}
+              <img 
+                src={event.featured_image} 
+                alt={event.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            onError={(e) => {
-              e.currentTarget.src = '/placeholder.svg';
-            }}
-          />
+                onError={(e) => {
+                  e.currentTarget.src = '/placeholder.svg';
+                }}
+              />
           {/* Status overlay */}
           <div className="absolute top-3 left-3">
             <Badge className={`${getEventStatusColor(event.status as EventStatus)} shadow-lg`}>
@@ -156,8 +156,8 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
         {/* Description - Mobile Friendly */}
         <div className="mb-4">
           <p className="text-slate-600 dark:text-slate-300 text-sm sm:text-base line-clamp-3 leading-relaxed">
-            {event.description}
-          </p>
+          {event.description}
+        </p>
         </div>
         
         {/* Event Details - Mobile Optimized Grid */}
@@ -180,22 +180,22 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
           
           {/* Additional Info Row */}
           <div className="flex flex-wrap gap-2">
-            {event.max_participants && (
+          {event.max_participants && (
               <div className="flex items-center gap-2 px-3 py-2 bg-orange-50 dark:bg-orange-900/20 rounded-full border border-orange-200 dark:border-orange-800">
                 <Users className="h-4 w-4 text-orange-600 dark:text-orange-400" />
                 <span className="text-xs sm:text-sm text-orange-700 dark:text-orange-300 font-medium">
                   Max {event.max_participants} kişi
                 </span>
-              </div>
-            )}
-            
+            </div>
+          )}
+          
             {event.registration_required && (
               <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-full border border-blue-200 dark:border-blue-800">
                 <span className="text-xs sm:text-sm text-blue-700 dark:text-blue-300 font-medium">
                   📝 Kayıt Gerekli
                 </span>
-              </div>
-            )}
+            </div>
+          )}
 
             {event.gallery_images && event.gallery_images.length > 0 && (
               <button 
@@ -252,26 +252,29 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
 
         {/* Galeri Modal - Mobile Optimized */}
         <Dialog open={showGallery} onOpenChange={setShowGallery}>
-          <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] p-3 sm:p-6">
+          <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] p-3 sm:p-6" aria-describedby="gallery-description">
             <DialogHeader className="pb-2 sm:pb-4">
               <DialogTitle className="text-lg sm:text-xl font-bold text-center">
                 📸 {event.title} - Galeri
               </DialogTitle>
+              <DialogDescription id="gallery-description" className="text-center text-sm text-gray-600 dark:text-gray-400">
+                Etkinliğe ait fotoğrafları görüntülemek için resme tıklayabilirsiniz.
+              </DialogDescription>
             </DialogHeader>
             <div className="overflow-y-auto max-h-[60vh] sm:max-h-[70vh]">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                {event.gallery_images?.map((imageUrl, index) => (
-                  <div key={index} className="relative group">
+              {event.gallery_images?.map((imageUrl, index) => (
+                <div key={index} className="relative group">
                     <div className="aspect-square overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800">
-                      <img
-                        src={imageUrl}
-                        alt={`${event.title} galeri ${index + 1}`}
+                  <img
+                    src={imageUrl}
+                    alt={`${event.title} galeri ${index + 1}`}
                         className="w-full h-full object-cover hover:scale-110 transition-transform duration-300 cursor-pointer"
-                        onClick={() => window.open(imageUrl, '_blank')}
-                        onError={(e) => {
-                          e.currentTarget.src = '/placeholder.svg';
-                        }}
-                      />
+                    onClick={() => window.open(imageUrl, '_blank')}
+                    onError={(e) => {
+                      e.currentTarget.src = '/placeholder.svg';
+                    }}
+                  />
                     </div>
                     {/* Mobile-friendly overlay */}
                     <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity rounded-lg flex items-center justify-center">
@@ -285,8 +288,8 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
                     </div>
                   </div>
                 ))}
-              </div>
-            </div>
+                  </div>
+                </div>
             {/* Mobile-friendly close instruction */}
             <div className="text-center pt-3 sm:pt-4 border-t border-gray-200 dark:border-gray-700">
               <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">

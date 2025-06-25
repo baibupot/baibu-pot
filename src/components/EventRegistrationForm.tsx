@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { useFormFields, useCreateFormResponse } from '@/hooks/useSupabaseData';
+import { useFormFields, useCreateFormResponse, useEvent, useFormResponses } from '@/hooks/useSupabaseData';
 import { toast } from 'sonner';
-import { Calendar, UserPlus, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Calendar, UserPlus, CheckCircle2, AlertCircle, Users, Clock, XCircle } from 'lucide-react';
 
 interface FormData {
   [key: string]: string | string[] | File | null;
@@ -44,7 +44,69 @@ const EventRegistrationForm = ({
   const [submitted, setSubmitted] = useState(false);
 
   const { data: formFields = [] } = useFormFields(eventId, 'event_registration');
+  const { data: eventData } = useEvent(eventId);
+  const { data: formResponses = [] } = useFormResponses(eventId, 'event_registration');
   const createFormResponse = useCreateFormResponse();
+
+  // 🎯 Kayıt kontrol mantığı
+  const registrationStatus = useMemo(() => {
+    if (!eventData) return { canRegister: false, reason: 'Etkinlik bilgileri yükleniyor...' };
+
+    // 1. Kayıt gerekli mi?
+    if (!eventData.registration_required) {
+      return { canRegister: false, reason: 'Bu etkinlik için kayıt gerekli değil' };
+    }
+
+    // 2. Manuel olarak kapatılmış mı?
+    if (eventData.registration_enabled === false) {
+      return { 
+        canRegister: false, 
+        reason: eventData.registration_closed_reason || 'Kayıtlar manuel olarak kapatıldı' 
+      };
+    }
+
+    // 3. Etkinlik durumu kontrolü
+    const now = new Date();
+    const eventDate = new Date(eventData.event_date);
+    const eventEndDate = eventData.end_date ? new Date(eventData.end_date) : null;
+
+    // Etkinlik geçmiş mi?
+    if (eventEndDate && eventEndDate < now) {
+      return { canRegister: false, reason: 'Etkinlik sona ermiş' };
+    } else if (!eventEndDate && eventDate < now) {
+      return { canRegister: false, reason: 'Etkinlik sona ermiş' };
+    }
+
+    // Etkinlik durumu kontrolü
+    if (eventData.status === 'draft') {
+      return { canRegister: false, reason: 'Etkinlik henüz yayınlanmamış' };
+    }
+    if (eventData.status === 'cancelled') {
+      return { canRegister: false, reason: 'Etkinlik iptal edilmiş' };
+    }
+    if (eventData.status === 'completed') {
+      return { canRegister: false, reason: 'Etkinlik tamamlanmış' };
+    }
+
+    // 4. Kota kontrolü
+    if (eventData.max_participants) {
+      const currentCount = formResponses.length;
+      if (currentCount >= eventData.max_participants) {
+        return { 
+          canRegister: false, 
+          reason: `Kontenjan dolmuş (${currentCount}/${eventData.max_participants})` 
+        };
+      }
+    }
+
+    // ✅ Kayıt açık
+    return { 
+      canRegister: true, 
+      reason: '',
+      currentCount: formResponses.length,
+      maxParticipants: eventData.max_participants
+    };
+  }, [eventData, formResponses]);
 
   const handleInputChange = (fieldName: string, value: string | string[] | File | null) => {
     setFormData(prev => ({
@@ -55,12 +117,12 @@ const EventRegistrationForm = ({
 
   const handleFileChange = async (fieldName: string, file: File | null) => {
     if (file) {
-      // Dosya boyutu kontrolü (4MB limit - base64 expansion için)
-      const maxSize = 4 * 1024 * 1024; // 4MB
-      if (file.size > maxSize) {
-        toast.error(`❌ ${fieldName} dosyası 4MB'dan küçük olmalıdır`);
-        return;
-      }
+      // 🎯 Dosya boyutu kontrolü (5MB limit - Base64 sonrası ~6.6MB olur)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+              if (file.size > maxSize) {
+          toast.error(`❌ ${fieldName} dosyası 5MB'dan küçük olmalıdır`);
+          return;
+        }
 
       try {
         // Dosyayı base64'e çevir
@@ -76,11 +138,11 @@ const EventRegistrationForm = ({
         console.error('File conversion error:', error);
       }
     } else {
-      setFormData(prev => ({
-        ...prev,
+    setFormData(prev => ({
+      ...prev,
         [fieldName]: null,
         [`${fieldName}_file`]: null
-      }));
+    }));
     }
   };
 
@@ -184,10 +246,11 @@ const EventRegistrationForm = ({
 
       setSubmitted(true);
       toast.success('🎉 Kayıt başarıyla tamamlandı!');
-      onSuccess?.();
       
+      // ✅ Success modal'dan sonra callback çağır ve modal kapat
       setTimeout(() => {
-        onClose();
+        onSuccess?.();  // Parent'a bildir
+        onClose();      // Modal'ı kapat
         setSubmitted(false);
         setFormData({});
       }, 3000);
@@ -308,10 +371,10 @@ const EventRegistrationForm = ({
               onChange={(e) => handleFileChange(field.field_name, e.target.files?.[0] || null)}
               className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
               required={field.required}
-              accept="image/*,.pdf,.doc,.docx"
+              accept="image/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,.rar"
             />
             <p className="text-xs text-gray-500">
-              📎 Maksimum dosya boyutu: 4MB | Desteklenen formatlar: JPG, PNG, PDF, DOC
+              📎 Maksimum dosya boyutu: 5MB | Desteklenen formatlar: Resim, PDF, Office, Arşiv dosyaları
             </p>
             {formData[field.field_name] && (
               <div className="mt-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700">
@@ -352,24 +415,27 @@ const EventRegistrationForm = ({
   if (submitted) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md" aria-describedby="success-description">
+          <DialogDescription id="success-description" className="sr-only">
+            Etkinlik kaydınız başarıyla tamamlanmıştır. Bu sayfada onay mesajı ve detayları görüntülenmektedir.
+          </DialogDescription>
           <div className="text-center py-8">
             <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
               <CheckCircle2 className="h-10 w-10 text-green-600" />
             </div>
             <div className="space-y-4">
               <h3 className="text-2xl font-bold text-green-800 dark:text-green-300">
-                🎉 Kayıt Tamamlandı!
-              </h3>
+              🎉 Kayıt Tamamlandı!
+            </h3>
               <div className="space-y-3">
                 <p className="text-green-600 dark:text-green-400 text-lg">
-                  <strong>{eventTitle}</strong> etkinliğine başarıyla kayıt oldunuz.
-                </p>
+              <strong>{eventTitle}</strong> etkinliğine başarıyla kayıt oldunuz.
+            </p>
                 <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-xl border border-green-200 dark:border-green-700">
                   <div className="text-sm text-green-700 dark:text-green-300 space-y-2">
                     <p className="flex items-center gap-2">
                       <span>📧</span>
-                      <span>Etkinlik öncesi bilgilendirme e-postası alacaksınız</span>
+                      <span>Etkinlik öncesi bilgilendirme e-postası ya da mesajı alacaksınız</span>
                     </p>
                     <p className="flex items-center gap-2">
                       <span>📅</span>
@@ -401,7 +467,7 @@ const EventRegistrationForm = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="form-description">
         <DialogHeader className="border-b pb-4">
           <DialogTitle className="flex items-center gap-3 text-xl">
             <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
@@ -409,12 +475,78 @@ const EventRegistrationForm = ({
             </div>
             {eventTitle} - Kayıt Formu
           </DialogTitle>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+          <DialogDescription id="form-description" className="text-sm text-gray-600 dark:text-gray-400 mt-2">
             Etkinliğe katılmak için aşağıdaki formu eksiksiz doldurun.
-          </p>
+          </DialogDescription>
         </DialogHeader>
 
-        {formFields.length === 0 ? (
+        {/* 🎯 Kayıt Durumu Göstergesi */}
+        {eventData && (
+          <div className="mt-4">
+            {registrationStatus.canRegister ? (
+              <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200">
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  <div className="flex-1">
+                    <h4 className="font-medium text-green-800 dark:text-green-300">
+                      ✅ Kayıtlar Açık
+                    </h4>
+                    <div className="flex items-center gap-4 mt-1 text-sm text-green-700 dark:text-green-400">
+                      {registrationStatus.maxParticipants ? (
+                        <span className="flex items-center gap-1">
+                          <Users className="h-4 w-4" />
+                          {registrationStatus.currentCount || 0}/{registrationStatus.maxParticipants} Kayıt
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1">
+                          <Users className="h-4 w-4" />
+                          {registrationStatus.currentCount || 0} Kayıt (Sınırsız)
+                        </span>
+                      )}
+                      {registrationStatus.maxParticipants && registrationStatus.currentCount && (
+                        <span className="text-xs">
+                          {registrationStatus.maxParticipants - registrationStatus.currentCount} kontenjan kaldı
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200">
+                <div className="flex items-center gap-3">
+                  <XCircle className="h-5 w-5 text-red-600" />
+                  <div className="flex-1">
+                    <h4 className="font-medium text-red-800 dark:text-red-300">
+                      ❌ Kayıtlar Kapalı
+                    </h4>
+                    <p className="text-sm text-red-700 dark:text-red-400 mt-1">
+                      {registrationStatus.reason}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 🚫 Kayıt Kapalıysa Form Gösterme */}
+        {!registrationStatus.canRegister ? (
+          <div className="text-center py-8">
+            <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Kayıt Yapılamıyor</h3>
+            <p className="text-gray-600 dark:text-gray-400">
+              {registrationStatus.reason}
+            </p>
+            <Button
+              onClick={onClose}
+              variant="outline"
+              className="mt-4"
+            >
+              Tamam
+            </Button>
+          </div>
+        ) : formFields.length === 0 ? (
           <div className="text-center py-8">
             <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">Form Bulunamadı</h3>
@@ -458,7 +590,7 @@ const EventRegistrationForm = ({
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting || formFields.length === 0}
+                disabled={isSubmitting || formFields.length === 0 || !registrationStatus.canRegister}
                 className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
               >
                 {isSubmitting ? (

@@ -36,6 +36,7 @@ import SurveyModal from '@/components/admin/SurveyModal';
 import TeamMemberModal from '@/components/admin/TeamMemberModal';
 import UserRoleManagement from '@/components/admin/UserRoleManagement';
 import ThemeToggle from '@/components/admin/ThemeToggle';
+import FormResponsesModal from '@/components/admin/FormResponsesModal';
 import { EVENT_TYPES, EVENT_STATUSES } from '@/constants/eventConstants';
 
 import { useNews, useEvents, useMagazineIssues, useSurveys, useSponsors, useTeamMembers, useAcademicDocuments, useInternships, useContactMessages, useUsers, useUserRoles, useMagazineAnalytics, useMagazineContributors, useArticleSubmissions, useEventSuggestions, useUpdateEventSuggestion } from '@/hooks/useSupabaseData';
@@ -61,6 +62,7 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [rolePermissions, setRolePermissions] = useState<Record<string, string[]>>({});
   
   // Modal states
   const [newsModalOpen, setNewsModalOpen] = useState(false);
@@ -75,6 +77,10 @@ const AdminDashboard = () => {
   const [articleDetailModalOpen, setArticleDetailModalOpen] = useState(false);
   const [articleDeleteModalOpen, setArticleDeleteModalOpen] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState<any>(null);
+  
+  // Form Responses modal states - YENİ
+  const [responseModalOpen, setResponseModalOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
 
   // Data hooks
   const { data: users } = useUsers();
@@ -150,7 +156,38 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     checkUser();
+    loadRolePermissions();
   }, []);
+
+  // 🎯 Database'den role permissions yükle
+  const loadRolePermissions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('role_permissions')
+        .select('role, permission');
+      
+      if (error) throw error;
+      
+      // Permissions'ları role'e göre grupla
+      const permissionsByRole: Record<string, string[]> = {};
+      data?.forEach(({ role, permission }) => {
+        if (!permissionsByRole[role]) {
+          permissionsByRole[role] = [];
+        }
+        permissionsByRole[role].push(permission);
+      });
+      
+      setRolePermissions(permissionsByRole);
+      console.log('✅ Role permissions yüklendi:', permissionsByRole);
+    } catch (error) {
+      console.error('❌ Role permissions yüklenemedi:', error);
+      // Fallback olarak eski hardcoded permissions'ları kullan
+      setRolePermissions({
+        baskan: ['overview', 'users', 'news', 'events', 'magazine', 'surveys', 'sponsors', 'products', 'team', 'documents', 'internships', 'messages'],
+        baskan_yardimcisi: ['overview', 'users', 'news', 'events', 'magazine', 'surveys', 'sponsors', 'products', 'team', 'documents', 'internships', 'messages']
+      });
+    }
+  };
 
   // 🔒 Enhanced Security Check with Email & Role Validation
   const checkUser = async () => {
@@ -160,13 +197,7 @@ const AdminDashboard = () => {
       return;
     }
 
-    // Email confirmation kontrolü
-    if (!authUser.email_confirmed_at) {
-      toast.error('📧 E-posta adresiniz onaylanmamış. Admin paneline erişim için e-posta onayı gerekli.');
-      await supabase.auth.signOut();
-      navigate('/admin');
-      return;
-    }
+    // 🎯 E-posta onay kontrolü kaldırıldı - sadece başkan onayı yeterli
 
     // Get user profile and roles
     const { data: userProfile } = await supabase
@@ -217,26 +248,11 @@ const AdminDashboard = () => {
   };
 
   const getRolePermissions = (roles: string[]) => {
-    const permissions = {
-      baskan: ['news', 'events', 'magazine', 'surveys', 'sponsors', 'team', 'documents', 'internships', 'messages', 'users', 'products'],
-      baskan_yardimcisi: ['news', 'events', 'magazine', 'surveys', 'sponsors', 'team', 'documents', 'internships', 'messages', 'users', 'products'],
-      teknik_koordinator: ['news', 'events', 'magazine', 'surveys', 'sponsors', 'team', 'documents', 'internships', 'users'],
-      teknik_ekip: ['news', 'events', 'magazine', 'surveys', 'sponsors', 'documents', 'internships'],
-      etkinlik_koordinator: ['events', 'sponsors'],
-      etkinlik_ekip: ['events', 'sponsors'],
-      iletisim_koordinator: ['news', 'magazine', 'surveys', 'sponsors', 'documents', 'internships', 'messages'],
-      iletisim_ekip: ['news', 'magazine', 'surveys', 'sponsors', 'documents', 'internships'],
-      dergi_koordinator: ['magazine', 'sponsors'],
-      dergi_ekip: ['magazine', 'sponsors'],
-      mali_koordinator: ['products', 'sponsors'],
-      mali_ekip: ['products']
-    };
-    
-    // Combine permissions from all user roles
+    // 🎯 Database'den yüklenen permissions'ları kullan
     const allPermissions = new Set<string>();
     roles.forEach(role => {
-      const rolePermissions = permissions[role as keyof typeof permissions] || [];
-      rolePermissions.forEach(perm => allPermissions.add(perm));
+      const userRolePermissions = rolePermissions[role] || [];
+      userRolePermissions.forEach(perm => allPermissions.add(perm));
     });
     
     return Array.from(allPermissions);
@@ -945,7 +961,7 @@ const AdminDashboard = () => {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <h2 className="text-2xl font-bold">Rol Yönetimi</h2>
                 </div>
-                <UserRoleManagement />
+                <UserRoleManagement currentUserRoles={user?.userRoles || []} />
               </TabsContent>
             )}
 
@@ -1126,7 +1142,7 @@ const AdminDashboard = () => {
                                     {event.end_date && event.end_date !== event.event_date && (
                                       <span className="text-blue-600 dark:text-blue-400 font-medium">
                                         - {new Date(event.end_date).toLocaleDateString('tr-TR')}
-                                      </span>
+                              </span>
                                     )}
                                   </div>
 
@@ -1138,7 +1154,7 @@ const AdminDashboard = () => {
                                     {event.status === 'upcoming' ? '🔥 Yaklaşan' : 
                                      event.status === 'completed' ? '✅ Tamamlandı' : 
                                      event.status === 'cancelled' ? '❌ İptal' : '📝 Taslak'}
-                                  </Badge>
+                              </Badge>
 
                                   {/* Price */}
                                   {event.price && event.price > 0 ? (
@@ -1150,7 +1166,7 @@ const AdminDashboard = () => {
                                       🆓 Ücretsiz
                                     </Badge>
                                   )}
-                                </div>
+                            </div>
 
                                 {/* Secondary Info Row */}
                                 <div className="flex flex-wrap items-center gap-2">
@@ -1159,7 +1175,7 @@ const AdminDashboard = () => {
                                     <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                                       <span>📍</span>
                                       <span className="line-clamp-1">{event.location}</span>
-                                    </div>
+                          </div>
                                   )}
 
                                   {/* Participants */}
@@ -1201,6 +1217,23 @@ const AdminDashboard = () => {
 
                             {/* Action Buttons - Mobile Stack */}
                             <div className="flex flex-row sm:flex-col gap-2 sm:flex-shrink-0">
+                              {/* Kayıtları Gör Butonu - Sadece özel formu olan etkinlikler için */}
+                              {event.has_custom_form && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => {
+                                    setSelectedEvent(event);
+                                    setResponseModalOpen(true);
+                                  }}
+                                  className="flex-1 sm:flex-none h-9 text-xs sm:text-sm hover:bg-green-50 hover:border-green-300 hover:text-green-600 dark:hover:bg-green-900/20 dark:hover:border-green-600 dark:hover:text-green-400 transition-colors"
+                                >
+                                  <Users className="h-3 w-3 mr-1 sm:mr-2" />
+                                  <span className="hidden sm:inline">📊 Kayıtları Gör</span>
+                                  <span className="sm:hidden">📊 Kayıtlar</span>
+                            </Button>
+                              )}
+                              
                               <Button 
                                 variant="outline" 
                                 size="sm" 
@@ -1250,7 +1283,7 @@ const AdminDashboard = () => {
                     </div>
                   </CardContent>
                 </Card>
-                  </TabsContent>
+              </TabsContent>
 
                   {/* Suggestions Sub-Tab */}
                   <TabsContent value="suggestions" className="space-y-6 mt-6">
@@ -2126,6 +2159,19 @@ const AdminDashboard = () => {
           onSave={handleSaveTeamMember}
           initialData={editingItem}
         />
+
+        {/* Form Responses Modal */}
+        {selectedEvent && (
+          <FormResponsesModal
+            isOpen={responseModalOpen}
+            onClose={() => {
+              setResponseModalOpen(false);
+              setSelectedEvent(null);
+            }}
+            eventId={selectedEvent.slug || selectedEvent.id}
+            eventTitle={selectedEvent.title}
+          />
+        )}
         
         {/* Article Modals - GELİŞMİŞ DETAY MODAL */}
         <Dialog open={articleDetailModalOpen} onOpenChange={setArticleDetailModalOpen}>

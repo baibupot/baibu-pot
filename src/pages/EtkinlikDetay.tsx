@@ -736,7 +736,7 @@ const EtkinlikDetay = () => {
       {/* Registration Modal */}
       {event && (
         <EventRegistrationForm
-          eventId={event.id}
+          eventId={event.slug}
           eventTitle={event.title}
           isOpen={isRegistrationModalOpen}
           onClose={() => setIsRegistrationModalOpen(false)}

@@ -63,28 +63,12 @@ const AdminLogin = () => {
         if (error.message === 'Invalid login credentials') {
           throw new Error('🚫 E-posta veya şifre hatalı');
         }
-        if (error.message === 'Email not confirmed') {
-          throw new Error('📧 E-posta adresinizi onaylamanız gerekiyor. Gelen kutunuzu kontrol edin.');
-        }
+        // Email confirmation artık gerekli değil
         throw new Error(error.message);
       }
 
       if (data.user) {
-        // Email confirmation kontrolü
-        if (!data.user.email_confirmed_at) {
-          setAuthError('📧 E-posta adresiniz henüz onaylanmamış');
-          setEmailSent(true);
-          
-          // Resend confirmation email
-          await supabase.auth.resend({
-            type: 'signup',
-            email: email,
-          });
-          
-          toast.error('📧 E-posta onaylanmamış! Yeni onay e-postası gönderildi.');
-          return;
-        }
-
+        // 🎯 Sadece rol onayı kontrolü 
         // Role approval kontrolü
         const { data: roleData } = await supabase
           .from('user_roles')
@@ -164,13 +148,7 @@ const AdminLogin = () => {
         throw new Error('🔒 Şifreniz çok zayıf. En az 8 karakter, büyük/küçük harf, rakam içermelidir');
       }
 
-      // University email validation (optional)
-      if (!email.toLowerCase().includes('baibu') && !email.toLowerCase().includes('edu')) {
-        const confirmNonUni = window.confirm(
-          '⚠️ Üniversite e-posta adresi kullanmıyorsunuz. Devam etmek istiyor musunuz?'
-        );
-        if (!confirmNonUni) return;
-      }
+      // 🎯 Üniversite e-posta kontrolü kaldırıldı - herhangi bir e-posta kabul edilir
 
       // Önce kullanıcıyı Supabase Auth'a kaydet
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -218,8 +196,7 @@ const AdminLogin = () => {
         }
 
         setSignupSuccess(true);
-        setEmailSent(true);
-        toast.success(`🎉 Kayıt başarılı! ${getRoleDisplayName(selectedRole)} rolü için onay bekleniyor.`);
+        toast.success(`🎉 Kayıt başarılı! ${getRoleDisplayName(selectedRole)} rolü için başkan onayı bekleniyor.`);
       }
     } catch (error: any) {
       const errorMessage = error.message || 'Kayıt olurken beklenmeyen bir hata oluştu';
@@ -298,11 +275,7 @@ const AdminLogin = () => {
                           <p className="text-sm text-red-700 dark:text-red-300 mt-1">
                             {authError}
                           </p>
-                          {emailSent && (
-                            <p className="text-xs text-red-600 dark:text-red-400 mt-2">
-                              📧 Yeni onay e-postası gönderildi. Gelen kutunuzu kontrol edin.
-                            </p>
-                          )}
+
                         </div>
                       </div>
                     </div>
@@ -399,10 +372,10 @@ const AdminLogin = () => {
                             Kayıt Başarılı!
                           </p>
                           <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-                            E-posta adresinizi onaylayın ve rol onayını bekleyin.
+                            Hesabınız oluşturuldu. Başkan onayını bekleyin.
                           </p>
                           <p className="text-xs text-green-600 dark:text-green-400 mt-2">
-                            📧 Onay e-postası gönderildi. Spam klasörünü de kontrol edin.
+                            🏛️ Başkan tarafından rol onaylandıktan sonra giriş yapabilirsiniz.
                           </p>
                         </div>
                       </div>

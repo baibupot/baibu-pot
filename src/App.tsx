@@ -1,5 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ThemeProvider } from '@/components/ThemeProvider';
+import useScrollToTop from '@/hooks/useScrollToTop';
 import Index from '@/pages/Index';
 import Haberler from '@/pages/Haberler';
 import Dergi from '@/pages/Dergi';
@@ -29,11 +31,12 @@ const queryClient = new QueryClient({
   },
 });
 
-function App() {
+// Router içinde çalışan scroll-to-top wrapper
+function AppRoutes() {
+  useScrollToTop(); // 🎯 Her sayfa değişikliğinde en üste scroll
+  
   return (
-    <QueryClientProvider client={queryClient}>
-      <Router>
-        <Routes>
+    <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/haberler" element={<Haberler />} />
           <Route path="/dergi" element={<Dergi />} />
@@ -54,8 +57,18 @@ function App() {
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </Router>
-    </QueryClientProvider>
+  );
+}
+
+function App() {
+  return (
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <AppRoutes />
+        </Router>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 
