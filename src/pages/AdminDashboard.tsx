@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   LayoutDashboard, 
@@ -25,7 +27,8 @@ import {
   CheckCircle,
   XCircle,
   Send,
-  Mail
+  Mail,
+  Search
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ThemeProvider } from '@/components/ThemeProvider';
@@ -38,12 +41,14 @@ import SurveyModal from '@/components/admin/SurveyModal';
 import TeamMemberModal from '@/components/admin/TeamMemberModal';
 import ProductModal from '@/components/admin/ProductModal';
 import ProductDesignRequestDetailModal from '@/components/admin/ProductDesignRequestDetailModal';
+import AcademicDocumentModal from '@/components/admin/AcademicDocumentModal';
 import UserRoleManagement from '@/components/admin/UserRoleManagement';
 import ThemeToggle from '@/components/admin/ThemeToggle';
 import FormResponsesModal from '@/components/admin/FormResponsesModal';
+import { downloadFileSafely } from '@/utils/githubStorageHelper';
 import { EVENT_TYPES, EVENT_STATUSES } from '@/constants/eventConstants';
 
-import { useNews, useEvents, useMagazineIssues, useSurveys, useSponsors, useTeamMembers, useAcademicDocuments, useInternships, useContactMessages, useUpdateContactMessage, useDeleteContactMessage, useUsers, useUserRoles, useMagazineAnalytics, useMagazineContributors, useArticleSubmissions, useEventSuggestions, useUpdateEventSuggestion, useProducts, useProductDesignRequests, useUpdateProductDesignRequest } from '@/hooks/useSupabaseData';
+import { useNews, useEvents, useMagazineIssues, useSurveys, useSponsors, useTeamMembers, useAcademicDocuments, useInternships, useContactMessages, useUpdateContactMessage, useDeleteContactMessage, useUsers, useUserRoles, useMagazineAnalytics, useMagazineContributors, useArticleSubmissions, useEventSuggestions, useUpdateEventSuggestion, useProducts, useProductDesignRequests, useUpdateProductDesignRequest, useIncrementDocumentDownloads } from '@/hooks/useSupabaseData';
 import { deleteMagazineFilesByUrls, deleteAllProductFilesFromGitHub } from '@/utils/githubStorageHelper';
 import { getGitHubStorageConfig, isGitHubStorageConfigured } from '@/integrations/github/config';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -73,6 +78,7 @@ const AdminDashboard = () => {
   const [surveyModalOpen, setSurveyModalOpen] = useState(false);
   const [teamMemberModalOpen, setTeamMemberModalOpen] = useState(false);
   const [productModalOpen, setProductModalOpen] = useState(false);
+  const [selectedDocumentModal, setSelectedDocumentModal] = useState<{ mode: 'create' | 'edit'; document?: any } | null>(null);
   const [editingItem, setEditingItem] = useState<any>(null);
   
   // Article modal states - YENİ
@@ -123,6 +129,9 @@ const AdminDashboard = () => {
   // Contact message mutations
   const updateContactMessage = useUpdateContactMessage();
   const deleteContactMessage = useDeleteContactMessage();
+  
+  // Document download tracking
+  const incrementDownloads = useIncrementDocumentDownloads();
 
   // Gerçek dergi istatistikleri hesaplama
   const calculateMagazineStats = () => {
@@ -283,6 +292,74 @@ const AdminDashboard = () => {
   const hasPermission = (permission: string) => {
     if (!user || !user.userRoles) return false;
     return getRolePermissions(user.userRoles).includes(permission);
+  };
+
+  // Academic Documents Category Labels
+  const getCategoryLabel = (category: string) => {
+    const categories: Record<string, string> = {
+      'ders_programlari': '📅 Ders Programları',
+      'staj_belgeleri': '💼 Staj Belgeleri',
+      'sinav_programlari': '📊 Sınav Programları',
+      'ogretim_planlari': '📚 Öğretim Planları/Müfredat',
+      'ders_kataloglari': '📖 Ders Katalogları',
+      'basvuru_formlari': '📝 Başvuru Formları',
+      'resmi_belgeler': '🏛️ Resmi Belgeler',
+      'rehber_dokumanlari': '🗺️ Rehber Dokümanları',
+      'diger': '📁 Diğer'
+    };
+    return categories[category] || category;
+  };
+
+  // Academic Documents Delete Handler
+  const handleDeleteDocument = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('academic_documents')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      toast.success('✅ Belge başarıyla silindi');
+      
+      // Sayfayı yenile
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      toast.error('❌ Belge silinirken hata oluştu');
+    }
+  };
+
+  // Academic Documents Safe Download Handler
+  const handleDownloadDocument = async (doc: any) => {
+    try {
+      const fileExtension = doc.file_url.split('.').pop() || 'pdf';
+      const fileName = `${doc.title}.${fileExtension}`;
+      
+      const result = await downloadFileSafely(doc.file_url, fileName);
+      
+      if (result.success) {
+        toast.success(`📥 ${doc.title} başarıyla indirildi`);
+        
+        // İndirme sayısını artır
+        try {
+          await incrementDownloads.mutateAsync(doc.id);
+        } catch (incrementError) {
+          // İndirme sayısı artırma hatası olsa bile admin'i bilgilendirmeyiz
+          console.error('İndirme sayısı artırılamadı:', incrementError);
+        }
+      } else {
+        toast.error(`❌ İndirme hatası: ${result.error}`);
+        // Fallback: Normal link ile aç
+        window.open(doc.file_url, '_blank');
+      }
+    } catch (error) {
+      toast.error('❌ İndirme sırasında hata oluştu');
+      window.open(doc.file_url, '_blank');
+    }
   };
 
   // 🏷️ Role Display Utility
@@ -1013,7 +1090,7 @@ const AdminDashboard = () => {
                   </TabsTrigger>
                 )}
                 {hasPermission('documents') && (
-                  <TabsTrigger value="documents" className="text-xs whitespace-nowrap">
+                  <TabsTrigger value="academic_documents" className="text-xs whitespace-nowrap">
                     <GraduationCap className="h-4 w-4 mr-1" />
                     Belgeler
                   </TabsTrigger>
@@ -2103,48 +2180,230 @@ const AdminDashboard = () => {
               </TabsContent>
             )}
 
-            {/* Documents Tab */}
+            {/* Academic Documents Tab */}
             {hasPermission('documents') && (
-              <TabsContent value="documents" className="space-y-6">
+              <TabsContent value="academic_documents" className="space-y-6">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <h2 className="text-2xl font-bold">Akademik Belgeler</h2>
-                  <Button onClick={() => toast.info('Belge ekleme modalı henüz hazır değil')}>
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                      🎓 Öğrenci Hizmetleri Belgeleri
+                    </h2>
+                    <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
+                      Ders programları, staj belgeleri, sınav programları ve diğer öğrenci belgelerini yönetin
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={() => setSelectedDocumentModal({ mode: 'create' })}
+                    className="w-full sm:w-auto h-12 sm:h-10 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200"
+                  >
                     <Plus className="h-4 w-4 mr-2" />
-                    Yeni Belge
+                    Yeni Belge Ekle
                   </Button>
                 </div>
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="space-y-4">
+
+                {/* Document Stats Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 sm:gap-4">
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-3 sm:p-4 rounded-xl border border-blue-200 dark:border-blue-700">
+                    <div className="text-xs sm:text-sm font-medium text-blue-800 dark:text-blue-300">📅 Ders Programları</div>
+                    <div className="text-lg sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
+                      {documents?.filter(d => d.category === 'ders_programlari').length || 0}
+                    </div>
+                    <div className="text-xs text-blue-600 dark:text-blue-400">Belge</div>
+                  </div>
+                  <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-3 sm:p-4 rounded-xl border border-green-200 dark:border-green-700">
+                    <div className="text-xs sm:text-sm font-medium text-green-800 dark:text-green-300">💼 Staj Belgeleri</div>
+                    <div className="text-lg sm:text-2xl font-bold text-green-600 dark:text-green-400">
+                      {documents?.filter(d => d.category === 'staj_belgeleri').length || 0}
+                    </div>
+                    <div className="text-xs text-green-600 dark:text-green-400">Belge</div>
+                  </div>
+                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 p-3 sm:p-4 rounded-xl border border-purple-200 dark:border-purple-700">
+                    <div className="text-xs sm:text-sm font-medium text-purple-800 dark:text-purple-300">📊 Sınav Programları</div>
+                    <div className="text-lg sm:text-2xl font-bold text-purple-600 dark:text-purple-400">
+                      {documents?.filter(d => d.category === 'sinav_programlari').length || 0}
+                    </div>
+                    <div className="text-xs text-purple-600 dark:text-purple-400">Belge</div>
+                  </div>
+                  <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 p-3 sm:p-4 rounded-xl border border-orange-200 dark:border-orange-700">
+                    <div className="text-xs sm:text-sm font-medium text-orange-800 dark:text-orange-300">📁 Toplam Belge</div>
+                    <div className="text-lg sm:text-2xl font-bold text-orange-600 dark:text-orange-400">
+                      {documents?.length || 0}
+                    </div>
+                    <div className="text-xs text-orange-600 dark:text-orange-400">Belge</div>
+                  </div>
+                  <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 dark:from-cyan-900/20 dark:to-cyan-800/20 p-3 sm:p-4 rounded-xl border border-cyan-200 dark:border-cyan-700">
+                    <div className="text-xs sm:text-sm font-medium text-cyan-800 dark:text-cyan-300">📈 Toplam İndirme</div>
+                    <div className="text-lg sm:text-2xl font-bold text-cyan-600 dark:text-cyan-400">
+                      {documents?.reduce((total, doc) => total + (doc.downloads || 0), 0) || 0}
+                    </div>
+                    <div className="text-xs text-cyan-600 dark:text-cyan-400">Kez indirildi</div>
+                  </div>
+                  <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 p-3 sm:p-4 rounded-xl border border-indigo-200 dark:border-indigo-700">
+                    <div className="text-xs sm:text-sm font-medium text-indigo-800 dark:text-indigo-300">💾 Toplam Boyut</div>
+                    <div className="text-lg sm:text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                      {Math.round((documents?.reduce((total, doc) => total + (doc.file_size || 0), 0) || 0) / (1024 * 1024))}
+                    </div>
+                    <div className="text-xs text-indigo-600 dark:text-indigo-400">MB</div>
+                  </div>
+                </div>
+
+                {/* Document Filters */}
+                <Card className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm shadow-lg">
+                  <CardContent className="p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+                        <Input
+                          placeholder="Belge ara..."
+                          className="pl-10 bg-white/80 dark:bg-slate-700/80"
+                        />
+                      </div>
+                      
+                      <Select defaultValue="all">
+                        <SelectTrigger className="bg-white/80 dark:bg-slate-700/80">
+                          <SelectValue placeholder="Kategori Filtrele" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Tüm Kategoriler</SelectItem>
+                          <SelectItem value="ders_programlari">📅 Ders Programları</SelectItem>
+                          <SelectItem value="staj_belgeleri">💼 Staj Belgeleri</SelectItem>
+                          <SelectItem value="sinav_programlari">📊 Sınav Programları</SelectItem>
+                          <SelectItem value="ogretim_planlari">📚 Öğretim Planları</SelectItem>
+                          <SelectItem value="ders_kataloglari">📖 Ders Katalogları</SelectItem>
+                          <SelectItem value="basvuru_formlari">📝 Başvuru Formları</SelectItem>
+                          <SelectItem value="resmi_belgeler">🏛️ Resmi Belgeler</SelectItem>
+                          <SelectItem value="rehber_dokumanlari">🗺️ Rehber Dokümanları</SelectItem>
+                          <SelectItem value="diger">📁 Diğer</SelectItem>
+                        </SelectContent>
+                      </Select>
+
+                      <Button 
+                        variant="outline" 
+                        className="bg-white/80 dark:bg-slate-700/80 hover:bg-white dark:hover:bg-slate-600"
+                      >
+                        Filtreleri Temizle
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="overflow-hidden">
+                  <CardContent className="p-3 sm:p-6">
+                    <div className="space-y-3 sm:space-y-4">
                       {documents?.map(doc => (
-                        <div key={doc.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg gap-4">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-medium truncate">{doc.title}</h3>
-                            <div className="flex flex-wrap items-center gap-2 mt-2">
-                              <Badge variant="outline">{doc.category}</Badge>
-                              <span className="text-sm text-muted-foreground">
-                                {new Date(doc.created_at).toLocaleDateString('tr-TR')}
-                              </span>
-                              <span className="text-sm text-muted-foreground">
-                                {doc.downloads} indirme
-                              </span>
+                        <div key={doc.id} className="group bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:shadow-lg hover:border-purple-300 dark:hover:border-purple-600 transition-all duration-200">
+                          <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+                            <div className="flex-1 min-w-0 space-y-2">
+                              <div className="flex items-start gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <h3 className="font-semibold text-base sm:text-lg text-gray-900 dark:text-white line-clamp-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                                    {doc.title}
+                                  </h3>
+                                  {doc.description && (
+                                    <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mt-1">
+                                      {doc.description}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Badge variant="outline" className="text-xs font-medium">
+                                  {getCategoryLabel(doc.category)}
+                                </Badge>
+                                <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                                  <span>📅</span>
+                                  <span>{new Date(doc.created_at).toLocaleDateString('tr-TR')}</span>
+                                </div>
+
+                                {doc.file_type && (
+                                  <Badge variant="outline" className="text-xs font-medium text-blue-600 border-blue-300 uppercase">
+                                    {doc.file_type}
+                                  </Badge>
+                                )}
+                                {doc.author && (
+                                                                  <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                                  <span>👤</span>
+                                  <span>{doc.author}</span>
+                                </div>
+                              )}
+                              
+                              {/* İndirme sayısı */}
+                              <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                                <span>📈</span>
+                                <span>{doc.downloads || 0} indirme</span>
+                              </div>
+                              
+                              {/* Dosya boyutu */}
+                              {doc.file_size && (
+                                <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                                  <span>💾</span>
+                                  <span>
+                                    {doc.file_size > 1024 * 1024 
+                                      ? `${(doc.file_size / (1024 * 1024)).toFixed(1)} MB`
+                                      : `${(doc.file_size / 1024).toFixed(0)} KB`
+                                    }
+                                  </span>
+                                </div>
+                              )}
+                              </div>
                             </div>
-                          </div>
-                          <div className="flex space-x-2 flex-shrink-0">
-                            <Button variant="outline" size="sm">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+
+                            <div className="flex flex-row sm:flex-col gap-2 sm:flex-shrink-0">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleDownloadDocument(doc)}
+                                className="flex-1 sm:flex-none h-9 text-xs sm:text-sm hover:bg-green-50 hover:border-green-300 hover:text-green-600 dark:hover:bg-green-900/20 dark:hover:border-green-600 dark:hover:text-green-400 transition-colors"
+                              >
+                                <Eye className="h-3 w-3 mr-1 sm:mr-2" />
+                                <span className="hidden sm:inline">İndir</span>
+                                <span className="sm:hidden">İndir</span>
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => setSelectedDocumentModal({ mode: 'edit', document: doc })}
+                                className="flex-1 sm:flex-none h-9 text-xs sm:text-sm hover:bg-blue-50 hover:border-blue-300 dark:hover:bg-blue-900/20 dark:hover:border-blue-600 transition-colors"
+                              >
+                                <Edit className="h-3 w-3 mr-1 sm:mr-2" />
+                                <span className="hidden sm:inline">Düzenle</span>
+                                <span className="sm:hidden">Düzenle</span>
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleDeleteDocument(doc.id)}
+                                className="flex-1 sm:flex-none h-9 text-xs sm:text-sm hover:bg-red-50 hover:border-red-300 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:border-red-600 dark:hover:text-red-400 transition-colors"
+                              >
+                                <Trash2 className="h-3 w-3 mr-1 sm:mr-2" />
+                                <span className="hidden sm:inline">Sil</span>
+                                <span className="sm:hidden">Sil</span>
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       ))}
+                      
                       {(!documents || documents?.length === 0) && (
-                        <p className="text-center text-muted-foreground py-8">Henüz belge bulunmuyor</p>
+                        <div className="text-center py-12 sm:py-16">
+                          <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                            <GraduationCap className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400" />
+                          </div>
+                          <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                            Henüz belge bulunmuyor
+                          </h3>
+                          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
+                            İlk belgeyi ekleyerek öğrencilere hizmet vermeye başlayın
+                          </p>
+                          <Button 
+                            onClick={() => setSelectedDocumentModal({ mode: 'create' })}
+                            className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            İlk Belgeyi Ekle
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </CardContent>
@@ -3270,6 +3529,46 @@ const AdminDashboard = () => {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Academic Document Modal */}
+        {selectedDocumentModal && (
+          <AcademicDocumentModal
+            isOpen={true}
+            onClose={() => setSelectedDocumentModal(null)}
+            onSave={async (documentData) => {
+              try {
+                if (selectedDocumentModal.mode === 'edit' && selectedDocumentModal.document) {
+                  const { error } = await supabase
+                    .from('academic_documents')
+                    .update(documentData)
+                    .eq('id', selectedDocumentModal.document.id);
+                  
+                  if (error) throw error;
+                  toast.success('✅ Belge başarıyla güncellendi');
+                } else {
+                  const { error } = await supabase
+                    .from('academic_documents')
+                    .insert([{ ...documentData, created_by: user?.id }]);
+                  
+                  if (error) throw error;
+                  toast.success('✅ Belge başarıyla eklendi');
+                }
+                
+                setSelectedDocumentModal(null);
+                
+                // Sayfayı yenile
+                setTimeout(() => {
+                  window.location.reload();
+                }, 1000);
+                
+              } catch (error) {
+                console.error('Error saving document:', error);
+                toast.error('❌ Belge kaydedilirken hata oluştu');
+              }
+            }}
+            initialData={selectedDocumentModal.document}
+          />
+        )}
       </div>
     </ThemeProvider>
   );

@@ -4,18 +4,23 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Search, Download, Calendar, User, FileText, BookOpen } from 'lucide-react';
-import { useAcademicDocuments } from '@/hooks/useSupabaseData';
+import { Search, Download, Calendar, User, FileText, BookOpen, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { useAcademicDocuments, useIncrementDocumentDownloads } from '@/hooks/useSupabaseData';
 import PageContainer from '@/components/ui/page-container';
 import PageHero from '@/components/ui/page-hero';
 import LoadingPage from '@/components/ui/loading-page';
 import ErrorState from '@/components/ui/error-state';
 import EmptyState from '@/components/ui/empty-state';
+import { downloadFileSafely } from '@/utils/githubStorageHelper';
 
 const AkademikBelgeler = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [downloadProgress, setDownloadProgress] = useState(0);
   const { data: documents = [], isLoading, error } = useAcademicDocuments();
+  const incrementDownloads = useIncrementDocumentDownloads();
 
   const filteredDocuments = documents.filter(doc => {
     const matchesSearch = doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -28,11 +33,14 @@ const AkademikBelgeler = () => {
 
   const getCategoryLabel = (category: string) => {
     const categories: Record<string, string> = {
-      'ders_notlari': '📝 Ders Notları',
-      'arastirma': '🔬 Araştırma',
-      'tez': '🎓 Tez',
-      'makale': '📄 Makale',
-      'sunum': '🎤 Sunum',
+      'ders_programlari': '📅 Ders Programları',
+      'staj_belgeleri': '💼 Staj Belgeleri',
+      'sinav_programlari': '📊 Sınav Programları',
+      'ogretim_planlari': '📚 Öğretim Planları/Müfredat',
+      'ders_kataloglari': '📖 Ders Katalogları',
+      'basvuru_formlari': '📝 Başvuru Formları',
+      'resmi_belgeler': '🏛️ Resmi Belgeler',
+      'rehber_dokumanlari': '🗺️ Rehber Dokümanları',
       'diger': '📁 Diğer'
     };
     return categories[category] || category;
@@ -40,11 +48,14 @@ const AkademikBelgeler = () => {
 
   const getCategoryColor = (category: string) => {
     const colors: Record<string, string> = {
-      'ders_notlari': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-      'arastirma': 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300',
-      'tez': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
-      'makale': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
-      'sunum': 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300',
+      'ders_programlari': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+      'staj_belgeleri': 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300',
+      'sinav_programlari': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+      'ogretim_planlari': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
+      'ders_kataloglari': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
+      'basvuru_formlari': 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300',
+      'resmi_belgeler': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+      'rehber_dokumanlari': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300',
       'diger': 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300'
     };
     return colors[category] || 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
@@ -56,6 +67,49 @@ const AkademikBelgeler = () => {
       month: 'long',
       day: 'numeric'
     });
+  };
+
+  // Güvenli indirme işlemi
+  const handleDownload = async (document: any) => {
+    setDownloadingId(document.id);
+    setDownloadProgress(0);
+    
+    try {
+      // Dosya adını oluştur
+      const fileExtension = document.file_url.split('.').pop() || 'pdf';
+      const fileName = `${document.title}.${fileExtension}`;
+      
+      // Progress callback
+      const onProgress = (progress: number) => {
+        setDownloadProgress(Math.round(progress));
+      };
+
+      // Güvenli indirme
+      const result = await downloadFileSafely(document.file_url, fileName, onProgress);
+      
+      if (result.success) {
+        toast.success(`📥 ${document.title} başarıyla indirildi`);
+        
+        // İndirme sayısını artır
+        try {
+          await incrementDownloads.mutateAsync(document.id);
+        } catch (incrementError) {
+          // İndirme sayısı artırma hatası olsa bile kullanıcıyı bilgilendirmeyiz
+          console.error('İndirme sayısı artırılamadı:', incrementError);
+        }
+      } else {
+        toast.error(`❌ İndirme hatası: ${result.error}`);
+        // Fallback: Normal link ile aç
+        window.open(document.file_url, '_blank');
+      }
+    } catch (error) {
+      toast.error('❌ İndirme sırasında hata oluştu');
+      // Fallback: Normal link ile aç
+      window.open(document.file_url, '_blank');
+    } finally {
+      setDownloadingId(null);
+      setDownloadProgress(0);
+    }
   };
 
   // Loading state
@@ -89,40 +143,11 @@ const AkademikBelgeler = () => {
     <PageContainer background="slate">
       {/* Hero Section */}
       <PageHero
-        title="Akademik Kaynak Kütüphanesi"
-        description="Psikoloji eğitiminize destek olacak akademik belgeler, ders notları, araştırmalar ve diğer faydalı kaynakları burada bulabilirsiniz. Tüm belgeler ücretsiz olarak erişiminize sunulmuştur."
+        title="Öğrenci Hizmetleri Belgeleri"
+        description="Psikoloji eğitiminizde ihtiyaç duyacağınız ders programları, staj başvuru belgeleri, sınav programları, müfredat bilgileri ve diğer resmi belgeler. Tüm belgeler öğrencilerimizin kullanımına ücretsiz olarak sunulmuştur."
         icon={BookOpen}
         gradient="teal"
-      >
-        {documents.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 mt-8">
-            <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
-              <div className="text-3xl font-bold text-slate-900 dark:text-white">
-                {documents.length}
-              </div>
-              <div className="text-sm text-slate-600 dark:text-slate-300">Toplam Belge</div>
-            </div>
-            <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
-              <div className="text-3xl font-bold text-slate-900 dark:text-white">
-                {new Set(documents.map(d => d.category)).size}
-              </div>
-              <div className="text-sm text-slate-600 dark:text-slate-300">Kategori</div>
-            </div>
-            <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
-              <div className="text-3xl font-bold text-slate-900 dark:text-white">
-                {documents.reduce((total, doc) => total + (doc.downloads || 0), 0)}
-              </div>
-              <div className="text-sm text-slate-600 dark:text-slate-300">Toplam İndirme</div>
-            </div>
-            <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
-              <div className="text-3xl font-bold text-slate-900 dark:text-white">
-                {new Set(documents.map(d => d.author).filter(Boolean)).size}
-              </div>
-              <div className="text-sm text-slate-600 dark:text-slate-300">Katkıda Bulunan</div>
-            </div>
-          </div>
-        )}
-      </PageHero>
+      />
 
       {/* Search and Filters */}
       <section className="py-8">
@@ -144,11 +169,14 @@ const AkademikBelgeler = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tüm Kategoriler</SelectItem>
-                <SelectItem value="ders_notlari">Ders Notları</SelectItem>
-                <SelectItem value="arastirma">Araştırma</SelectItem>
-                <SelectItem value="tez">Tez</SelectItem>
-                <SelectItem value="makale">Makale</SelectItem>
-                <SelectItem value="sunum">Sunum</SelectItem>
+                <SelectItem value="ders_programlari">Ders Programları</SelectItem>
+                <SelectItem value="staj_belgeleri">Staj Belgeleri</SelectItem>
+                <SelectItem value="sinav_programlari">Sınav Programları</SelectItem>
+                <SelectItem value="ogretim_planlari">Öğretim Planları/Müfredat</SelectItem>
+                <SelectItem value="ders_kataloglari">Ders Katalogları</SelectItem>
+                <SelectItem value="basvuru_formlari">Başvuru Formları</SelectItem>
+                <SelectItem value="resmi_belgeler">Resmi Belgeler</SelectItem>
+                <SelectItem value="rehber_dokumanlari">Rehber Dokümanları</SelectItem>
                 <SelectItem value="diger">Diğer</SelectItem>
               </SelectContent>
             </Select>
@@ -218,12 +246,7 @@ const AkademikBelgeler = () => {
                       <Calendar className="h-4 w-4 text-teal-500" />
                       <span>{formatDate(document.upload_date)}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                      <Download className="h-4 w-4 text-teal-500" />
-                      <span className="font-medium text-teal-600 dark:text-teal-400">
-                        {document.downloads} indirme
-                      </span>
-                    </div>
+
                   </div>
 
                   {document.tags && document.tags.length > 0 && (
@@ -243,10 +266,20 @@ const AkademikBelgeler = () => {
                   
                   <Button 
                     className="w-full group-hover:shadow-lg transition-all duration-200"
-                    onClick={() => window.open(document.file_url, '_blank')}
+                    onClick={() => handleDownload(document)}
+                    disabled={downloadingId === document.id}
                   >
-                    <Download className="h-4 w-4 mr-2" />
-                    İndir
+                    {downloadingId === document.id ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        {downloadProgress > 0 ? `%${downloadProgress}` : 'İndiriliyor...'}
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4 mr-2" />
+                        Güvenli İndir
+                      </>
+                    )}
                   </Button>
                 </CardContent>
               </Card>
@@ -269,38 +302,7 @@ const AkademikBelgeler = () => {
         </div>
       </section>
 
-      {/* Usage Notice */}
-      <section className="py-16">
-        <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950 dark:via-indigo-950 dark:to-purple-950 rounded-2xl p-12 relative overflow-hidden">
-          {/* Background decoration */}
-          <div className="absolute inset-0 opacity-20">
-            <div className="absolute top-0 left-1/4 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl animate-pulse"></div>
-            <div className="absolute bottom-0 right-1/4 w-72 h-72 bg-indigo-300 rounded-full mix-blend-multiply filter blur-xl animate-pulse animation-delay-2000"></div>
-          </div>
-          
-          <div className="relative z-10 text-center max-w-2xl mx-auto space-y-6">
-            <div className="text-6xl mb-6">⚖️</div>
-            <h3 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
-              Kullanım Koşulları
-            </h3>
-            <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
-              Bu belgeler yalnızca eğitim amaçlı kullanım içindir. Telif hakkı sahiplerinin 
-              izni olmadan ticari amaçlarla kullanılması yasaktır. Belgeleri kullanırken 
-              kaynak göstermeyi unutmayın.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button variant="outline" size="lg" className="group">
-                <FileText className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform duration-200" />
-                Kullanım Şartları
-              </Button>
-              <Button variant="outline" size="lg" className="group">
-                <BookOpen className="h-5 w-5 mr-2 group-hover:rotate-12 transition-transform duration-200" />
-                Telif Hakkı Politikası
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
+
     </PageContainer>
   );
 };

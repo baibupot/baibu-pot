@@ -290,7 +290,11 @@ CREATE TABLE public.academic_documents (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     title TEXT NOT NULL,
     description TEXT,
-    category TEXT NOT NULL CHECK (category IN ('ders_notlari', 'arastirma', 'tez', 'makale', 'sunum', 'diger')),
+    category TEXT NOT NULL CHECK (category IN (
+        'ders_programlari', 'staj_belgeleri', 'sinav_programlari', 
+        'ogretim_planlari', 'ders_kataloglari', 'basvuru_formlari', 
+        'resmi_belgeler', 'rehber_dokumanlari', 'diger'
+    )),
     file_url TEXT NOT NULL,
     file_type TEXT NOT NULL,
     file_size INTEGER,
@@ -481,7 +485,36 @@ END;
 $$;
 
 -- ====================================================================
--- 8. TRİGGERLAR
+-- 8. GÜVEN FONKSİYONLARI
+-- ====================================================================
+
+    -- İndirme sayısını güvenli şekilde artıran fonksiyon
+    CREATE OR REPLACE FUNCTION public.increment_document_downloads(document_id UUID)
+    RETURNS INTEGER
+    LANGUAGE plpgsql
+    SECURITY DEFINER
+    AS $$
+    DECLARE
+    new_download_count INTEGER;
+    BEGIN
+    -- Atomic increment işlemi
+    UPDATE public.academic_documents 
+    SET downloads = COALESCE(downloads, 0) + 1,
+        updated_at = NOW()
+    WHERE id = document_id
+    RETURNING downloads INTO new_download_count;
+    
+    -- Eğer belge bulunamadıysa hata döndür
+    IF new_download_count IS NULL THEN
+        RAISE EXCEPTION 'Belge bulunamadı: %', document_id;
+    END IF;
+    
+    RETURN new_download_count;
+    END;
+    $$;
+
+-- ====================================================================
+-- 9. TRİGGERLAR
 -- ====================================================================
 
 -- Auth user otomatik ekleme

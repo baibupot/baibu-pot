@@ -1119,4 +1119,399 @@ export const deleteAllDesignRequestFilesFromGitHub = async (
       error: error instanceof Error ? error.message : 'Complete design request delete failed'
     };
   }
+};
+
+// ====================================================================
+// AKADEMİK BELGELER (ACADEMIC DOCUMENTS) FONKSİYONLARI 📚
+// ====================================================================
+
+/**
+ * Akademik belgeler için dosya yolu oluşturucu
+ */
+export const createAcademicDocumentPaths = (
+  category: string, 
+  documentTitle: string, 
+  documentId?: string
+) => {
+  const year = new Date().getFullYear();
+  const semester = new Date().getMonth() >= 8 ? 'guz' : 'bahar'; // Eylül+ = Güz, diğer = Bahar
+  
+  // Dosya adını safe hale getir - Türkçe karakter desteği
+  const safeTitle = documentTitle
+    .toLowerCase()
+    // Türkçe karakterleri İngilizce karşılıklarıyla değiştir
+    .replace(/ğ/g, 'g')
+    .replace(/ü/g, 'u')
+    .replace(/ş/g, 's')
+    .replace(/ı/g, 'i')
+    .replace(/ö/g, 'o')
+    .replace(/ç/g, 'c')
+    .replace(/Ğ/g, 'G')
+    .replace(/Ü/g, 'U')
+    .replace(/Ş/g, 'S')
+    .replace(/İ/g, 'I')
+    .replace(/Ö/g, 'O')
+    .replace(/Ç/g, 'C')
+    // Diğer özel karakterleri kaldır
+    .replace(/[^\w\s-]/g, '')
+    // Boşlukları tire ile değiştir
+    .replace(/\s+/g, '-')
+    // Çoklu tireleri tek tire yap
+    .replace(/-+/g, '-')
+    // Başta ve sonda tire varsa kaldır
+    .replace(/^-+|-+$/g, '')
+    // Maksimum 50 karakter
+    .substring(0, 50)
+    .replace(/-+$/, ''); // Son tire varsa kaldır
+  
+  // Kategori bazında klasör organizasyonu
+  const categoryFolders: Record<string, string> = {
+    'ders_programlari': 'ders-programlari',
+    'staj_belgeleri': 'staj-belgeleri', 
+    'sinav_programlari': 'sinav-programlari',
+    'ogretim_planlari': 'ogretim-planlari',
+    'ders_kataloglari': 'ders-kataloglari',
+    'basvuru_formlari': 'basvuru-formlari',
+    'resmi_belgeler': 'resmi-belgeler',
+    'rehber_dokumanlari': 'rehber-dokumanlari',
+    'diger': 'diger'
+  };
+
+  const categoryFolder = categoryFolders[category] || 'diger';
+  const timestamp = documentId ? documentId.substring(0, 8) : Date.now().toString().substring(-8);
+  
+  return {
+    documentPath: `belgeler/${year}/${semester}/${categoryFolder}/${safeTitle}-${timestamp}.pdf`,
+    thumbnailPath: `belgeler/${year}/${semester}/${categoryFolder}/thumbs/${safeTitle}-${timestamp}-thumb.jpg`,
+    folder: `belgeler/${year}/${semester}/${categoryFolder}/`,
+    category: categoryFolder,
+    year,
+    semester
+  };
+};
+
+/**
+ * Akademik belgeyi GitHub'a yükle
+ */
+export const uploadAcademicDocumentToGitHub = async (
+  config: GitHubStorageConfig,
+  file: File,
+  category: string,
+  documentTitle: string,
+  documentId?: string
+): Promise<GitHubUploadResult> => {
+  try {
+    const paths = createAcademicDocumentPaths(category, documentTitle, documentId);
+    
+    // Dosya boyutu kontrolü (max 25MB)
+    const maxSize = 25 * 1024 * 1024; // 25MB
+    if (file.size > maxSize) {
+      return {
+        success: false,
+        error: `Dosya boyutu çok büyük. Maksimum ${maxSize / 1024 / 1024}MB olmalı.`
+      };
+    }
+
+    // Dosya tipini kontrol et
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'text/plain',
+      'image/jpeg',
+      'image/png'
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      return {
+        success: false,
+        error: 'Desteklenmeyen dosya formatı. PDF, Word, Excel, PowerPoint, resim veya metin dosyası yükleyiniz.'
+      };
+    }
+
+    // Dosya uzantısına göre path belirle
+    const fileExtension = file.name.split('.').pop()?.toLowerCase() || 'pdf';
+    const finalPath = paths.documentPath.replace('.pdf', `.${fileExtension}`);
+    
+    const result = await uploadFileObjectToGitHub(
+      config,
+      file,
+      finalPath,
+      `Add academic document: ${documentTitle} (${category})`
+    );
+
+    return result;
+
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Academic document upload failed'
+    };
+  }
+};
+
+/**
+ * Akademik belgeyi GitHub'dan sil
+ */
+export const deleteAcademicDocumentFromGitHub = async (
+  config: GitHubStorageConfig,
+  documentUrl: string,
+  documentTitle?: string
+): Promise<GitHubDeleteResult> => {
+  try {
+    if (!documentUrl.includes('raw.githubusercontent.com')) {
+      return {
+        success: true, // GitHub dosyası değilse silme işlemi gerekmiyor
+        deletedFiles: []
+      };
+    }
+
+    const filePath = extractGitHubPath(documentUrl);
+    if (!filePath) {
+      return {
+        success: false,
+        error: 'Geçersiz GitHub URL'
+      };
+    }
+
+    const result = await deleteFileFromGitHub(
+      config,
+      filePath,
+      `Delete academic document: ${documentTitle || 'Unknown'}`
+    );
+
+    return result;
+
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Academic document delete failed'
+    };
+  }
+};
+
+/**
+ * Kategori bazında akademik belgeleri organize et
+ */
+export const organizeAcademicDocumentsByCategory = (documents: any[]) => {
+  const categories = {
+    'ders_programlari': [],
+    'staj_belgeleri': [], 
+    'sinav_programlari': [],
+    'ogretim_planlari': [],
+    'ders_kataloglari': [],
+    'basvuru_formlari': [],
+    'resmi_belgeler': [],
+    'rehber_dokumanlari': [],
+    'diger': []
+  } as Record<string, any[]>;
+
+  documents.forEach(doc => {
+    const category = doc.category || 'diger';
+    if (categories[category]) {
+      categories[category].push(doc);
+    } else {
+      categories['diger'].push(doc);
+    }
+  });
+
+  return categories;
+};
+
+/**
+ * Akademik belge istatistikleri oluştur
+ */
+export const generateAcademicDocumentStats = (documents: any[]) => {
+  const totalDocs = documents.length;
+  const totalDownloads = documents.reduce((sum, doc) => sum + (doc.downloads || 0), 0);
+  const categoryStats = organizeAcademicDocumentsByCategory(documents);
+  
+  const categoryCount = Object.entries(categoryStats).map(([category, docs]) => ({
+    category,
+    count: docs.length,
+    downloads: docs.reduce((sum: number, doc: any) => sum + (doc.downloads || 0), 0)
+  }));
+
+  return {
+    totalDocs,
+    totalDownloads,
+    categoryCount,
+    averageDownloads: totalDocs > 0 ? Math.round(totalDownloads / totalDocs) : 0
+  };
+};
+
+/**
+ * Akademik belge için dosya tipini tespit et
+ */
+export const detectDocumentType = (fileName: string): string => {
+  const extension = fileName.split('.').pop()?.toLowerCase() || '';
+  
+  const typeMap: Record<string, string> = {
+    'pdf': 'PDF',
+    'doc': 'Word',
+    'docx': 'Word',
+    'xls': 'Excel',
+    'xlsx': 'Excel',
+    'ppt': 'PowerPoint',
+    'pptx': 'PowerPoint',
+    'txt': 'Metin',
+    'jpg': 'Resim',
+    'jpeg': 'Resim',
+    'png': 'Resim'
+  };
+
+  return typeMap[extension] || 'Belge';
+};
+
+/**
+ * Güvenli dosya indirme - HTTPS/HTTP uyumlu, güvenlik uyarısını önler
+ */
+export const downloadFileSafely = async (
+  fileUrl: string, 
+  fileName: string,
+  onProgress?: (progress: number) => void
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    // Dosya adını güvenli hale getir
+    const safeFileName = fileName
+      // Türkçe karakterleri dönüştür
+      .replace(/ğ/g, 'g').replace(/Ğ/g, 'G')
+      .replace(/ü/g, 'u').replace(/Ü/g, 'U')
+      .replace(/ş/g, 's').replace(/Ş/g, 'S')
+      .replace(/ı/g, 'i').replace(/İ/g, 'I')
+      .replace(/ö/g, 'o').replace(/Ö/g, 'O')
+      .replace(/ç/g, 'c').replace(/Ç/g, 'C')
+      // Zararlı karakterleri temizle
+      .replace(/[<>:"/\\|?*]/g, '_')
+      .replace(/\s+/g, '_')
+      .substring(0, 100); // Maksimum 100 karakter
+
+    // HTTPS kontrolü - Development vs Production stratejisi
+    const isHTTPS = window.location.protocol === 'https:';
+    const isLocalDev = window.location.hostname.includes('192.168') || 
+                      window.location.hostname === 'localhost' || 
+                      window.location.hostname === '127.0.0.1';
+
+    // Eğer HTTPS değilse ve yerel development ise, direct download kullan
+    if (!isHTTPS && isLocalDev) {
+      console.log('🔧 Development ortamında direct download kullanılıyor (HTTPS uyarısı önleme)');
+      
+      // Progress simülasyonu
+      if (onProgress) {
+        let progress = 0;
+        const progressInterval = setInterval(() => {
+          progress += 10;
+          onProgress(progress);
+          if (progress >= 100) {
+            clearInterval(progressInterval);
+          }
+        }, 100);
+      }
+
+      // Direct download - güvenlik uyarısı yok
+      const link = document.createElement('a');
+      link.href = fileUrl;
+      link.download = safeFileName;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.style.display = 'none';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      return { success: true };
+    }
+
+    // HTTPS ortamında veya production'da gelişmiş blob download
+    console.log('🔒 HTTPS ortamında güvenli blob download kullanılıyor');
+    
+    // Fetch ile dosyayı çek
+    const response = await fetch(fileUrl);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    // Progress tracking için content-length al
+    const contentLength = response.headers.get('content-length');
+    const totalSize = contentLength ? parseInt(contentLength, 10) : 0;
+    
+    // Response body'yi stream olarak oku
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error('Dosya okuma hatası');
+    }
+
+    // Chunks'ları biriktir
+    const chunks: Uint8Array[] = [];
+    let receivedLength = 0;
+    
+    while (true) {
+      const { done, value } = await reader.read();
+      
+      if (done) break;
+      
+      chunks.push(value);
+      receivedLength += value.length;
+      
+      // Progress callback
+      if (onProgress && totalSize > 0) {
+        onProgress((receivedLength / totalSize) * 100);
+      }
+    }
+
+    // Tek bir Uint8Array'e birleştir
+    const chunksAll = new Uint8Array(receivedLength);
+    let position = 0;
+    
+    for (const chunk of chunks) {
+      chunksAll.set(chunk, position);
+      position += chunk.length;
+    }
+
+    // Blob oluştur
+    const blob = new Blob([chunksAll], { 
+      type: response.headers.get('content-type') || 'application/octet-stream' 
+    });
+
+    // Download link oluştur ve tıkla
+    const downloadUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = safeFileName;
+    link.style.display = 'none';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Memory cleanup
+    URL.revokeObjectURL(downloadUrl);
+
+    return { success: true };
+
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'İndirme hatası'
+    };
+  }
+};
+
+/**
+ * Dosya adını Türkçe karakterlerle normalize et
+ */
+export const normalizeFileName = (fileName: string): string => {
+  return fileName
+    // Türkçe karakterleri koru ama güvenli hale getir
+    .replace(/[<>:"/\\|?*]/g, '_')  // Zararlı karakterleri _ ile değiştir
+    .replace(/\s+/g, '_')          // Boşlukları _ ile değiştir
+    .replace(/_+/g, '_')           // Çoklu _ karakterlerini tek _ yap
+    .replace(/^_+|_+$/g, '')       // Başta ve sonda _ varsa kaldır
+    .substring(0, 100);            // Maksimum 100 karakter
 }; 

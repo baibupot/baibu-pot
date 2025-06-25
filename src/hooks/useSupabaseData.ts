@@ -687,6 +687,25 @@ export const useDeleteAcademicDocument = () => {
   });
 };
 
+export const useIncrementDocumentDownloads = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (documentId: string) => {
+      // Güvenli RPC fonksiyonunu kullan (atomic increment)
+      const { data, error } = await supabase.rpc('increment_document_downloads', {
+        document_id: documentId
+      });
+      
+      if (error) throw error;
+      return data; // Yeni indirme sayısını döndürür
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['academic_documents'] });
+    },
+  });
+};
+
 // Internships hooks
 export const useInternships = (active = true) => {
   return useQuery({
