@@ -26,6 +26,7 @@ import {
   getGitHubConfigStatus 
 } from '../../integrations/github/config';
 import { useSponsors } from '../../hooks/useSupabaseData';
+import SponsorSelect from './SponsorSelect';
 
 interface Magazine {
   id?: string;
@@ -80,6 +81,7 @@ const MagazineModal = ({ isOpen, onClose, onSave, initialData }: MagazineModalPr
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [contributors, setContributors] = useState<Contributor[]>([]);
   const [magazineSponsors, setMagazineSponsors] = useState<MagazineSponsor[]>([]);
+  const [selectedSponsorIds, setSelectedSponsorIds] = useState<string[]>([]);
   
   // Tüm sponsorları çek
   const { data: allSponsors = [] } = useSponsors(false);
@@ -132,14 +134,9 @@ const MagazineModal = ({ isOpen, onClose, onSave, initialData }: MagazineModalPr
               .eq('magazine_issue_id', initialData.id);
             
             if (sponsorsData) {
-              const existingSponsors: MagazineSponsor[] = sponsorsData.map((s: any) => ({
-                sponsor_name: s.sponsor_name || s.name || '', // Eski data için fallback
-                sponsorship_type: s.sponsorship_type || '',
-                logo_url: s.logo_url || '',
-                website_url: s.website_url || '',
-                selectedLogoFile: undefined
-              }));
-              setMagazineSponsors(existingSponsors);
+              // Yeni şema: sponsor_id sütunu
+              const ids = sponsorsData.map((s: any) => s.sponsor_id).filter(Boolean);
+              setSelectedSponsorIds(ids);
             }
           } catch (error) {
             console.error('Magazine sponsors yüklenemedi:', error);
@@ -226,13 +223,6 @@ const MagazineModal = ({ isOpen, onClose, onSave, initialData }: MagazineModalPr
     if (!formData.issue_number || formData.issue_number < 1) {
       newErrors.issue_number = 'Sayı numarası 1\'den büyük olmalı';
     }
-
-    // Sponsor validasyonu - Eğer sponsor eklenmiş ise zorunlu alanları kontrol et
-    magazineSponsors.forEach((sponsor, index) => {
-      if (sponsor.sponsor_name.trim() && !sponsor.sponsorship_type.trim()) {
-        newErrors[`sponsor_${index}_type`] = `Sponsor ${index + 1} için sponsorluk türü seçin`;
-      }
-    });
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -450,45 +440,41 @@ const MagazineModal = ({ isOpen, onClose, onSave, initialData }: MagazineModalPr
         }
       }
 
-      // Magazine Sponsors kaydetme
-      if (magazineSponsors.length > 0 && magazineId) {
-        setUploadStatus('🏢 Sponsorlar kaydediliyor...');
+      // Magazine Sponsors kaydetme (yeni şema)
+      if (selectedSponsorIds.length > 0 && magazineId) {
+        setUploadStatus('🏢 Sponsor ilişkileri kaydediliyor...');
         setUploadProgress(95);
 
-        // Önce mevcut sponsors'ları sil (güncelleme durumunda)
-        if (initialData?.id) {
-          await supabase
-            .from('magazine_sponsors')
-            .delete()
-            .eq('magazine_issue_id', magazineId);
-        }
+        // Eski ilişkileri temizle
+        await supabase
+          .from('magazine_sponsors')
+          .delete()
+          .eq('magazine_issue_id', magazineId);
 
-        // Yeni sponsors'ları ekle
-        const sponsorsData = magazineSponsors
-          .filter(s => s.sponsor_name.trim() && s.sponsorship_type.trim()) // Boş sponsor_name VE sponsorship_type olanları filtrele
-          .map((sponsor, index) => ({
-            magazine_issue_id: magazineId,
-            sponsor_name: sponsor.sponsor_name.trim(),
-            sponsorship_type: sponsor.sponsorship_type.trim(),
-            logo_url: sponsor.logo_url?.trim() || null,
-            website_url: sponsor.website_url?.trim() || null,
-            sort_order: index + 1
-          }));
+        const sponsorRows = selectedSponsorIds.map((id, index) => ({
+          magazine_issue_id: magazineId,
+          sponsor_id: id,
+          sponsorship_type: 'sponsor',
+          sort_order: index + 1,
+        }));
 
-        if (sponsorsData.length > 0) {
-          const { error: sponsorsError } = await supabase
-            .from('magazine_sponsors')
-            .insert(sponsorsData as any);
+        const { error: sponsorsError } = await supabase
+          .from('magazine_sponsors')
+          .insert(sponsorRows as any);
 
-          if (sponsorsError) {
-            console.warn('Magazine sponsors kaydedilemedi:', sponsorsError);
-            // Sponsors hatası dergi kaydını etkilemesin
-          }
+        if (sponsorsError) {
+          console.warn('Magazine sponsor ilişkileri kaydedilemedi:', sponsorsError);
         }
       }
 
-      setUploadProgress(100);
-      onSave(cleanedData);
+      // onSave fonksiyonuna sponsor ID'lerini ekleyerek çağır
+      const saveData = {
+        ...cleanedData,
+        id: magazineId, // id'yi de ekleyelim
+        sponsorIds: selectedSponsorIds 
+      };
+
+      onSave(saveData);
       
       // Success mesajını göster ve modal'ı kapat
       setTimeout(() => {
@@ -964,164 +950,10 @@ const MagazineModal = ({ isOpen, onClose, onSave, initialData }: MagazineModalPr
               </div>
             )}
             
-            {magazineSponsors.map((sponsor, index) => (
-              <div key={index} className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 space-y-3 border">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Sponsor #{index + 1}
-                    </span>
-                    {sponsor.sponsor_name && (
-                      <Badge variant="outline" className="text-xs">
-                        {sponsor.sponsor_name}
-                      </Badge>
-                    )}
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setMagazineSponsors(magazineSponsors.filter((_, i) => i !== index))}
-                    disabled={isUploading}
-                  >
-                    <X className="w-3 h-3" />
-                  </Button>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Sponsor İsmi *</Label>
-                    <Input
-                      value={sponsor.sponsor_name}
-                      onChange={(e) => {
-                        const updated = [...magazineSponsors];
-                        updated[index].sponsor_name = e.target.value;
-                        setMagazineSponsors(updated);
-                      }}
-                      placeholder="Sponsor şirket ismi..."
-                      className="text-sm"
-                      disabled={isUploading}
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label className="text-xs">Sponsorluk Tipi *</Label>
-                    <select
-                      value={sponsor.sponsorship_type}
-                      onChange={(e) => {
-                        const updated = [...magazineSponsors];
-                        updated[index].sponsorship_type = e.target.value;
-                        setMagazineSponsors(updated);
-                      }}
-                      className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-800"
-                      disabled={isUploading}
-                    >
-                      <option value="">Sponsorluk türü seçin...</option>
-                      <option value="main_sponsor">Ana Sponsor</option>
-                      <option value="sponsor">Sponsor</option>
-                      <option value="supporter">Destekçi</option>
-                      <option value="media_partner">Medya Partneri</option>
-                    </select>
-                    {errors[`sponsor_${index}_type`] && (
-                      <p className="text-red-500 text-xs mt-1">{errors[`sponsor_${index}_type`]}</p>
-                    )}
-                  </div>
-                </div>
-                
-                {/* Logo Upload - YENİ */}
-                <div className="space-y-3">
-                  <Label className="text-xs flex items-center gap-2">
-                    <Image className="w-3 h-3" />
-                    Sponsor Logosu (Opsiyonel)
-                  </Label>
-                  
-                  {/* Logo Dosya Seçme */}
-                  {githubConfigured && (
-                    <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 space-y-2">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Upload className="w-3 h-3" />
-                        <span className="text-xs font-medium">Bilgisayarımdan Seç</span>
-                      </div>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0] || null;
-                          const updated = [...magazineSponsors];
-                          updated[index].selectedLogoFile = file;
-                          setMagazineSponsors(updated);
-                        }}
-                        className="w-full text-xs file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
-                        disabled={isUploading}
-                      />
-                      {sponsor.selectedLogoFile && (
-                        <p className="text-xs text-green-600 dark:text-green-400">
-                          ✓ {sponsor.selectedLogoFile.name} seçildi
-                        </p>
-                      )}
-                    </div>
-                  )}
-                  
-                  {/* Manuel Logo URL */}
-                  <div>
-                    <Label className="text-xs text-gray-600 dark:text-gray-400">
-                      {githubConfigured ? 'Veya Logo URL Gir' : 'Logo URL'}
-                    </Label>
-                    <Input
-                      value={sponsor.logo_url || ''}
-                      onChange={(e) => {
-                        const updated = [...magazineSponsors];
-                        updated[index].logo_url = e.target.value;
-                        setMagazineSponsors(updated);
-                      }}
-                      placeholder="https://example.com/logo.png"
-                      className="text-sm"
-                      disabled={isUploading}
-                    />
-                  </div>
-                </div>
-                
-                <div>
-                  <Label className="text-xs">Web Sitesi / Sosyal Medya (Opsiyonel)</Label>
-                  <Input
-                    value={sponsor.website_url || ''}
-                    onChange={(e) => {
-                      const updated = [...magazineSponsors];
-                      updated[index].website_url = e.target.value;
-                      setMagazineSponsors(updated);
-                    }}
-                    placeholder="https://www.example.com"
-                    className="text-sm"
-                    disabled={isUploading}
-                  />
-                </div>
-                
-                {/* Sponsor Önizleme */}
-                {(sponsor.sponsor_name || sponsor.logo_url) && (
-                  <div className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded border">
-                    {sponsor.logo_url && (
-                      <img 
-                        src={sponsor.logo_url} 
-                        alt={sponsor.sponsor_name}
-                        className="w-12 h-12 object-contain rounded border bg-white"
-                        onError={(e) => {
-                          e.currentTarget.src = '/placeholder.svg';
-                        }}
-                      />
-                    )}
-                    <div className="flex-1">
-                      <div className="font-medium text-sm text-blue-800 dark:text-blue-200">
-                        {sponsor.sponsor_name || 'İsimsiz Sponsor'}
-                      </div>
-                      <div className="text-xs text-blue-600 dark:text-blue-300">
-                        {sponsor.sponsorship_type || 'Tür belirtilmemiş'} 
-                        {sponsor.website_url && ` • ${sponsor.website_url}`}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
+            <div className="space-y-2">
+              <Label>Sponsorlar</Label>
+              <SponsorSelect selectedIds={selectedSponsorIds} onChange={setSelectedSponsorIds} />
+            </div>
           </div>
 
           {/* Yayın Durumu */}

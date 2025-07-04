@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -28,7 +28,8 @@ import {
   XCircle,
   Send,
   Mail,
-  Search
+  Search,
+  ExternalLink
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ThemeProvider } from '@/components/ThemeProvider';
@@ -53,7 +54,12 @@ import { deleteMagazineFilesByUrls, deleteAllProductFilesFromGitHub } from '@/ut
 import { getGitHubStorageConfig, isGitHubStorageConfigured } from '@/integrations/github/config';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import type { Tables } from '@/integrations/supabase/types';
+import type { Database } from '@/integrations/supabase/types';
+import { cn } from '@/lib/utils';
+
+type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T];
+
+type ManageableTables = 'news' | 'events' | 'magazine_issues' | 'sponsors' | 'surveys' | 'team_members' | 'products';
 
 interface User {
   id: string;
@@ -424,30 +430,30 @@ const AdminDashboard = () => {
 
   const handleSaveEvent = async (eventData: any) => {
     let savedEventId: string | null = null;
-    let isNewEvent = !editingItem;
-    
+    const isNewEvent = !editingItem;
+
     try {
-      const { sponsors, ...eventDataWithoutSponsors } = eventData;
-      
+      const { sponsorIds = [], ...eventDataWithoutSponsors } = eventData;
+
       if (editingItem) {
-        // Etkinlik güncelleme
+        // Güncelleme
         const { error } = await supabase
           .from('events')
           .update(eventDataWithoutSponsors)
           .eq('id', editingItem.id);
         if (error) throw error;
         savedEventId = editingItem.id;
-        
-        // Mevcut sponsorları sil
+
+        // Eski sponsor ilişkilerini sil
         const { error: sponsorDeleteError } = await supabase
           .from('event_sponsors')
           .delete()
           .eq('event_id', savedEventId);
         if (sponsorDeleteError) throw sponsorDeleteError;
-          
+
         toast.success('Etkinlik güncellendi');
       } else {
-        // Yeni etkinlik ekleme
+        // Yeni kayıt
         const { data, error } = await supabase
           .from('events')
           .insert([{ ...eventDataWithoutSponsors, created_by: user?.id }])
@@ -457,141 +463,80 @@ const AdminDashboard = () => {
         savedEventId = data.id;
         toast.success('Etkinlik eklendi');
       }
-      
-      // Sponsorları kaydet
-      if (sponsors && sponsors.length > 0 && savedEventId) {
-        try {
-        const sponsorInserts = sponsors.map((sponsor: any) => ({
+
+      // Sponsor ilişkilerini ekle
+      if (sponsorIds.length > 0 && savedEventId) {
+        const sponsorInserts = sponsorIds.map((id: string, index: number) => ({
           event_id: savedEventId,
-          sponsor_name: sponsor.sponsor_name,
-          sponsor_logo: sponsor.sponsor_logo,
-          sponsor_website: sponsor.sponsor_website,
-          sponsor_type: sponsor.sponsor_type,
-          sort_order: sponsor.sort_order
+          sponsor_id: id,
+          sponsor_type: 'destekci', // varsayılan
+          sort_order: index,
         }));
-        
+
         const { error: sponsorError } = await supabase
           .from('event_sponsors')
           .insert(sponsorInserts);
-          
-          if (sponsorError) throw sponsorError;
-          
-          if (sponsors.length > 0) {
-          toast.success(`${sponsors.length} sponsor başarıyla kaydedildi`);
-          }
-        } catch (sponsorError) {
-          console.error('🚨 Sponsor kaydetme hatası:', sponsorError);
-          
-          // Rollback: Yeni eklenen etkinliği sil
-          if (isNewEvent && savedEventId) {
-            console.log('🔄 Rolling back: Etkinlik siliniyor...');
-            await supabase
-              .from('events')
-              .delete()
-              .eq('id', savedEventId);
-            
-            toast.error('❌ Sponsorlar kaydedilemedi, etkinlik silindi. Lütfen tekrar deneyin.');
-            return;
-          } else {
-            toast.error('⚠️ Etkinlik kaydedildi ancak sponsorlar kaydedilemedi');
-          }
-        }
+        if (sponsorError) throw sponsorError;
+
+        toast.success(`${sponsorIds.length} sponsor ilişkilendirildi`);
       }
-      
-      setEditingItem(null);
-      
-      // Sayfayı yenile ki veriler güncellensin
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-      
     } catch (error) {
-      console.error('🚨 Etkinlik kaydetme hatası:', error);
-      
-      // Rollback: Yeni eklenen etkinliği sil
+      toast.error('Bir hata oluştu');
+      console.error('Error saving event:', error);
+
+      // Rollback yeni ekleme sırasında ilişki hatası
       if (isNewEvent && savedEventId) {
-        console.log('🔄 Rolling back: Etkinlik siliniyor...');
-        try {
-          await supabase
-            .from('events')
-            .delete()
-            .eq('id', savedEventId);
-          toast.error('❌ Bir hata oluştu, değişiklikler geri alındı');
-        } catch (rollbackError) {
-          console.error('🚨 Rollback hatası:', rollbackError);
-          toast.error('❌ Kritik hata: Manuel temizlik gerekli');
-        }
-      } else {
-        toast.error('❌ Bir hata oluştu');
+        await supabase.from('events').delete().eq('id', savedEventId);
       }
     }
   };
 
   const handleSaveMagazine = async (magazineData: any) => {
-    console.log('🔍 AdminDashboard - Received magazineData:', magazineData);
-    console.log('🔍 Type of issue_number:', typeof magazineData.issue_number);
-    console.log('🔍 issue_number value:', magazineData.issue_number);
-    
     try {
-      if (editingItem) {
-        const { error } = await supabase
-          .from('magazine_issues')
-          .update(magazineData)
-          .eq('id', editingItem.id);
-        if (error) throw error;
-        toast.success('Dergi güncellendi');
+      const { sponsorIds, ...magazineDetails } = magazineData;
+      let magazineId = magazineDetails.id || editingItem?.id;
+
+      // ID'nin varlığını kontrol et (güncelleme için)
+      if (magazineId) {
+        // Zaten `onSave` içinde hallediliyor, bu yüzden burada bir şey yapmaya gerek yok
+        // Sadece ID'nin varlığını doğrulamış olduk
       } else {
-        // Temiz veri oluştur
-        const cleanInsertData = {
-          title: magazineData.title,
-          description: magazineData.description,
-          issue_number: Number(magazineData.issue_number), // Kesinlikle number olsun
-          publication_date: magazineData.publication_date,
-          cover_image: magazineData.cover_image,
-          pdf_file: magazineData.pdf_file,
-          slug: magazineData.slug,
-          published: Boolean(magazineData.published),
-          created_by: user?.id || null
-        };
-        
-        console.log('🔍 Final clean data for insert:', cleanInsertData);
-        
-        // Aynı sayı numarası var mı kontrol et
-        const { data: existingMagazine } = await supabase
-          .from('magazine_issues')
-          .select('id')
-          .eq('issue_number', cleanInsertData.issue_number)
-          .single();
-        
-        if (existingMagazine) {
-          // Mevcut kaydı güncelle
-          const { error } = await supabase
-            .from('magazine_issues')
-            .update(cleanInsertData)
-            .eq('issue_number', cleanInsertData.issue_number);
-          if (error) throw error;
-          toast.success(`Sayı ${cleanInsertData.issue_number} güncellendi!`);
-        } else {
-          // Yeni kayıt ekle
-          const { error } = await supabase
-            .from('magazine_issues')
-            .insert([cleanInsertData]);
-          if (error) throw error;
-          toast.success('Dergi eklendi');
-        }
+         toast.error("Kaydedilecek dergi bulunamadı.");
+         return;
       }
-      setEditingItem(null);
-      setMagazineModalOpen(false);
-      
-      // Veriyi yenile
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+
+      // Sponsor ilişkilerini güncelle
+      if (sponsorIds && magazineId) {
+        // Önce mevcut sponsorları sil
+        await supabase
+          .from('magazine_sponsors')
+          .delete()
+          .eq('magazine_issue_id', magazineId);
+
+        // Yeni sponsor ilişkilerini ekle
+        if (sponsorIds.length > 0) {
+          const sponsorInserts = sponsorIds.map((sponsor_id: string, index: number) => ({
+            magazine_issue_id: magazineId,
+            sponsor_id: sponsor_id,
+            sponsorship_type: 'sponsor', // Varsayılan
+            sort_order: index,
+          }));
+
+          const { error: sponsorError } = await supabase
+            .from('magazine_sponsors')
+            .insert(sponsorInserts);
+
+          if (sponsorError) {
+            toast.error('Sponsorlar güncellenirken bir hata oluştu.');
+            throw sponsorError;
+          }
+        }
+        toast.success('Sponsor ilişkileri başarıyla güncellendi.');
+      }
       
     } catch (error) {
-      toast.error('Bir hata oluştu: ' + (error as any)?.message);
+      toast.error('Dergi kaydedilirken bir hata oluştu.');
       console.error('Error saving magazine:', error);
-      throw error; // MagazineModal'da error handling için
     }
   };
 
@@ -689,29 +634,36 @@ const AdminDashboard = () => {
 
   // Type-safe item types
   type EditableItem = 
-    | Tables['news']['Row']
-    | Tables['events']['Row'] 
-    | Tables['magazine_issues']['Row']
-    | Tables['sponsors']['Row']
-    | Tables['surveys']['Row']
-    | Tables['team_members']['Row']
-    | Tables['products']['Row'];
+    | Tables<'news'>['Row']
+    | Tables<'events'>['Row'] 
+    | Tables<'magazine_issues'>['Row']
+    | Tables<'sponsors'>['Row']
+    | Tables<'surveys'>['Row']
+    | Tables<'team_members'>['Row']
+    | Tables<'products'>['Row'];
 
-  const openEditModal = (item: EditableItem, type: 'news' | 'event' | 'magazine' | 'sponsor' | 'survey' | 'team' | 'product') => {
+  const openEditModal = (item: EditableItem, type: ManageableTables) => {
     setEditingItem(item);
-    if (type === 'news') setNewsModalOpen(true);
-    else if (type === 'event') setEventModalOpen(true);
-    else if (type === 'magazine') setMagazineModalOpen(true);
-    else if (type === 'sponsor') setSponsorModalOpen(true);
-    else if (type === 'survey') setSurveyModalOpen(true);
-    else if (type === 'team') setTeamMemberModalOpen(true);
-    else if (type === 'product') setProductModalOpen(true);
+    switch(type) {
+      case 'news': setNewsModalOpen(true); break;
+      case 'events': setEventModalOpen(true); break;
+      case 'magazine_issues': setMagazineModalOpen(true); break;
+      case 'sponsors': setSponsorModalOpen(true); break;
+      case 'surveys': setSurveyModalOpen(true); break;
+      case 'team_members': setTeamMemberModalOpen(true); break;
+      case 'products': setProductModalOpen(true); break;
+    }
   };
 
   const handleDelete = async (
     id: string, 
-    tableName: 'news' | 'events' | 'magazine_issues' | 'sponsors' | 'surveys' | 'team_members' | 'products'
+    tableName: ManageableTables
   ) => {
+    if (!hasPermission(tableName)) {
+      toast.error('Bu işlemi yapma yetkiniz yok.');
+      return;
+    }
+    
     if (!confirm('Bu öğeyi silmek istediğinizden emin misiniz?')) return;
     
     try {
@@ -1447,7 +1399,7 @@ const AdminDashboard = () => {
                               <Button 
                                 variant="outline" 
                                 size="sm" 
-                                onClick={() => openEditModal(event, 'event')}
+                                onClick={() => openEditModal(event, 'events')}
                                 className="flex-1 sm:flex-none h-9 text-xs sm:text-sm hover:bg-blue-50 hover:border-blue-300 dark:hover:bg-blue-900/20 dark:hover:border-blue-600 transition-colors"
                               >
                                 <Edit className="h-3 w-3 mr-1 sm:mr-2" />
@@ -1760,7 +1712,7 @@ const AdminDashboard = () => {
                             </div>
                           </div>
                           <div className="flex space-x-2 flex-shrink-0">
-                            <Button variant="outline" size="sm" onClick={() => openEditModal(magazine, 'magazine')}>
+                            <Button variant="outline" size="sm" onClick={() => openEditModal(magazine, 'magazine_issues')}>
                               <Edit className="h-4 w-4" />
                             </Button>
                             <Button variant="outline" size="sm" onClick={() => handleDelete(magazine.id, 'magazine_issues')}>
@@ -2075,7 +2027,7 @@ const AdminDashboard = () => {
                             </div>
                           </div>
                           <div className="flex space-x-2 flex-shrink-0">
-                            <Button variant="outline" size="sm" onClick={() => openEditModal(survey, 'survey')}>
+                            <Button variant="outline" size="sm" onClick={() => openEditModal(survey, 'surveys')}>
                               <Edit className="h-4 w-4" />
                             </Button>
                             <Button variant="outline" size="sm" onClick={() => handleDelete(survey.id, 'surveys')}>
@@ -2098,41 +2050,85 @@ const AdminDashboard = () => {
               <TabsContent value="sponsors" className="space-y-6">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <h2 className="text-2xl font-bold">Sponsor Yönetimi</h2>
-                  <Button onClick={() => { setEditingItem(null); setSponsorModalOpen(true); }}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Yeni Sponsor
+                  <Button 
+                    onClick={() => {
+                      setEditingItem(null);
+                      setSponsorModalOpen(true);
+                    }}
+                    disabled={!hasPermission('sponsors')}
+                  >
+                    <Plus className="mr-2 h-4 w-4" /> Yeni Sponsor Ekle
                   </Button>
                 </div>
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="space-y-4">
-                      {sponsors?.map(sponsor => (
-                        <div key={sponsor.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg gap-4">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-medium truncate">{sponsor.name}</h3>
-                            <div className="flex flex-wrap items-center gap-2 mt-2">
-                              <Badge variant="outline">{sponsor.sponsor_type}</Badge>
-                              <Badge variant={sponsor.active ? "default" : "secondary"}>
-                                {sponsor.active ? "Aktif" : "Pasif"}
-                              </Badge>
-                            </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {sponsors?.sort((a, b) => (a.active === b.active) ? 0 : a.active ? -1 : 1).map(sponsor => (
+                    <Card key={sponsor.id} className={cn(
+                      "flex flex-col transition-all",
+                      !sponsor.active && "bg-gray-100 dark:bg-gray-900/50 opacity-60"
+                    )}>
+                      <CardHeader>
+                        <div className="flex justify-between items-start">
+                          <div className="space-y-1">
+                            <CardTitle className="flex items-center gap-2">
+                              {sponsor.name}
+                              {!sponsor.active && <Badge variant="destructive">Pasif</Badge>}
+                            </CardTitle>
+                            <CardDescription>
+                              <Badge variant="secondary">{sponsor.sponsor_type}</Badge>
+                            </CardDescription>
                           </div>
-                          <div className="flex space-x-2 flex-shrink-0">
-                            <Button variant="outline" size="sm" onClick={() => openEditModal(sponsor, 'sponsor')}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={() => handleDelete(sponsor.id, 'sponsors')}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                          {sponsor.logo && (
+                            <img src={sponsor.logo} alt={sponsor.name} className="w-16 h-16 object-contain rounded-md border p-1" />
+                          )}
                         </div>
-                      ))}
-                      {(!sponsors || sponsors?.length === 0) && (
-                        <p className="text-center text-muted-foreground py-8">Henüz sponsor bulunmuyor</p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                      </CardHeader>
+                      <CardContent className="flex-grow space-y-4">
+                        <p className="text-sm text-muted-foreground">
+                          {sponsor.description || "Açıklama mevcut değil."}
+                        </p>
+                        {sponsor.website && (
+                          <a 
+                            href={sponsor.website} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="text-sm text-blue-500 hover:underline flex items-center gap-1"
+                          >
+                            Website <ExternalLink className="h-3 w-3" />
+                          </a>
+                        )}
+                      </CardContent>
+                      <CardFooter className="flex justify-end gap-2 bg-gray-50 dark:bg-gray-900/50 p-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openEditModal(sponsor, 'sponsors')}
+                          disabled={!hasPermission('sponsors')}
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Düzenle
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDelete(sponsor.id, 'sponsors')}
+                          disabled={!hasPermission('sponsors')}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Sil
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  ))}
+                </div>
+
+                {(!sponsors || sponsors?.length === 0) && (
+                  <div className="text-center py-12 border-2 border-dashed rounded-lg">
+                    <Building2 className="mx-auto h-12 w-12 text-gray-400" />
+                    <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">Henüz sponsor eklenmemiş.</h3>
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Başlamak için yeni bir sponsor ekleyin.</p>
+                  </div>
+                )}
               </TabsContent>
             )}
 
@@ -2162,7 +2158,7 @@ const AdminDashboard = () => {
                             </div>
                           </div>
                           <div className="flex space-x-2 flex-shrink-0">
-                            <Button variant="outline" size="sm" onClick={() => openEditModal(member, 'team')}>
+                            <Button variant="outline" size="sm" onClick={() => openEditModal(member, 'team_members')}>
                               <Edit className="h-4 w-4" />
                             </Button>
                             <Button variant="outline" size="sm" onClick={() => handleDelete(member.id, 'team_members')}>
@@ -2599,7 +2595,7 @@ const AdminDashboard = () => {
                             <Button 
                               variant="outline" 
                               size="sm" 
-                              onClick={() => openEditModal(product, 'product')}
+                              onClick={() => openEditModal(product, 'products')}
                               className="hover:bg-blue-50 hover:border-blue-300 dark:hover:bg-blue-900/20 dark:hover:border-blue-600 transition-colors"
                             >
                               <Edit className="h-4 w-4" />

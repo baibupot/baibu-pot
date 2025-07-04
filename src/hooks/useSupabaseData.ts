@@ -180,7 +180,13 @@ export const useEvent = (id: string) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('events')
-        .select('*')
+        .select(`
+          *,
+          event_sponsors (
+            sponsor_id,
+            sponsors ( id, name, logo, website, sponsor_type )
+          )
+        `)
         .eq('id', id)
         .single();
       if (error) throw error;

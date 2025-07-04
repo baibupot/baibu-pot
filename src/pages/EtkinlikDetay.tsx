@@ -42,10 +42,22 @@ import EventRegistrationForm from '@/components/EventRegistrationForm';
 import LazyImage from '@/components/LazyImage';
 
 type Event = Database['public']['Tables']['events']['Row'];
-type EventSponsor = Database['public']['Tables']['event_sponsors']['Row'];
+
+interface DetailedSponsor {
+  id: string;
+  name: string;
+  logo: string | null;
+  website: string | null;
+  sponsor_type: string;
+}
+
+interface DetailedEventSponsor {
+  sponsor_id: string;
+  sponsors: DetailedSponsor | null;
+}
 
 interface EventWithSponsors extends Event {
-  event_sponsors: EventSponsor[];
+  event_sponsors: DetailedEventSponsor[];
 }
 
 const EtkinlikDetay = () => {
@@ -67,16 +79,19 @@ const EtkinlikDetay = () => {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase
+      const { data, error: fetchError } = await supabase
         .from('events')
         .select(`
           *,
-          event_sponsors (*)
+          event_sponsors (
+            sponsor_id,
+            sponsors ( id, name, logo, website, sponsor_type )
+          )
         `)
         .eq('slug', eventSlug)
         .single();
 
-      if (error) throw error;
+      if (fetchError) throw fetchError;
       if (!data) throw new Error('Etkinlik bulunamadı');
 
       setEvent(data as EventWithSponsors);
@@ -597,39 +612,24 @@ const EtkinlikDetay = () => {
                   <CardContent>
                     <div className="grid grid-cols-2 gap-4">
                       {event.event_sponsors
-                        .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+                        .sort((a, b) => (a.sponsor_id || 0) - (b.sponsor_id || 0))
                         .slice(0, 4) // İlk 4 sponsoru göster
-                        .map((sponsor) => (
-                        <div 
-                          key={sponsor.id} 
-                          className="text-center group cursor-pointer"
-                          onClick={() => sponsor.sponsor_website && window.open(sponsor.sponsor_website, '_blank')}
-                        >
-                          {sponsor.sponsor_logo ? (
-                            <div className="aspect-square bg-white rounded-lg p-3 shadow-sm group-hover:shadow-md transition-shadow">
-                              <LazyImage
-                                src={sponsor.sponsor_logo}
-                                alt={sponsor.sponsor_name}
-                                className="w-full h-full object-contain"
-                              />
-                            </div>
-                          ) : (
-                            <div className="aspect-square bg-slate-100 dark:bg-slate-700 rounded-lg flex items-center justify-center">
-                              <span className="text-slate-500 dark:text-slate-400 text-xs text-center px-2">
-                                {sponsor.sponsor_name}
-                              </span>
-                            </div>
-                          )}
-                          <h3 className="mt-2 font-medium text-xs group-hover:text-blue-600 transition-colors line-clamp-2">
-                            {sponsor.sponsor_name}
-                          </h3>
-                          {sponsor.sponsor_type && (
-                            <Badge variant="outline" className="text-[10px] mt-1">
-                              {sponsor.sponsor_type}
-                            </Badge>
-                          )}
-                        </div>
-                      ))}
+                        .map(({ sponsors: sponsor }) => 
+                          sponsor ? (
+                            <a 
+                              key={sponsor.id} 
+                              href={sponsor.website || '#'} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="flex flex-col items-center justify-center p-4 border rounded-lg hover:shadow-lg transition-shadow bg-gray-50 dark:bg-gray-900/50"
+                            >
+                              {sponsor.logo && (
+                                <img src={sponsor.logo} alt={sponsor.name} className="h-16 object-contain mb-2" />
+                              )}
+                              <p className="text-sm font-medium text-center">{sponsor.name}</p>
+                            </a>
+                          ) : null
+                        )}
                     </div>
                     {event.event_sponsors.length > 4 && (
                       <div className="mt-4 text-center">
@@ -655,33 +655,23 @@ const EtkinlikDetay = () => {
                 <CardContent>
                   <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
                     {event.event_sponsors
-                      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-                      .map((sponsor) => (
-                      <div 
-                        key={sponsor.id} 
-                        className="text-center group cursor-pointer"
-                        onClick={() => sponsor.sponsor_website && window.open(sponsor.sponsor_website, '_blank')}
-                      >
-                        {sponsor.sponsor_logo ? (
-                          <div className="aspect-square bg-white rounded-lg p-2 shadow-sm group-hover:shadow-md transition-shadow">
-                            <LazyImage
-                              src={sponsor.sponsor_logo}
-                              alt={sponsor.sponsor_name}
-                              className="w-full h-full object-contain"
-                            />
-                          </div>
-                        ) : (
-                          <div className="aspect-square bg-slate-100 dark:bg-slate-700 rounded-lg flex items-center justify-center">
-                            <span className="text-slate-500 dark:text-slate-400 text-xs text-center px-1">
-                              {sponsor.sponsor_name}
-                            </span>
-                          </div>
-                        )}
-                        <h3 className="mt-1 font-medium text-xs group-hover:text-blue-600 transition-colors line-clamp-2">
-                          {sponsor.sponsor_name}
-                        </h3>
-                      </div>
-                    ))}
+                      .sort((a, b) => (a.sponsor_id || 0) - (b.sponsor_id || 0))
+                      .map(({ sponsors: sponsor }) => 
+                        sponsor ? (
+                          <a 
+                            key={sponsor.id} 
+                            href={sponsor.website || '#'} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="flex flex-col items-center justify-center p-2 border rounded-lg hover:shadow-md transition-shadow bg-gray-50 dark:bg-gray-900/50"
+                          >
+                            {sponsor.logo && (
+                              <img src={sponsor.logo} alt={sponsor.name} className="h-16 object-contain mb-2" />
+                            )}
+                            <p className="text-sm font-medium text-center">{sponsor.name}</p>
+                          </a>
+                        ) : null
+                      )}
                   </div>
                 </CardContent>
               </Card>

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -32,10 +32,12 @@ import {
   SPONSOR_TYPES,
   type SponsorType
 } from '@/constants/eventConstants';
+import SponsorSelect from './SponsorSelect';
 
 type Tables = Database['public']['Tables'];
-type EventData = Tables['events']['Insert'];
-type EventRow = Tables['events']['Row'];
+type EventTable = Tables['events'];
+type EventData = EventTable['Insert'];
+type EventRow = EventTable['Row'];
 
 interface EventSponsor {
   id?: string | number;
@@ -55,41 +57,34 @@ interface EventModalProps {
 
 const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) => {
   // 🎯 Form State
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Omit<EventData, 'id' | 'created_at' | 'updated_at' | 'created_by'>>({
     title: '',
     description: '',
     event_date: '',
-    end_date: '',
-    location: '',
+    end_date: null,
+    location: null,
     event_type: DEFAULT_EVENT_TYPE,
-    max_participants: '',
+    max_participants: null,
     registration_required: false,
-    registration_link: '',
-    featured_image: '',
+    registration_link: null,
+    featured_image: null,
     slug: '',
     status: DEFAULT_EVENT_STATUS,
     has_custom_form: false,
-    price: '',
+    price: null,
     currency: 'TL',
-    latitude: '',
-    longitude: '',
-    gallery_images: [] as string[],
-    registration_enabled: true, // 🎛️ Kayıt kontrolü
-    registration_closed_reason: null as string | null, // 🎛️ Kapanma sebebi
+    latitude: null,
+    longitude: null,
+    gallery_images: [],
+    registration_enabled: true,
+    registration_closed_reason: null,
   });
 
   // 🎯 State
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
-  const [eventSponsors, setEventSponsors] = useState<EventSponsor[]>([]);
-  const [newSponsor, setNewSponsor] = useState({
-    sponsor_name: '',
-    sponsor_logo: '',
-    sponsor_website: '',
-    sponsor_type: DEFAULT_SPONSOR_TYPE,
-    sort_order: 0
-  });
+  const [selectedSponsorIds, setSelectedSponsorIds] = useState<string[]>([]);
   
   // 🎯 Refs
   const featuredImageRef = useRef<HTMLInputElement>(null);
@@ -117,35 +112,30 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
         description: initialData.description || '',
         event_date: formatDateTime(initialData.event_date),
         end_date: formatDateTime(initialData.end_date),
-        location: initialData.location || '',
+        location: initialData.location || null,
         event_type: initialData.event_type || DEFAULT_EVENT_TYPE,
-        max_participants: initialData.max_participants?.toString() || '',
+        max_participants: initialData.max_participants,
         registration_required: initialData.registration_required || false,
-        registration_link: initialData.registration_link || '',
-        featured_image: initialData.featured_image || '',
+        registration_link: initialData.registration_link || null,
+        featured_image: initialData.featured_image || null,
         slug: initialData.slug || '',
         status: initialData.status || DEFAULT_EVENT_STATUS,
         has_custom_form: initialData.has_custom_form || false,
-        price: initialData.price?.toString() || '',
+        price: initialData.price,
         currency: initialData.currency || 'TL',
-        latitude: initialData.latitude?.toString() || '',
-        longitude: initialData.longitude?.toString() || '',
+        latitude: initialData.latitude,
+        longitude: initialData.longitude,
         gallery_images: initialData.gallery_images || [],
-        registration_enabled: initialData.registration_enabled !== false, // 🎛️ Default true
-        registration_closed_reason: initialData.registration_closed_reason || null, // 🎛️ Kapanma sebebi
+        registration_enabled: initialData.registration_enabled !== false,
+        registration_closed_reason: initialData.registration_closed_reason || null,
       });
       
       setGalleryImages(initialData.gallery_images || []);
       
       if (existingSponsors) {
-        setEventSponsors(existingSponsors.map(s => ({
-          id: s.id,
-          sponsor_name: s.sponsor_name,
-          sponsor_logo: s.sponsor_logo || '',
-          sponsor_website: s.sponsor_website || '',
-          sponsor_type: s.sponsor_type,
-          sort_order: s.sort_order || 0
-        })));
+        // Yeni şema: sponsor_id alanı mevcut
+        const ids = existingSponsors.map((s: any) => s.sponsor_id).filter(Boolean);
+        setSelectedSponsorIds(ids);
       }
     }
   }, [initialData, existingSponsors]);
@@ -273,7 +263,7 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
       const result = await uploadFileObjectToGitHub(config, file, filePath, 'Upload sponsor logo');
       
       if (result.success && result.rawUrl) {
-        setNewSponsor(prev => ({ ...prev, sponsor_logo: result.rawUrl }));
+        setFormData(prev => ({ ...prev, featured_image: result.rawUrl }));
         toast.success('Logo yüklendi');
       }
     } catch (error) {
@@ -281,34 +271,6 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
     } finally {
       setIsUploading(false);
     }
-  };
-
-  // 🎯 Sponsor management
-  const addSponsor = () => {
-    if (!newSponsor.sponsor_name.trim()) {
-      toast.error('Sponsor adı gereklidir');
-      return;
-    }
-
-    setEventSponsors(prev => [...prev, {
-      ...newSponsor,
-      id: Date.now(),
-      sort_order: prev.length
-    }]);
-    
-    setNewSponsor({
-      sponsor_name: '',
-      sponsor_logo: '',
-      sponsor_website: '',
-      sponsor_type: DEFAULT_SPONSOR_TYPE,
-      sort_order: 0
-    });
-    
-    toast.success('Sponsor eklendi');
-  };
-
-  const removeSponsor = (index: number) => {
-    setEventSponsors(prev => prev.filter((_, i) => i !== index));
   };
 
   const removeGalleryImage = (index: number) => {
@@ -333,7 +295,7 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
       return;
     }
     
-    const eventData: EventData & { sponsors?: EventSponsor[] } = {
+    const eventData: Partial<EventData> & { sponsorIds: string[] } = {
       ...formData,
       event_date: formData.event_date || null,
       end_date: formData.end_date || null,
@@ -345,12 +307,12 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
       registration_link: formData.registration_link?.trim() || null,
       featured_image: formData.featured_image?.trim() || null,
       gallery_images: galleryImages,
-      sponsors: eventSponsors,
+      sponsorIds: selectedSponsorIds,
       registration_enabled: formData.registration_enabled, // 🎛️ Kayıt durumu
       registration_closed_reason: formData.registration_closed_reason, // 🎛️ Kapanma sebebi
     };
     
-    onSave(eventData);
+    onSave(eventData as EventData);
     onClose();
   };
 
@@ -364,9 +326,14 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
               <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
                 <span className="text-xl">{initialData ? '✏️' : '🎉'}</span>
               </div>
-              <DialogTitle className="text-xl font-bold">
-                {initialData ? 'Etkinlik Düzenle' : 'Yeni Etkinlik'}
-          </DialogTitle>
+              <div>
+                <DialogTitle className="text-xl font-bold">
+                  {initialData ? 'Etkinlik Düzenle' : 'Yeni Etkinlik'}
+                </DialogTitle>
+                <DialogDescription>
+                  Etkinlik detaylarını buradan ekleyebilir veya güncelleyebilirsiniz.
+                </DialogDescription>
+              </div>
             </div>
             
             {/* Header Kaydet Butonu */}
@@ -471,7 +438,7 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
                       </Label>
               <Input
                 type="datetime-local"
-                value={formData.end_date}
+                value={formData.end_date || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, end_date: e.target.value }))}
                         className="h-11"
               />
@@ -485,7 +452,7 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
                       Konum
                     </Label>
             <Input
-              value={formData.location}
+              value={formData.location || ''}
               onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
                       placeholder="Etkinlik konumu"
                       className="h-11"
@@ -523,11 +490,9 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
                     <div className="space-y-2">
                       <Label>Max Katılımcı</Label>
             <Input
+              value={formData.max_participants?.toString() || ''}
+              onChange={(e) => setFormData(prev => ({ ...prev, max_participants: e.target.value ? parseInt(e.target.value) : null }))}
               type="number"
-              value={formData.max_participants}
-              onChange={(e) => setFormData(prev => ({ ...prev, max_participants: e.target.value }))}
-                        placeholder="Sınırsız için boş"
-                        className="h-11"
             />
                     </div>
           </div>
@@ -537,12 +502,10 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
                     <div className="space-y-2">
                       <Label>Ücret</Label>
                       <Input
+                        value={formData.price?.toString() || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value ? parseFloat(e.target.value) : null }))}
                         type="number"
                         step="0.01"
-                        value={formData.price}
-                        onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
-                        placeholder="Ücretsiz için boş"
-                        className="h-11"
                       />
                     </div>
                     <div className="space-y-2">
@@ -653,85 +616,8 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
                     <div className="space-y-4">
                   <Label>Sponsorlar</Label>
                   
-                  {/* Add Sponsor */}
-                  <div className="border rounded-lg p-4 space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <Input
-                        placeholder="Sponsor adı"
-                            value={newSponsor.sponsor_name}
-                            onChange={(e) => setNewSponsor(prev => ({ ...prev, sponsor_name: e.target.value }))}
-                          />
-                          <Select 
-                            value={newSponsor.sponsor_type} 
-                            onValueChange={(value) => setNewSponsor(prev => ({ ...prev, sponsor_type: value }))}
-                          >
-                        <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                          {Object.entries(SPONSOR_TYPES).map(([key, label]) => (
-                            <SelectItem key={key} value={key}>
-                              {getSponsorTypeIcon(key as SponsorType)} {label}
-                            </SelectItem>
-                          ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <Input
-                      placeholder="Web sitesi (opsiyonel)"
-                          value={newSponsor.sponsor_website}
-                          onChange={(e) => setNewSponsor(prev => ({ ...prev, sponsor_website: e.target.value }))}
-                    />
-                    <div className="flex gap-2">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() => sponsorLogoRef.current?.click()}
-                              disabled={isUploading || !formData.slug}
-                            >
-                              Logo Yükle
-                            </Button>
-                            <Button
-                              type="button"
-                              onClick={addSponsor}
-                              disabled={!newSponsor.sponsor_name.trim()}
-                            >
-                              Sponsor Ekle
-                            </Button>
-                          </div>
-                          <input
-                            ref={sponsorLogoRef}
-                            type="file"
-                            accept="image/*"
-                      onChange={(e) => e.target.files?.[0] && handleSponsorLogoUpload(e.target.files[0])}
-                      className="hidden"
-                          />
-                        </div>
-
-                  {/* Sponsor List */}
-                  {eventSponsors.length > 0 && (
-                    <div className="space-y-2">
-                        {eventSponsors.map((sponsor, index) => (
-                        <div key={sponsor.id} className="flex items-center justify-between p-3 border rounded-lg">
-                          <div className="flex items-center gap-3">
-                              {sponsor.sponsor_logo && (
-                              <img src={sponsor.sponsor_logo} alt={sponsor.sponsor_name} className="w-8 h-8 object-contain" />
-                            )}
-                            <div>
-                              <p className="font-medium">{sponsor.sponsor_name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {SPONSOR_TYPES[sponsor.sponsor_type as SponsorType]}
-                              </p>
-                      </div>
-                    </div>
-                          <Button type="button" variant="ghost" size="sm" onClick={() => removeSponsor(index)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                  </div>
-                      ))}
-                                </div>
-                              )}
-                                </div>
+                  <SponsorSelect selectedIds={selectedSponsorIds} onChange={setSelectedSponsorIds} />
+              </div>
               </TabsContent>
 
               {/* Registration & Form */}
@@ -882,7 +768,7 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
                           <div className="space-y-2">
                             <Label>Harici Kayıt Linki</Label>
                             <Input
-                              value={formData.registration_link}
+                              value={formData.registration_link || ''}
                               onChange={(e) => setFormData(prev => ({ ...prev, registration_link: e.target.value }))}
                               placeholder="https://forms.google.com/..."
                               className="h-11"

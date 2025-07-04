@@ -72,6 +72,20 @@ CREATE TABLE public.role_permissions (
 -- 3. İÇERİK YÖNETİMİ
 -- ====================================================================
 
+-- Sponsorlar (Diğer tablolardan önce tanımlanmalı)
+CREATE TABLE public.sponsors (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name TEXT NOT NULL,
+    logo TEXT,
+    website TEXT,
+    description TEXT,
+    sponsor_type TEXT NOT NULL DEFAULT 'destekci' CHECK (sponsor_type IN ('ana', 'destekci', 'medya', 'akademik')),
+    active BOOLEAN DEFAULT true,
+    sort_order INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Haberler
 CREATE TABLE public.news (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -115,13 +129,11 @@ CREATE TABLE public.events (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Etkinlik Sponsorları
+-- Etkinlik Sponsorları (İlişki Tablosu)
 CREATE TABLE public.event_sponsors (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     event_id UUID REFERENCES public.events(id) ON DELETE CASCADE,
-    sponsor_name TEXT NOT NULL,
-    sponsor_logo TEXT,
-    sponsor_website TEXT,
+    sponsor_id UUID REFERENCES public.sponsors(id) ON DELETE CASCADE,
     sponsor_type TEXT NOT NULL DEFAULT 'destekci' CHECK (sponsor_type IN ('ana', 'destekci', 'medya', 'yerel')),
     sort_order INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -185,14 +197,12 @@ CREATE TABLE public.magazine_contributors (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Dergi Sponsorları
+-- Dergi Sponsorları (İlişki Tablosu)
 CREATE TABLE public.magazine_sponsors (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     magazine_issue_id UUID REFERENCES public.magazine_issues(id) ON DELETE CASCADE,
-    sponsor_name TEXT NOT NULL,
+    sponsor_id UUID REFERENCES public.sponsors(id) ON DELETE CASCADE,
     sponsorship_type TEXT NOT NULL DEFAULT 'sponsor',
-    logo_url TEXT,
-    website_url TEXT,
     sort_order INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -253,20 +263,6 @@ CREATE TABLE public.article_submissions (
 -- ====================================================================
 -- 5. GENEL İÇERİK
 -- ====================================================================
-
--- Sponsorlar
-CREATE TABLE public.sponsors (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    name TEXT NOT NULL,
-    logo TEXT,
-    website TEXT,
-    description TEXT,
-    sponsor_type TEXT NOT NULL DEFAULT 'destekci' CHECK (sponsor_type IN ('ana', 'destekci', 'medya', 'akademik')),
-    active BOOLEAN DEFAULT true,
-    sort_order INTEGER DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
 
 -- Ekip Üyeleri
 CREATE TABLE public.team_members (
