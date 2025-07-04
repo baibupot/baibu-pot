@@ -20,6 +20,7 @@ import Urunler from '@/pages/Urunler';
 import GizlilikPolitikasi from '@/pages/GizlilikPolitikasi';
 import SiteHaritasi from '@/pages/SiteHaritasi';
 import DergiDetay from '@/pages/DergiDetay';
+import HaberDetay from '@/pages/HaberDetay';
 import EtkinlikDetay from '@/pages/EtkinlikDetay';
 import AnketDetay from '@/pages/AnketDetay';
 import NotFound from '@/pages/NotFound';
@@ -41,6 +42,7 @@ function AppRoutes() {
     <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/haberler" element={<Haberler />} />
+          <Route path="/haberler/:slug" element={<HaberDetay />} />
           <Route path="/dergi" element={<Dergi />} />
           <Route path="/dergi/:id" element={<DergiDetay />} />
           <Route path="/etkinlikler" element={<Etkinlikler />} />

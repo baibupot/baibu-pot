@@ -421,23 +421,18 @@ const AdminDashboard = () => {
     return roles.map(role => roleLabels[role as keyof typeof roleLabels] || role).join(', ');
   };
 
-  const handleSaveNews = async (newsData: any) => {
+  const handleSaveNews = async (newsData: Partial<Tables<'news'>['Insert']>, id?: string) => {
     try {
-      if (editingItem) {
-        const { error } = await supabase
-          .from('news')
-          .update(newsData)
-          .eq('id', editingItem.id);
-        if (error) throw error;
+      if (id) {
+        await supabase.from('news').update(newsData).eq('id', id);
         toast.success('Haber güncellendi');
       } else {
-        const { error } = await supabase
-          .from('news')
-          .insert([{ ...newsData, author_id: user?.id }]);
-        if (error) throw error;
+        await supabase.from('news').insert([{ ...newsData, author_id: user?.id }]);
         toast.success('Haber eklendi');
       }
       setEditingItem(null);
+      // refetch news
+      window.location.reload(); // geçici çözüm, daha iyisi react-query cache'i invalidate etmek
     } catch (error) {
       toast.error('Bir hata oluştu');
       console.error('Error saving news:', error);
@@ -2444,7 +2439,7 @@ const AdminDashboard = () => {
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="text-lg font-semibold">Staj İlanları</h3>
                       <Button onClick={() => { setEditingItem(null); setInternshipModalOpen(true); }}>Yeni İlan Ekle</Button>
-                    </div>
+                </div>
                     <div className="space-y-2">
                       {internships?.map(item => (
                         <Card key={item.id} className="flex justify-between items-center p-3">
@@ -2452,17 +2447,17 @@ const AdminDashboard = () => {
                           <div className="space-x-2">
                             <Button variant="outline" size="sm" onClick={() => { setEditingItem(item); setInternshipModalOpen(true); }}>Düzenle</Button>
                             <Button variant="destructive" size="sm" onClick={() => handleDelete(item.id, 'internships')}>Sil</Button>
-                          </div>
+                            </div>
                         </Card>
                       ))}
-                    </div>
+                          </div>
                   </TabsContent>
                   
                   <TabsContent value="guides" className="mt-4">
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="text-lg font-semibold">Staj Rehberi</h3>
                       <Button onClick={() => { setEditingItem(null); setInternshipGuideModalOpen(true); }}>Yeni Rehber Ekle</Button>
-                    </div>
+                          </div>
                      <div className="space-y-2">
                       {internshipGuides?.map(item => (
                         <Card key={item.id} className="flex justify-between items-center p-3">
@@ -2470,7 +2465,7 @@ const AdminDashboard = () => {
                           <div className="space-x-2">
                             <Button variant="outline" size="sm" onClick={() => { setEditingItem(item); setInternshipGuideModalOpen(true); }}>Düzenle</Button>
                             <Button variant="destructive" size="sm" onClick={() => handleDelete(item.id, 'internship_guides')}>Sil</Button>
-                          </div>
+                        </div>
                         </Card>
                       ))}
                     </div>
@@ -2499,7 +2494,7 @@ const AdminDashboard = () => {
                                         }
                                     }}>Sil</Button>
                                 </div>
-                                </Card>
+                </Card>
                             ))}
                             {internshipExperiences?.filter(e => !e.is_approved).length === 0 && <p className="text-muted-foreground text-center py-4">Onay bekleyen deneyim yok.</p>}
                             </div>

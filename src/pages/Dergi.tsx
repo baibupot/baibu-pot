@@ -340,10 +340,7 @@ const Dergi = () => {
                   <PenTool className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform duration-200" />
                   📝 Yazı Gönder
                 </Button>
-                <Button variant="outline" size="lg" className="group">
-                  <FileText className="h-5 w-5 mr-2 group-hover:rotate-12 transition-transform duration-200" />
-                  📋 Yazım Kuralları
-                </Button>
+                
               </div>
             </div>
           </div>

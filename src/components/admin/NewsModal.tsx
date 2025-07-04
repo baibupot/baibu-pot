@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,144 +7,190 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import type { Database } from '@/integrations/supabase/types';
+import RichTextEditor from '@/components/ui/RichTextEditor';
+import { uploadFileObjectToGitHub } from '@/utils/githubStorageHelper';
+import { getGitHubStorageConfig } from '@/integrations/github/config';
+import { toast } from 'sonner';
+import { Loader2, Image as ImageIcon, Link2 } from 'lucide-react';
+import { Editor } from '@tiptap/react';
 
-type Tables = Database['public']['Tables'];
-type NewsData = Tables['news']['Insert'];
-type NewsRow = Tables['news']['Row'];
+type NewsData = Database['public']['Tables']['news']['Insert'];
+type NewsRow = Database['public']['Tables']['news']['Row'];
 
 interface NewsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (newsData: NewsData) => void;
-  initialData?: NewsRow;
+  onSave: (newsData: Partial<NewsData>, id?: string) => void;
+  initialData?: NewsRow | null;
 }
 
 const NewsModal = ({ isOpen, onClose, onSave, initialData }: NewsModalProps) => {
-  const [formData, setFormData] = useState({
-    title: initialData?.title || '',
-    excerpt: initialData?.excerpt || '',
-    content: initialData?.content || '',
-    category: initialData?.category || 'genel',
-    featured_image: initialData?.featured_image || '',
-    slug: initialData?.slug || '',
-    published: initialData?.published || false,
-  });
+  const [formData, setFormData] = useState<Partial<NewsData>>({});
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
+  const [editorInstance, setEditorInstance] = useState<Editor | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const isEditMode = !!initialData;
+
+  useEffect(() => {
+    if (isOpen) {
+      const initialContent = initialData?.content || '';
+      if (isEditMode && initialData) {
+        setFormData(initialData);
+        if(editorInstance) editorInstance.commands.setContent(initialContent);
+      } else {
+        const defaultData = { title: '', content: '', category: 'genel', published: true, slug: '' };
+        setFormData(defaultData);
+        if(editorInstance) editorInstance.commands.setContent(defaultData.content);
+      }
+      setCoverImageFile(null);
+      setIsProcessing(false);
+    }
+  }, [isOpen, initialData, isEditMode, editorInstance]);
+
+  useEffect(() => {
+    if (formData.title && !isEditMode) {
+        const slug = formData.title.toLowerCase()
+            .replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's').replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c')
+            .replace(/ /g, '-').replace(/[^\w-]+/g, '');
+        handleChange('slug', slug);
+    }
+  }, [formData.title, isEditMode]);
+
+  const handleContentChange = (content: string) => {
+    handleChange('content', content);
+  };
+  
+  const handleImageUpload = async (file: File) => {
+    setIsProcessing(true);
+    const toastId = toast.loading('Resim yükleniyor...');
+    try {
+        const config = getGitHubStorageConfig();
+        if (!config) throw new Error('GitHub yapılandırması eksik.');
+        const fileName = `haber-resimleri/${Date.now()}-${file.name}`;
+        const result = await uploadFileObjectToGitHub(config, file, fileName);
+        if (!result.success || !result.rawUrl) throw new Error(result.error || 'Resim yüklenemedi.');
+        toast.success('Resim başarıyla yüklendi.', { id: toastId });
+        return result.rawUrl;
+    } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Bir hata oluştu.', { id: toastId });
+        return null;
+    } finally {
+        setIsProcessing(false);
+    }
+  };
+
+  const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+        const file = e.target.files[0];
+        if (file.size > 2 * 1024 * 1024) {
+            toast.error('Kapak fotoğrafı boyutu 2MB\'dan büyük olamaz.');
+            return;
+        }
+        setCoverImageFile(file);
+        handleChange('featured_image', URL.createObjectURL(file));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
-    onClose();
+    setIsProcessing(true);
+    const toastId = toast.loading('Haber kaydediliyor...');
+    try {
+        let finalData = { ...formData };
+        if (coverImageFile) {
+            const uploadedUrl = await handleImageUpload(coverImageFile);
+            if (!uploadedUrl) throw new Error('Kapak fotoğrafı yüklenemedi.');
+            finalData.featured_image = uploadedUrl;
+        }
+        onSave(finalData, initialData?.id);
+        toast.success(isEditMode ? 'Haber güncellendi!' : 'Haber oluşturuldu!', { id: toastId });
+        onClose();
+    } catch (error) {
+         toast.error(error instanceof Error ? error.message : 'Bir hata oluştu.', { id: toastId });
+    } finally {
+        setIsProcessing(false);
+    }
   };
 
-  const generateSlug = (title: string) => {
-    return title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
-  };
-
-  const handleTitleChange = (title: string) => {
-    setFormData(prev => ({
-      ...prev,
-      title,
-      slug: generateSlug(title)
-    }));
+  const handleChange = (field: keyof NewsData, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>
-            {initialData ? 'Haber Düzenle' : 'Yeni Haber Ekle'}
-          </DialogTitle>
+          <DialogTitle>{isEditMode ? 'Haberi Düzenle' : 'Yeni Haber Ekle'}</DialogTitle>
+          <DialogDescription>Haber veya duyuru içeriğini buradan oluşturun ve düzenleyin.</DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="title">Başlık</Label>
-            <Input
-              id="title"
-              value={formData.title}
-              onChange={(e) => handleTitleChange(e.target.value)}
-              required
-            />
-          </div>
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-1 space-y-2">
+                    <Label>Öne Çıkan Kapak Fotoğrafı</Label>
+                    <div className="aspect-square w-full rounded-lg border-2 border-dashed flex items-center justify-center relative bg-slate-50 dark:bg-slate-800">
+                        {formData.featured_image ? (
+                            <img src={formData.featured_image} alt="Kapak Önizleme" className="w-full h-full object-cover rounded-lg" />
+                        ) : (
+                            <div className="text-center text-slate-500 p-2">
+                            <ImageIcon className="mx-auto h-8 w-8" />
+                            <p className="mt-1 text-xs">Seçin veya sürükleyin</p>
+                            </div>
+                        )}
+                    </div>
+                    <Input id="cover-image-upload" type="file" onChange={handleCoverImageChange} accept="image/jpeg, image/png, image/webp" className="file:text-sm file:font-medium"/>
+                </div>
 
-          <div>
-            <Label htmlFor="slug">Slug</Label>
-            <Input
-              id="slug"
-              value={formData.slug}
-              onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
-              required
-            />
-          </div>
+                <div className="md:col-span-2 space-y-4">
+                     <div>
+                        <Label htmlFor="title">Başlık *</Label>
+                        <Input id="title" value={formData.title || ''} onChange={e => handleChange('title', e.target.value)} required />
+                    </div>
+                    <div>
+                        <Label htmlFor="category">Kategori</Label>
+                        <Select value={formData.category || 'genel'} onValueChange={value => handleChange('category', value)}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="genel">Genel</SelectItem>
+                                <SelectItem value="duyuru">Duyuru</SelectItem>
+                                <SelectItem value="etkinlik">Etkinlik Haberi</SelectItem>
+                                <SelectItem value="dergi">Dergi Haberi</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                     <div>
+                        <Label htmlFor="excerpt">Kısa Özet (Manşetlerde Görünür)</Label>
+                        <Textarea id="excerpt" value={formData.excerpt || ''} onChange={e => handleChange('excerpt', e.target.value)} rows={3} />
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <Label>İçerik</Label>
+                <div className="min-h-[400px]">
+                    <RichTextEditor
+                        content={formData.content || ''}
+                        onChange={handleContentChange}
+                        onImageUpload={handleImageUpload}
+                        onEditorInstance={setEditorInstance}
+                    />
+                </div>
+            </div>
+            
+            <div className="flex items-center space-x-2 pt-4">
+                <Switch id="published" checked={formData.published} onCheckedChange={value => handleChange('published', value)} />
+                <Label htmlFor="published">Yayında mı?</Label>
+            </div>
+        </div>
 
-          <div>
-            <Label htmlFor="excerpt">Özet</Label>
-            <Textarea
-              id="excerpt"
-              value={formData.excerpt}
-              onChange={(e) => setFormData(prev => ({ ...prev, excerpt: e.target.value }))}
-              rows={2}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="content">İçerik</Label>
-            <Textarea
-              id="content"
-              value={formData.content}
-              onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-              rows={6}
-              required
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="category">Kategori</Label>
-            <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="genel">Genel</SelectItem>
-                <SelectItem value="duyuru">Duyuru</SelectItem>
-                <SelectItem value="etkinlik">Etkinlik</SelectItem>
-                <SelectItem value="dergi">Dergi</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label htmlFor="featured_image">Öne Çıkan Görsel URL</Label>
-            <Input
-              id="featured_image"
-              value={formData.featured_image}
-              onChange={(e) => setFormData(prev => ({ ...prev, featured_image: e.target.value }))}
-              placeholder="https://example.com/image.jpg"
-            />
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="published"
-              checked={formData.published}
-              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, published: checked }))}
-            />
-            <Label htmlFor="published">Yayınla</Label>
-          </div>
-
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              İptal
+        <DialogFooter className="flex-shrink-0">
+            <Button type="button" variant="outline" onClick={onClose} disabled={isProcessing}>İptal</Button>
+            <Button type="button" onClick={handleSubmit} disabled={isProcessing}>
+                {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isEditMode ? 'Değişiklikleri Kaydet' : 'Haberi Oluştur'}
             </Button>
-            <Button type="submit">
-              {initialData ? 'Güncelle' : 'Kaydet'}
-            </Button>
-          </div>
-        </form>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
