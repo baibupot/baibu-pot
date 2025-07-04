@@ -193,7 +193,7 @@ const TeamMemberModal = ({ isOpen, onClose, initialData }: TeamMemberModalProps)
                         period_id: periodId,
                         name: teamName,
                         is_board: teamName === 'Yönetim Kurulu',
-                        description: `'${periodName}' dönemi için otomatik oluşturuldu.`
+                        description: ''
                     })
                     .select('id, name')
                     .single();

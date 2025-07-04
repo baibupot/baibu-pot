@@ -144,8 +144,9 @@ const Ekipler = () => {
                         <Badge variant="default" className="text-sm py-2 px-4 rounded-full bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200">
                            {activePeriod.name} Yönetim Kurulu
                         </Badge>
-                        <h2 className="text-3xl font-bold mt-4">Topluluğun Liderleri</h2>
-                        <p className="text-slate-600 dark:text-slate-400 mt-2 max-w-2xl mx-auto">Stratejik kararları alan ve topluluğun genel vizyonunu belirleyen yönetim kurulumuz.</p>
+                        <h2 className="text-3xl font-bold mt-4">Yönetim kurulu</h2>
+                        <p className="text-slate-600 dark:text-slate-400 mt-2 max-w-2xl mx-auto">Yönetim kurulumuz 
+♥</p>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
                         {board.team_members.sort((a,b) => (a.sort_order || 0) - (b.sort_order || 0)).map(member => (
@@ -162,29 +163,24 @@ const Ekipler = () => {
                          <div className="text-center mb-10">
                             <h2 className="text-3xl font-bold">Koordinatörlükler ve Ekipleri</h2>
                             <p className="text-slate-600 dark:text-slate-400 mt-2 max-w-2xl mx-auto">Projelerimizi ve etkinliklerimizi hayata geçiren dinamik ekiplerimiz.</p>
-          </div>
-                        <Accordion type="single" collapsible className="w-full max-w-4xl mx-auto">
+                        </div>
+                        <div className="space-y-12">
                             {otherTeams.sort((a,b) => (a.sort_order || 0) - (b.sort_order || 0)).map(team => (
-                                <AccordionItem key={team.id} value={team.id}>
-                                    <AccordionTrigger className="text-xl font-semibold hover:no-underline">
-                                        <div className="flex items-center gap-4">
-                                            <span>{team.name}</span>
-                                            <Badge variant="secondary">{team.team_members.length} Üye</Badge>
-            </div>
-                                    </AccordionTrigger>
-                                    <AccordionContent className="pt-4">
-                                        <p className="text-slate-600 dark:text-slate-400 mb-6">{team.description}</p>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                            {team.team_members.sort((a,b) => (a.sort_order || 0) - (b.sort_order || 0)).map(member => (
-                                                <MemberCard key={member.id} member={member} />
-                                            ))}
-          </div>
-                                    </AccordionContent>
-                                </AccordionItem>
+                                <div key={team.id}>
+                                    <h3 className="text-2xl font-semibold text-center mb-6">
+                                        {team.name}
+                                    </h3>
+                                    {team.description && <p className="text-slate-600 dark:text-slate-400 mb-6 text-center max-w-3xl mx-auto">{team.description}</p>}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {team.team_members.sort((a,b) => (a.sort_order || 0) - (b.sort_order || 0)).map(member => (
+                                            <MemberCard key={member.id} member={member} />
+                                        ))}
+                                    </div>
+                                </div>
                             ))}
-                        </Accordion>
-        </div>
-      </section>
+                        </div>
+                    </div>
+                </section>
             )}
 
             {/* Geçmiş Dönemler */}
