@@ -81,9 +81,9 @@ const Ekipler = () => {
 
             if (periodsError) throw periodsError;
             
-            // Veriyi işleyerek aktif ve geçmiş dönemleri ayıralım
-            const activePeriod = periodsData.find(p => p.is_active) as Period | undefined;
-            const pastPeriods = periodsData.filter(p => !p.is_active) as Period[];
+            // Veriyi işleyerek en yeni dönemi aktif olarak kabul et
+            const activePeriod = periodsData[0] as Period | undefined;
+            const pastPeriods = periodsData.slice(1) as Period[];
 
             return { activePeriod, pastPeriods };
         }

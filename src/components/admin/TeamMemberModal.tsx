@@ -5,44 +5,94 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { usePeriods, useTeams, useCreateTeamMember, useUpdateTeamMember } from '@/hooks/useSupabaseData';
+import { useCreateTeamMember, useUpdateTeamMember } from '@/hooks/useSupabaseData';
 import { uploadFileObjectToGitHub } from '@/utils/githubStorageHelper';
 import { getGitHubStorageConfig } from '@/integrations/github/config';
 import { toast } from 'sonner';
-import { Loader2, UploadCloud, User, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Image as ImageIcon } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
+import { supabase } from '@/integrations/supabase/client';
 
-type Tables = Database['public']['Tables'];
-type TeamMemberInsert = Tables['team_members']['Insert'];
-type TeamMemberRow = Tables['team_members']['Row'] & {
-  teams: {
-    period_id: string;
-  } | null;
+type TeamMemberInsert = Database['public']['Tables']['team_members']['Insert'];
+type TeamMemberRow = Database['public']['Tables']['team_members']['Row'];
+
+// Bu roller UserRoleManagement'teki ile aynı olmalı
+const ROLES = [
+    { key: 'baskan', label: 'Başkan' },
+    { key: 'baskan_yardimcisi', label: 'Başkan Yardımcısı' },
+    { key: 'iletisim_koordinator', label: 'İletişim Koordinatörü' },
+    { key: 'teknik_koordinator', label: 'Teknik Koordinatör' },
+    { key: 'etkinlik_koordinator', label: 'Etkinlik Koordinatörü' },
+    { key: 'dergi_koordinator', label: 'Dergi Koordinatörü' },
+    { key: 'mali_koordinator', label: 'Mali İşler Koordinatörü' },
+    { key: 'iletisim_ekip', label: 'İletişim Ekip Üyesi' },
+    { key: 'teknik_ekip', label: 'Teknik Ekip Üyesi' },
+    { key: 'etkinlik_ekip', label: 'Etkinlik Ekip Üyesi' },
+    { key: 'dergi_ekip', label: 'Dergi Ekip Üyesi' },
+    { key: 'mali_ekip', label: 'Mali İşler Ekip Üyesi' }
+];
+
+// Rolleri ilgili ekip isimlerine haritalayan mantık
+const getTeamNamesForRole = (role: string): string[] => {
+    if (role.includes('_koordinator')) {
+        const teamName = role.replace('_koordinator', ' Ekibi');
+        // 'iletisim ekibi' -> 'İletişim Ekibi'
+        const capitalizedTeamName = teamName.charAt(0).toUpperCase() + teamName.slice(1);
+        return ['Yönetim Kurulu', capitalizedTeamName];
+    }
+    if (role.includes('_ekip')) {
+        const teamName = role.replace('_ekip', ' Ekibi');
+        const capitalizedTeamName = teamName.charAt(0).toUpperCase() + teamName.slice(1);
+        return [capitalizedTeamName];
+    }
+    if (role === 'baskan' || role === 'baskan_yardimcisi') {
+        return ['Yönetim Kurulu'];
+    }
+    return [];
 };
+
+const validatePeriod = (p: string): string | null => {
+    const regex = /^(\d{4})-(\d{4})$/;
+    const match = p.match(regex);
+    if (!match) {
+        return "Format 'YYYY-YYYY' olmalı (örn: 2025-2026).";
+    }
+    const startYear = parseInt(match[1], 10);
+    const endYear = parseInt(match[2], 10);
+
+    if (endYear !== startYear + 1) {
+        return "Yıllar arasında 1 yıl fark olmalıdır.";
+    }
+
+    if (startYear < 2000 || startYear > 2060) {
+        return "Yıl 2000 ile 2060 arasında olmalıdır.";
+    }
+
+    return null;
+}
 
 interface TeamMemberModalProps {
   isOpen: boolean;
   onClose: () => void;
-  initialData?: TeamMemberRow;
+  initialData?: TeamMemberRow | null;
 }
 
 const TeamMemberModal = ({ isOpen, onClose, initialData }: TeamMemberModalProps) => {
-  const [selectedPeriod, setSelectedPeriod] = useState<string | undefined>(initialData?.teams?.period_id);
-  const [teamId, setTeamId] = useState<string | undefined>(initialData?.team_id);
+  const [periodName, setPeriodName] = useState('');
+  const [periodError, setPeriodError] = useState<string | null>(null);
+  const [selectedRole, setSelectedRole] = useState<string | undefined>();
   const [name, setName] = useState('');
-  const [role, setRole] = useState('');
   const [bio, setBio] = useState('');
   const [email, setEmail] = useState('');
   const [linkedin, setLinkedin] = useState('');
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-
-  const { data: periods, isLoading: isLoadingPeriods } = usePeriods();
-  const { data: teams, isLoading: isLoadingTeams } = useTeams(selectedPeriod);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const createTeamMember = useCreateTeamMember();
   const updateTeamMember = useUpdateTeamMember();
+
+  const isEditMode = !!initialData;
 
   const socialLinks = useMemo(() => {
     const links: { [key: string]: string } = {};
@@ -52,162 +102,228 @@ const TeamMemberModal = ({ isOpen, onClose, initialData }: TeamMemberModalProps)
   }, [email, linkedin]);
 
   useEffect(() => {
-    if (initialData) {
-      setName(initialData.name || '');
-      setRole(initialData.role || '');
-      setTeamId(initialData.team_id || undefined);
-      setBio(initialData.bio || '');
-      setExistingImageUrl(initialData.profile_image || null);
-      
-      const links = initialData.social_links as { email?: string; linkedin?: string } | null;
-      setEmail(links?.email || '');
-      setLinkedin(links?.linkedin || '');
-
-      // initialData'dan period_id'yi de almamız gerekiyor, bu yüzden hook'u ve tipi güncelledik.
-      if (initialData.teams?.period_id) {
-        setSelectedPeriod(initialData.teams.period_id);
-      }
-
-    } else {
-      // Reset form for new entry
-      setName('');
-      setRole('');
-      setTeamId(undefined);
-      setBio('');
-      setEmail('');
-      setLinkedin('');
-      setProfileImage(null);
-      setExistingImageUrl(null);
-      setSelectedPeriod(undefined);
+    if (isOpen) {
+        if (isEditMode && initialData) {
+            setName(initialData.name || '');
+            setBio(initialData.bio || '');
+            const links = initialData.social_links as { email?: string; linkedin?: string } | null;
+            setEmail(links?.email || '');
+            setLinkedin(links?.linkedin || '');
+            setExistingImageUrl(initialData.profile_image || null);
+            // Düzenleme modunda dönem ve rol değiştirilemez
+            setPeriodName('');
+            setSelectedRole(undefined);
+        } else {
+            setName('');
+            setBio('');
+            setEmail('');
+            setLinkedin('');
+            setPeriodName('');
+            setSelectedRole(undefined);
+            setProfileImage(null);
+            setExistingImageUrl(null);
+        }
+        setPeriodError(null);
+        setIsProcessing(false);
     }
-  }, [initialData, isOpen]);
+  }, [initialData, isEditMode, isOpen]);
   
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setProfileImage(e.target.files[0]);
-      setExistingImageUrl(URL.createObjectURL(e.target.files[0]));
+      const file = e.target.files[0];
+      if (file.size > 10 * 1024 * 1024) {
+          toast.error('Dosya boyutu 10MB\'dan büyük olamaz.');
+          return;
+      }
+      setProfileImage(file);
+      setExistingImageUrl(URL.createObjectURL(file));
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!teamId) {
-      toast.error('Lütfen bir ekip seçin.');
+  const handlePeriodChange = (value: string) => {
+      setPeriodName(value);
+      setPeriodError(validatePeriod(value));
+  }
+
+  const handleCreateSubmit = async () => {
+    if (periodError) {
+        toast.error(periodError);
+        return;
+    }
+    if (!periodName || !selectedRole) {
+      toast.error('Lütfen bir dönem ve rol seçin.');
       return;
     }
-    setIsUploading(true);
-
-    let imageUrl = initialData?.profile_image || undefined;
+    
+    const toastId = toast.loading('İşlem başlatılıyor...');
+    setIsProcessing(true);
 
     try {
-      if (profileImage) {
-        const config = getGitHubStorageConfig();
-        if (!config) {
-          toast.error('GitHub Storage yapılandırması bulunamadı. Lütfen ayarları kontrol edin.');
-          setIsUploading(false);
-          return;
-        }
+        let periodId: string;
+        const { data: existingPeriod } = await supabase.from('periods').select('id').eq('name', periodName).single();
 
-        const toastId = toast.loading('Profil fotoğrafı yükleniyor...');
-        const fileName = `ekip-uyeleri/${selectedPeriod}/${teamId}/${Date.now()}-${profileImage.name.replace(/\s+/g, '-')}`;
-        
-        const result = await uploadFileObjectToGitHub(config, profileImage, fileName);
-        
-        if (result.success && result.rawUrl) {
-          imageUrl = result.rawUrl;
-          toast.success('Fotoğraf başarıyla yüklendi!', { id: toastId });
+        if (existingPeriod) {
+            periodId = existingPeriod.id;
         } else {
-          throw new Error(result.error || 'Fotoğraf yüklenemedi.');
+            const { data: newPeriod, error: createError } = await supabase.from('periods').insert({ name: periodName }).select('id').single();
+            if (createError || !newPeriod) throw createError || new Error("Dönem oluşturulamadı.");
+            periodId = newPeriod.id;
+            toast.info(`'${periodName}' dönemi otomatik olarak oluşturuldu.`);
         }
-      }
 
-      const memberData = {
-        name,
-        role,
-        team_id: teamId,
-        bio: bio || undefined,
-        profile_image: imageUrl,
-        social_links: socialLinks,
-      };
+        toast.loading('Ekipler kontrol ediliyor...', { id: toastId });
+        const requiredTeamNames = getTeamNamesForRole(selectedRole);
+        if (requiredTeamNames.length === 0) throw new Error(`'${selectedRole}' rolü için geçerli bir ekip bulunamadı.`);
 
-      if (initialData?.id) {
-        await updateTeamMember.mutateAsync({ id: initialData.id, ...memberData });
-        toast.success('Ekip üyesi başarıyla güncellendi.');
-      } else {
-        await createTeamMember.mutateAsync(memberData as TeamMemberInsert);
-        toast.success('Ekip üyesi başarıyla eklendi.');
-      }
-    onClose();
+        const teamPromises = requiredTeamNames.map(async (teamName) => {
+            const { data: existingTeam } = await supabase
+                .from('teams')
+                .select('id')
+                .eq('period_id', periodId)
+                .eq('name', teamName)
+                .single();
+            
+            if (existingTeam) {
+                return { id: existingTeam.id, name: teamName };
+            } else {
+                toast.info(`'${teamName}' ekibi oluşturuluyor...`);
+                const { data: newTeam, error: createError } = await supabase
+                    .from('teams')
+                    .insert({
+                        period_id: periodId,
+                        name: teamName,
+                        is_board: teamName === 'Yönetim Kurulu',
+                        description: `'${periodName}' dönemi için otomatik oluşturuldu.`
+                    })
+                    .select('id, name')
+                    .single();
+                if (createError || !newTeam) throw createError || new Error(`'${teamName}' ekibi oluşturulamadı.`);
+                return newTeam;
+            }
+        });
 
+        const teams = await Promise.all(teamPromises);
+
+        let imageUrl: string | undefined = undefined;
+        if (profileImage) {
+            toast.loading('Profil fotoğrafı yükleniyor...', { id: toastId });
+            const config = getGitHubStorageConfig();
+            if (!config) throw new Error('GitHub yapılandırması eksik.');
+            const fileName = `ekip-uyeleri/${periodId}/${Date.now()}-${profileImage.name.replace(/\s+/g, '-')}`;
+            const result = await uploadFileObjectToGitHub(config, profileImage, fileName);
+            if (!result.success || !result.rawUrl) throw new Error(result.error || 'Fotoğraf yüklenemedi.');
+            imageUrl = result.rawUrl;
+        }
+        
+        toast.loading('Üye kayıtları oluşturuluyor...', { id: toastId });
+        const memberPayload = { name, role: ROLES.find(r => r.key === selectedRole)?.label || selectedRole, bio: bio || undefined, profile_image: imageUrl, social_links: socialLinks };
+        const createPromises = teams.map(team => createTeamMember.mutateAsync({ ...memberPayload, team_id: team.id }));
+        await Promise.all(createPromises);
+
+        toast.success('Ekip üyesi başarıyla ilgili ekiplere eklendi!', { id: toastId });
+        onClose();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Bir hata oluştu.');
+        toast.error(error instanceof Error ? error.message : 'Bir hata oluştu.', { id: toastId });
     } finally {
-      setIsUploading(false);
+        setIsProcessing(false);
     }
   };
+
+  const handleUpdateSubmit = async () => {
+      if (!initialData) return;
+
+      const toastId = toast.loading('Üye güncelleniyor...');
+      setIsProcessing(true);
+
+      try {
+          let imageUrl = initialData.profile_image || undefined;
+          if (profileImage) {
+            const config = getGitHubStorageConfig();
+            if (!config) throw new Error('GitHub yapılandırması eksik.');
+            const fileName = `ekip-uyeleri/${initialData.team_id}/${Date.now()}-${profileImage.name.replace(/\s+/g, '-')}`;
+            const result = await uploadFileObjectToGitHub(config, profileImage, fileName);
+            if (!result.success || !result.rawUrl) throw new Error(result.error || 'Fotoğraf yüklenemedi.');
+            imageUrl = result.rawUrl;
+          }
+
+          const updatePayload = { name, bio: bio || undefined, profile_image: imageUrl, social_links: socialLinks };
+          await updateTeamMember.mutateAsync({ id: initialData.id, ...updatePayload });
+
+          toast.success('Ekip üyesi başarıyla güncellendi!', { id: toastId });
+          onClose();
+      } catch(error) {
+        toast.error(error instanceof Error ? error.message : 'Güncelleme sırasında bir hata oluştu.', { id: toastId });
+      } finally {
+        setIsProcessing(false);
+      }
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isEditMode) {
+        handleUpdateSubmit();
+    } else {
+        handleCreateSubmit();
+    }
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[95vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {initialData ? 'Ekip Üyesi Düzenle' : 'Yeni Ekip Üyesi Ekle'}
-          </DialogTitle>
+          <DialogTitle>{isEditMode ? 'Ekip Üyesini Düzenle' : 'Yeni Ekip Üyesi Ekle'}</DialogTitle>
           <DialogDescription>
-            Ekip üyesinin bilgilerini girin ve bir döneme/ekibe atayın.
+            {isEditMode 
+                ? 'Üyenin kişisel bilgilerini güncelleyin.' 
+                : 'Üyenin dönemini ve rolünü belirtin. Sistem, üyeyi doğru ekiplere otomatik olarak yerleştirecektir.'}
           </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-6 py-4">
-          {/* Left Column: Image Upload */}
           <div className="md:col-span-1 space-y-4">
             <Label>Profil Fotoğrafı</Label>
-            <div className="aspect-square w-full rounded-lg border-2 border-dashed flex items-center justify-center relative">
+            <div className="aspect-square w-full rounded-lg border-2 border-dashed flex items-center justify-center relative bg-slate-50 dark:bg-slate-800">
               {existingImageUrl ? (
                 <img src={existingImageUrl} alt="Profil" className="w-full h-full object-cover rounded-lg" />
               ) : (
-                <div className="text-center text-slate-500">
+                <div className="text-center text-slate-500 p-4">
                   <ImageIcon className="mx-auto h-12 w-12" />
                   <p className="mt-2 text-sm">Fotoğraf seçin</p>
                 </div>
               )}
-          </div>
+            </div>
             <Input id="picture" type="file" onChange={handleImageChange} accept="image/jpeg, image/png, image/webp" className="file:text-sm file:font-medium"/>
-            <p className="text-xs text-slate-500">PNG, JPG, WEBP (Maks 2MB).</p>
+            <p className="text-xs text-slate-500">PNG, JPG, WEBP (Maks 10MB).</p>
           </div>
 
-          {/* Right Column: Form Fields */}
           <div className="md:col-span-2 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
+          <div>
+                <Label htmlFor="period">Dönem *</Label>
+            <Input
+                    id="period" 
+                    value={isEditMode ? 'Değiştirilemez' : periodName} 
+                    onChange={(e) => handlePeriodChange(e.target.value)}
+                    placeholder="örn: 2025-2026"
+              required
+                    disabled={isEditMode}
+            />
+                {periodError && <p className="text-sm text-red-500 mt-1">{periodError}</p>}
+          </div>
             <div>
-                <Label htmlFor="period">Dönem</Label>
-                <Select value={selectedPeriod} onValueChange={setSelectedPeriod} disabled={isLoadingPeriods}>
-                  <SelectTrigger><SelectValue placeholder="Dönem seçin..." /></SelectTrigger>
+                <Label htmlFor="role">Rol *</Label>
+                <Select value={isEditMode ? initialData?.role : selectedRole} onValueChange={setSelectedRole} disabled={isEditMode}>
+                    <SelectTrigger><SelectValue placeholder={isEditMode ? initialData?.role : "Rol seçin..."} /></SelectTrigger>
                 <SelectContent>
-                    {periods?.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                        {ROLES.map(r => <SelectItem key={r.key} value={r.key}>{r.label}</SelectItem>)}
                 </SelectContent>
               </Select>
-            </div>
-            <div>
-                <Label htmlFor="team">Ekip</Label>
-                <Select value={teamId} onValueChange={setTeamId} disabled={!selectedPeriod || isLoadingTeams}>
-                  <SelectTrigger><SelectValue placeholder="Ekip seçin..." /></SelectTrigger>
-                  <SelectContent>
-                    {teams?.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="name">Ad Soyad</Label>
-                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
-              </div>
-              <div>
-                <Label htmlFor="role">Rol/Pozisyon</Label>
-                <Input id="role" value={role} onChange={(e) => setRole(e.target.value)} placeholder="Koordinatör, Üye vb." required />
-            </div>
+            <div>
+              <Label htmlFor="name">Ad Soyad *</Label>
+              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
           </div>
 
           <div>
@@ -229,12 +345,12 @@ const TeamMemberModal = ({ isOpen, onClose, initialData }: TeamMemberModalProps)
         </form>
 
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose} disabled={isUploading}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={isProcessing}>
               İptal
             </Button>
-          <Button type="submit" onClick={handleSubmit} disabled={isUploading || !teamId}>
-            {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isUploading ? 'Kaydediliyor...' : (initialData ? 'Güncelle' : 'Kaydet')}
+          <Button type="submit" onClick={handleSubmit} disabled={isProcessing || (isEditMode ? false : (!!periodError || !periodName || !selectedRole))}>
+            {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isProcessing ? 'Kaydediliyor...' : (isEditMode ? 'Değişiklikleri Kaydet' : 'Üyeyi Ekle')}
             </Button>
         </DialogFooter>
       </DialogContent>

@@ -270,12 +270,10 @@ CREATE TABLE public.periods (
     name TEXT NOT NULL UNIQUE,
     start_date DATE,
     end_date DATE,
-    is_active BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-COMMENT ON TABLE public.periods IS 'Yönetim kadrolarının görev yaptığı dönemleri (örn: 2024-2025) yönetir.';
-COMMENT ON COLUMN public.periods.is_active IS 'Sitede aktif olarak gösterilecek olan mevcut dönemi işaretler.';
+COMMENT ON TABLE public.periods IS 'Yönetim kadrolarının görev yaptığı dönemleri (örn: 2024-2025) yönetir. En son eklenen dönem aktif dönem olarak kabul edilir.';
 
 -- Ekipler (örn: "Yönetim Kurulu", "Etkinlik Ekibi")
 CREATE TABLE public.teams (

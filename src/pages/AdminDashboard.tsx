@@ -57,6 +57,7 @@ import { toast } from 'sonner';
 import type { Database } from '@/integrations/supabase/types';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/utils'; // formatDate'i import et
+import TeamManagementSection from '@/components/admin/TeamManagementSection';
 
 type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T];
 
@@ -661,7 +662,12 @@ const AdminDashboard = () => {
     id: string, 
     tableName: ManageableTables
   ) => {
-    if (!hasPermission(tableName)) {
+    // Map table name to permission key
+    let permissionKey = tableName;
+    if (tableName === 'team_members') permissionKey = 'team';
+    if (tableName === 'magazine_issues') permissionKey = 'magazine';
+
+    if (!hasPermission(permissionKey)) {
       toast.error('Bu işlemi yapma yetkiniz yok.');
       return;
     }
@@ -2158,40 +2164,20 @@ const AdminDashboard = () => {
                   <h2 className="text-2xl font-bold">Ekip Yönetimi</h2>
                   <Button onClick={() => { setEditingItem(null); setTeamMemberModalOpen(true); }}>
                     <Plus className="h-4 w-4 mr-2" />
-                    Yeni Üye
+                    Yeni Üye Ekle
                   </Button>
                 </div>
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="space-y-4">
-                      {teamMembers?.map(member => (
-                        <div key={member.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg gap-4">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-medium truncate">{member.name}</h3>
-                            <div className="flex flex-wrap items-center gap-2 mt-2">
-                              <Badge variant="outline">{member.team}</Badge>
-                              <span className="text-sm text-muted-foreground">{member.role}</span>
-                              <Badge variant={member.active ? "default" : "secondary"}>
-                                {member.active ? "Aktif" : "Pasif"}
-                              </Badge>
-                            </div>
-                          </div>
-                          <div className="flex space-x-2 flex-shrink-0">
-                            <Button variant="outline" size="sm" onClick={() => openEditModal(member, 'team_members')}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={() => handleDelete(member.id, 'team_members')}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                      {(!teamMembers || teamMembers?.length === 0) && (
-                        <p className="text-center text-muted-foreground py-8">Henüz ekip üyesi bulunmuyor</p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                <TeamManagementSection
+                  onEditMember={(member) => {
+                    setEditingItem(member);
+                    setTeamMemberModalOpen(true);
+                  }}
+                  onDeleteMember={(memberId) => {
+                    if (window.confirm('Bu üyeyi ekipten silmek istediğinizden emin misiniz?')) {
+                      handleDelete(memberId, 'team_members');
+                    }
+                  }}
+                />
               </TabsContent>
             )}
 
@@ -3020,7 +3006,6 @@ const AdminDashboard = () => {
         <TeamMemberModal
           isOpen={teamMemberModalOpen}
           onClose={() => { setTeamMemberModalOpen(false); setEditingItem(null); }}
-          onSave={handleSaveTeamMember}
           initialData={editingItem}
         />
 

@@ -969,7 +969,7 @@ export const uploadDesignRequestInspirationImages = async (
  */
 export const optimizeDesignRequestImage = async (
   imageFile: File,
-  maxSize: number = 2 * 1024 * 1024 // 2MB default (inspiration images can be larger)
+  maxSize: number = 10 * 1024 * 1024 // 10MB default (inspiration images can be larger)
 ): Promise<File> => {
   return new Promise((resolve) => {
     const canvas = document.createElement('canvas');

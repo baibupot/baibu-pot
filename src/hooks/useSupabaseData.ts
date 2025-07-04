@@ -621,7 +621,7 @@ export const useUpdateTeamMember = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ id, ...updateData }: { id: string } & Tables['team_members']['Update']) => {
+    mutationFn: async ({ id, ...updateData }: { id: string } & Partial<TeamMemberInsert>) => {
       const { data, error } = await supabase
         .from('team_members')
         .update(updateData)
@@ -631,9 +631,8 @@ export const useUpdateTeamMember = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['team_members', data.team_id] });
-      queryClient.invalidateQueries({ queryKey: ['teams'] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['all_teams_and_members'] });
     },
   });
 };
@@ -656,6 +655,7 @@ export const useDeleteTeamMember = () => {
         queryClient.invalidateQueries({ queryKey: ['team_members', data.team_id] });
       }
       queryClient.invalidateQueries({ queryKey: ['teams'] });
+      queryClient.invalidateQueries({ queryKey: ['all_teams_and_members'] });
     },
   });
 };
