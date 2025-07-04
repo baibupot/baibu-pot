@@ -1,177 +1,242 @@
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
+import { usePeriods, useTeams, useCreateTeamMember, useUpdateTeamMember } from '@/hooks/useSupabaseData';
+import { uploadFileObjectToGitHub } from '@/utils/githubStorageHelper';
+import { getGitHubStorageConfig } from '@/integrations/github/config';
+import { toast } from 'sonner';
+import { Loader2, UploadCloud, User, Image as ImageIcon } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 
 type Tables = Database['public']['Tables'];
-type TeamMemberData = Tables['team_members']['Insert'];
-type TeamMemberRow = Tables['team_members']['Row'];
+type TeamMemberInsert = Tables['team_members']['Insert'];
+type TeamMemberRow = Tables['team_members']['Row'] & {
+  teams: {
+    period_id: string;
+  } | null;
+};
 
 interface TeamMemberModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (teamMemberData: TeamMemberData) => void;
   initialData?: TeamMemberRow;
 }
 
-const TeamMemberModal = ({ isOpen, onClose, onSave, initialData }: TeamMemberModalProps) => {
-  const [formData, setFormData] = useState({
-    name: initialData?.name || '',
-    role: initialData?.role || '',
-    team: initialData?.team || 'yonetim',
-    year: initialData?.year || new Date().getFullYear(),
-    bio: initialData?.bio || '',
-    profile_image: initialData?.profile_image || '',
-    linkedin_url: initialData?.linkedin_url || '',
-    email: initialData?.email || '',
-    sort_order: initialData?.sort_order || 0,
-    active: initialData?.active ?? true,
-  });
+const TeamMemberModal = ({ isOpen, onClose, initialData }: TeamMemberModalProps) => {
+  const [selectedPeriod, setSelectedPeriod] = useState<string | undefined>(initialData?.teams?.period_id);
+  const [teamId, setTeamId] = useState<string | undefined>(initialData?.team_id);
+  const [name, setName] = useState('');
+  const [role, setRole] = useState('');
+  const [bio, setBio] = useState('');
+  const [email, setEmail] = useState('');
+  const [linkedin, setLinkedin] = useState('');
+  const [profileImage, setProfileImage] = useState<File | null>(null);
+  const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const { data: periods, isLoading: isLoadingPeriods } = usePeriods();
+  const { data: teams, isLoading: isLoadingTeams } = useTeams(selectedPeriod);
+
+  const createTeamMember = useCreateTeamMember();
+  const updateTeamMember = useUpdateTeamMember();
+
+  const socialLinks = useMemo(() => {
+    const links: { [key: string]: string } = {};
+    if (email) links.email = email;
+    if (linkedin) links.linkedin = linkedin;
+    return links;
+  }, [email, linkedin]);
+
+  useEffect(() => {
+    if (initialData) {
+      setName(initialData.name || '');
+      setRole(initialData.role || '');
+      setTeamId(initialData.team_id || undefined);
+      setBio(initialData.bio || '');
+      setExistingImageUrl(initialData.profile_image || null);
+      
+      const links = initialData.social_links as { email?: string; linkedin?: string } | null;
+      setEmail(links?.email || '');
+      setLinkedin(links?.linkedin || '');
+
+      // initialData'dan period_id'yi de almamız gerekiyor, bu yüzden hook'u ve tipi güncelledik.
+      if (initialData.teams?.period_id) {
+        setSelectedPeriod(initialData.teams.period_id);
+      }
+
+    } else {
+      // Reset form for new entry
+      setName('');
+      setRole('');
+      setTeamId(undefined);
+      setBio('');
+      setEmail('');
+      setLinkedin('');
+      setProfileImage(null);
+      setExistingImageUrl(null);
+      setSelectedPeriod(undefined);
+    }
+  }, [initialData, isOpen]);
+  
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setProfileImage(e.target.files[0]);
+      setExistingImageUrl(URL.createObjectURL(e.target.files[0]));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    if (!teamId) {
+      toast.error('Lütfen bir ekip seçin.');
+      return;
+    }
+    setIsUploading(true);
+
+    let imageUrl = initialData?.profile_image || undefined;
+
+    try {
+      if (profileImage) {
+        const config = getGitHubStorageConfig();
+        if (!config) {
+          toast.error('GitHub Storage yapılandırması bulunamadı. Lütfen ayarları kontrol edin.');
+          setIsUploading(false);
+          return;
+        }
+
+        const toastId = toast.loading('Profil fotoğrafı yükleniyor...');
+        const fileName = `ekip-uyeleri/${selectedPeriod}/${teamId}/${Date.now()}-${profileImage.name.replace(/\s+/g, '-')}`;
+        
+        const result = await uploadFileObjectToGitHub(config, profileImage, fileName);
+        
+        if (result.success && result.rawUrl) {
+          imageUrl = result.rawUrl;
+          toast.success('Fotoğraf başarıyla yüklendi!', { id: toastId });
+        } else {
+          throw new Error(result.error || 'Fotoğraf yüklenemedi.');
+        }
+      }
+
+      const memberData = {
+        name,
+        role,
+        team_id: teamId,
+        bio: bio || undefined,
+        profile_image: imageUrl,
+        social_links: socialLinks,
+      };
+
+      if (initialData?.id) {
+        await updateTeamMember.mutateAsync({ id: initialData.id, ...memberData });
+        toast.success('Ekip üyesi başarıyla güncellendi.');
+      } else {
+        await createTeamMember.mutateAsync(memberData as TeamMemberInsert);
+        toast.success('Ekip üyesi başarıyla eklendi.');
+      }
     onClose();
+
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Bir hata oluştu.');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {initialData ? 'Ekip Üyesi Düzenle' : 'Yeni Ekip Üyesi Ekle'}
           </DialogTitle>
+          <DialogDescription>
+            Ekip üyesinin bilgilerini girin ve bir döneme/ekibe atayın.
+          </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="name">Ad Soyad</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              required
-            />
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-6 py-4">
+          {/* Left Column: Image Upload */}
+          <div className="md:col-span-1 space-y-4">
+            <Label>Profil Fotoğrafı</Label>
+            <div className="aspect-square w-full rounded-lg border-2 border-dashed flex items-center justify-center relative">
+              {existingImageUrl ? (
+                <img src={existingImageUrl} alt="Profil" className="w-full h-full object-cover rounded-lg" />
+              ) : (
+                <div className="text-center text-slate-500">
+                  <ImageIcon className="mx-auto h-12 w-12" />
+                  <p className="mt-2 text-sm">Fotoğraf seçin</p>
+                </div>
+              )}
+          </div>
+            <Input id="picture" type="file" onChange={handleImageChange} accept="image/jpeg, image/png, image/webp" className="file:text-sm file:font-medium"/>
+            <p className="text-xs text-slate-500">PNG, JPG, WEBP (Maks 2MB).</p>
           </div>
 
-          <div>
-            <Label htmlFor="role">Rol/Pozisyon</Label>
-            <Input
-              id="role"
-              value={formData.role}
-              onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
-              placeholder="Başkan, Koordinatör, Üye vb."
-              required
-            />
-          </div>
-
+          {/* Right Column: Form Fields */}
+          <div className="md:col-span-2 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="team">Ekip</Label>
-              <Select value={formData.team} onValueChange={(value) => setFormData(prev => ({ ...prev, team: value }))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <Label htmlFor="period">Dönem</Label>
+                <Select value={selectedPeriod} onValueChange={setSelectedPeriod} disabled={isLoadingPeriods}>
+                  <SelectTrigger><SelectValue placeholder="Dönem seçin..." /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="yonetim">Yönetim</SelectItem>
-                  <SelectItem value="teknik">Teknik İşler</SelectItem>
-                  <SelectItem value="etkinlik">Etkinlik</SelectItem>
-                  <SelectItem value="iletisim">İletişim</SelectItem>
-                  <SelectItem value="dergi">Dergi</SelectItem>
+                    {periods?.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label htmlFor="year">Yıl</Label>
-              <Input
-                id="year"
-                type="number"
-                value={formData.year}
-                onChange={(e) => setFormData(prev => ({ ...prev, year: parseInt(e.target.value) || new Date().getFullYear() }))}
-                min="2010"
-                max="2030"
-                required
-              />
+                <Label htmlFor="team">Ekip</Label>
+                <Select value={teamId} onValueChange={setTeamId} disabled={!selectedPeriod || isLoadingTeams}>
+                  <SelectTrigger><SelectValue placeholder="Ekip seçin..." /></SelectTrigger>
+                  <SelectContent>
+                    {teams?.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="name">Ad Soyad</Label>
+                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
+              </div>
+              <div>
+                <Label htmlFor="role">Rol/Pozisyon</Label>
+                <Input id="role" value={role} onChange={(e) => setRole(e.target.value)} placeholder="Koordinatör, Üye vb." required />
             </div>
           </div>
 
           <div>
             <Label htmlFor="bio">Biyografi</Label>
-            <Textarea
-              id="bio"
-              value={formData.bio}
-              onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
-              rows={3}
-              placeholder="Kısa biyografi..."
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="profile_image">Profil Fotoğrafı URL</Label>
-            <Input
-              id="profile_image"
-              value={formData.profile_image}
-              onChange={(e) => setFormData(prev => ({ ...prev, profile_image: e.target.value }))}
-              placeholder="https://example.com/photo.jpg"
-            />
+              <Textarea id="bio" value={bio} onChange={(e) => setBio(e.target.value)} rows={3} placeholder="Kısa biyografi..." />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="email">E-posta</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                placeholder="ornek@baibu.edu.tr"
-              />
+                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ornek@baibu.edu.tr" />
             </div>
             <div>
-              <Label htmlFor="linkedin_url">LinkedIn URL</Label>
-              <Input
-                id="linkedin_url"
-                value={formData.linkedin_url}
-                onChange={(e) => setFormData(prev => ({ ...prev, linkedin_url: e.target.value }))}
-                placeholder="https://linkedin.com/in/..."
-              />
+                <Label htmlFor="linkedin">LinkedIn Profili</Label>
+                <Input id="linkedin" value={linkedin} onChange={(e) => setLinkedin(e.target.value)} placeholder="https://linkedin.com/in/..." />
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="sort_order">Sıra Numarası</Label>
-              <Input
-                id="sort_order"
-                type="number"
-                value={formData.sort_order}
-                onChange={(e) => setFormData(prev => ({ ...prev, sort_order: parseInt(e.target.value) || 0 }))}
-              />
             </div>
-            <div className="flex items-center space-x-2 pt-6">
-              <Switch
-                id="active"
-                checked={formData.active}
-                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, active: checked }))}
-              />
-              <Label htmlFor="active">Aktif</Label>
-            </div>
-          </div>
-
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              İptal
-            </Button>
-            <Button type="submit">
-              {initialData ? 'Güncelle' : 'Kaydet'}
-            </Button>
           </div>
         </form>
+
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onClose} disabled={isUploading}>
+              İptal
+            </Button>
+          <Button type="submit" onClick={handleSubmit} disabled={isUploading || !teamId}>
+            {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isUploading ? 'Kaydediliyor...' : (initialData ? 'Güncelle' : 'Kaydet')}
+            </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

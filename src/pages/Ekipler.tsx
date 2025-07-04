@@ -1,263 +1,225 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { User, Mail, Linkedin, Users } from 'lucide-react';
-import { useTeamMembers } from '@/hooks/useSupabaseData';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import PageContainer from '@/components/ui/page-container';
 import PageHero from '@/components/ui/page-hero';
 import LoadingPage from '@/components/ui/loading-page';
 import ErrorState from '@/components/ui/error-state';
 import EmptyState from '@/components/ui/empty-state';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Users, User, Mail, Linkedin, Shield, Calendar, Users2 } from 'lucide-react';
+import type { Database } from '@/integrations/supabase/types';
 
-const Ekipler = () => {
-  const { data: teamMembers = [], isLoading, error } = useTeamMembers(true);
+// Veritabanından dönecek olan kompleks tipi tanımlayalım
+type TeamMember = Database['public']['Tables']['team_members']['Row'];
+type Team = Database['public']['Tables']['teams']['Row'] & { team_members: TeamMember[] };
+type Period = Database['public']['Tables']['periods']['Row'] & { teams: Team[] };
 
-  const teamsByGroup = {
-    yonetim: teamMembers.filter(member => member.team === 'yonetim'),
-    teknik: teamMembers.filter(member => member.team === 'teknik'),
-    etkinlik: teamMembers.filter(member => member.team === 'etkinlik'),
-    iletisim: teamMembers.filter(member => member.team === 'iletisim'),
-    dergi: teamMembers.filter(member => member.team === 'dergi')
-  };
+// Üye kartı bileşeni
+const MemberCard = ({ member }: { member: TeamMember }) => {
+    const socialLinks = member.social_links as { email?: string; linkedin?: string } | null;
 
-  const getTeamInfo = (teamKey: string) => {
-    const teamInfo: Record<string, { name: string; description: string; color: string; emoji: string }> = {
-      yonetim: {
-        name: 'Yönetim Kurulu',
-        description: 'Topluluğun genel yönetimi ve stratejik kararlarından sorumlu ekip',
-        color: 'cyan',
-        emoji: '👑'
-      },
-      teknik: {
-        name: 'Teknik İşler',
-        description: 'Web sitesi, sosyal medya ve teknik altyapı yönetimi',
-        color: 'blue',
-        emoji: '💻'
-      },
-      etkinlik: {
-        name: 'Etkinlik Organizasyonu',
-        description: 'Tüm etkinliklerin planlanması ve yürütülmesi',
-        color: 'purple',
-        emoji: '🎉'
-      },
-      iletisim: {
-        name: 'İletişim ve Medya',
-        description: 'Dış iletişim, basın ilişkileri ve içerik üretimi',
-        color: 'emerald',
-        emoji: '📢'
-      },
-      dergi: {
-        name: 'Dergi Ekibi',
-        description: 'Psikolojiİbu dergisinin hazırlanması ve yayınlanması',
-        color: 'pink',
-        emoji: '📚'
-      }
-    };
-    return teamInfo[teamKey];
-  };
-
-  const getRoleColor = (role: string) => {
-    if (role.includes('Koordinatör') || role.includes('Başkan')) {
-      return 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300';
-    }
-    return 'bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-300';
-  };
-
-  // Loading state
-  if (isLoading) {
     return (
-      <PageContainer background="slate">
-        <LoadingPage 
-          title="Ekip Bilgileri Yükleniyor"
-          message="Takım üyelerimizi tanıtmaya hazırlanıyoruz..."
-          icon={Users}
-        />
-      </PageContainer>
-    );
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <PageContainer background="slate">
-        <ErrorState 
-          title="Ekip Bilgileri Yüklenemedi"
-          message="Ekip üyelerini yüklerken bir hata oluştu. Lütfen daha sonra tekrar deneyin."
-          onRetry={() => window.location.reload()}
-          variant="network"
-        />
-      </PageContainer>
-    );
-  }
-
-  return (
-    <PageContainer background="slate">
-      {/* Hero Section */}
-      <PageHero
-        title="Topluluk Yönetimi ve Ekiplerimiz"
-        description="BAİBÜ Psikoloji Öğrencileri Topluluğu'nun başarılı çalışmalarının arkasında bulunan değerli ekip üyelerimizi tanıyın. Her bir ekip üyemiz, topluluğumuzun misyonunu gerçekleştirmek için gönüllü olarak çalışmaktadır."
-        icon={Users}
-        gradient="blue"
-      >
-        {teamMembers.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 mt-8">
-            <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
-              <div className="text-3xl font-bold text-slate-900 dark:text-white">
-                {teamMembers.length}
-              </div>
-              <div className="text-sm text-slate-600 dark:text-slate-300">Toplam Üye</div>
-            </div>
-            <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
-              <div className="text-3xl font-bold text-slate-900 dark:text-white">
-                {Object.keys(teamsByGroup).filter(key => teamsByGroup[key as keyof typeof teamsByGroup].length > 0).length}
-              </div>
-              <div className="text-sm text-slate-600 dark:text-slate-300">Aktif Ekip</div>
-            </div>
-            <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
-              <div className="text-3xl font-bold text-slate-900 dark:text-white">
-                {teamMembers.filter(m => m.role.includes('Koordinatör') || m.role.includes('Başkan')).length}
-              </div>
-              <div className="text-sm text-slate-600 dark:text-slate-300">Lider</div>
-            </div>
-            <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
-              <div className="text-3xl font-bold text-slate-900 dark:text-white">
-                5+
-              </div>
-              <div className="text-sm text-slate-600 dark:text-slate-300">Çalışma Alanı</div>
-            </div>
-          </div>
-        )}
-      </PageHero>
-
-      {/* Teams */}
-      <div className="space-y-16 py-12">
-        {Object.entries(teamsByGroup).map(([teamKey, members]) => {
-          if (members.length === 0) return null;
-          const teamInfo = getTeamInfo(teamKey);
-          
-          return (
-            <section key={teamKey}>
-              <div className="mb-12">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="text-4xl">{teamInfo.emoji}</div>
-                  <div>
-                    <h2 className="text-3xl font-bold text-slate-900 dark:text-white">
-                      {teamInfo.name}
-                    </h2>
-                    <p className="text-slate-600 dark:text-slate-400 mt-2 max-w-3xl">
-                      {teamInfo.description}
-                    </p>
-                  </div>
+        <Card className="text-center transition-all duration-300 hover:shadow-xl hover:scale-105 border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+            <CardHeader>
+                <div className="w-24 h-24 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 rounded-full mx-auto mb-4 flex items-center justify-center overflow-hidden">
+                    {member.profile_image ? (
+                        <img src={member.profile_image} alt={member.name} className="w-full h-full object-cover" />
+                    ) : (
+                        <User className="h-12 w-12 text-slate-400" />
+                    )}
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {members.map((member) => (
-                  <Card 
-                    key={member.id} 
-                    className="card-hover group overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm"
-                  >
-                    <CardHeader className="text-center">
-                      <div className="w-24 h-24 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 rounded-full mx-auto mb-4 flex items-center justify-center overflow-hidden relative">
-                        {member.profile_image ? (
-                          <img 
-                            src={member.profile_image} 
-                            alt={member.name}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                          />
-                        ) : (
-                          <User className="h-12 w-12 text-slate-400 group-hover:scale-110 transition-transform duration-300" />
-                        )}
-                        {/* Online indicator */}
-                        <div className="absolute bottom-1 right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-800"></div>
-                      </div>
-                      <Badge className={`${getRoleColor(member.role)} mb-3`}>
-                        {member.role}
-                      </Badge>
-                      <CardTitle className="text-lg group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">
-                        {member.name}
-                      </CardTitle>
+                <CardTitle className="text-lg">{member.name}</CardTitle>
+                <p className="text-sm text-cyan-600 dark:text-cyan-400 font-semibold">{member.role}</p>
                     </CardHeader>
                     <CardContent>
                       {member.bio && (
-                        <p className="text-slate-600 dark:text-slate-400 text-sm mb-6 line-clamp-3 leading-relaxed">
+                    <p className="text-slate-600 dark:text-slate-400 text-sm mb-4 line-clamp-3 leading-relaxed">
                           {member.bio}
                         </p>
                       )}
-                      <div className="flex items-center justify-center gap-3">
-                        {member.email && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="group-hover:shadow-lg transition-all duration-200"
-                            onClick={() => window.open(`mailto:${member.email}`, '_blank')}
-                          >
+                <div className="flex items-center justify-center gap-2">
+                    {socialLinks?.email && (
+                        <Button asChild variant="outline" size="icon" className="rounded-full">
+                            <a href={`mailto:${socialLinks.email}`} target="_blank" rel="noopener noreferrer">
                             <Mail className="h-4 w-4" />
+                            </a>
                           </Button>
                         )}
-                        {member.linkedin_url && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="group-hover:shadow-lg transition-all duration-200"
-                            onClick={() => window.open(member.linkedin_url, '_blank')}
-                          >
+                    {socialLinks?.linkedin && (
+                        <Button asChild variant="outline" size="icon" className="rounded-full">
+                            <a href={socialLinks.linkedin} target="_blank" rel="noopener noreferrer">
                             <Linkedin className="h-4 w-4" />
+                            </a>
                           </Button>
                         )}
                       </div>
                     </CardContent>
                   </Card>
+    );
+};
+
+const Ekipler = () => {
+    const { data, isLoading, error } = useQuery({
+        queryKey: ['teams_by_period'],
+        queryFn: async () => {
+            const { data: periodsData, error: periodsError } = await supabase
+                .from('periods')
+                .select(`
+                    *,
+                    teams (
+                        *,
+                        team_members (
+                            *
+                        )
+                    )
+                `)
+                .order('name', { ascending: false });
+
+            if (periodsError) throw periodsError;
+            
+            // Veriyi işleyerek aktif ve geçmiş dönemleri ayıralım
+            const activePeriod = periodsData.find(p => p.is_active) as Period | undefined;
+            const pastPeriods = periodsData.filter(p => !p.is_active) as Period[];
+
+            return { activePeriod, pastPeriods };
+        }
+    });
+
+    if (isLoading) {
+        return (
+          <PageContainer>
+            <LoadingPage
+              title="Ekipler Yükleniyor..."
+              message="Topluluk üyelerimizi sizin için listeliyoruz."
+              icon={Users}
+            />
+          </PageContainer>
+        );
+    }
+
+    if (error) {
+        return (
+          <PageContainer>
+            <ErrorState
+              title="Ekipler Yüklenemedi"
+              message={error.message as string}
+              onRetry={() => window.location.reload()}
+            />
+          </PageContainer>
+        );
+    }
+
+    if (!data?.activePeriod) {
+        return (
+          <PageContainer>
+            <EmptyState
+              title="Aktif Dönem Bulunamadı"
+              description="Henüz aktif bir yönetim dönemi tanımlanmamış."
+              icon={Calendar}
+            />
+          </PageContainer>
+        );
+    }
+
+    const { activePeriod, pastPeriods } = data;
+    const board = activePeriod.teams.find(t => t.is_board);
+    const otherTeams = activePeriod.teams.filter(t => !t.is_board && t.team_members.length > 0);
+
+    return (
+        <PageContainer>
+            <PageHero
+                title="Ekiplerimiz"
+                description={`Topluluğumuza güç veren ${activePeriod.name} Yönetim Kadrosu ve değerli ekip üyelerimizle tanışın.`}
+                icon={Users2}
+            />
+
+            {/* Aktif Dönem Yönetim Kurulu */}
+            {board && board.team_members.length > 0 && (
+                <section className="py-12">
+                    <div className="text-center mb-10">
+                        <Badge variant="default" className="text-sm py-2 px-4 rounded-full bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200">
+                           {activePeriod.name} Yönetim Kurulu
+                        </Badge>
+                        <h2 className="text-3xl font-bold mt-4">Topluluğun Liderleri</h2>
+                        <p className="text-slate-600 dark:text-slate-400 mt-2 max-w-2xl mx-auto">Stratejik kararları alan ve topluluğun genel vizyonunu belirleyen yönetim kurulumuz.</p>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+                        {board.team_members.sort((a,b) => (a.sort_order || 0) - (b.sort_order || 0)).map(member => (
+                            <MemberCard key={member.id} member={member} />
                 ))}
               </div>
             </section>
-          );
-        })}
-      </div>
+            )}
 
-      {/* Empty State */}
-      {teamMembers.length === 0 && (
-        <EmptyState
-          icon={Users}
-          title="Henüz Ekip Üyesi Bulunmuyor"
-          description="Yeni ekip üyeleri eklendiğinde burada görünecek. Katılım için bizimle iletişime geçin!"
-          actionLabel="İletişim"
-          onAction={() => window.location.href = '/iletisim'}
-        />
-      )}
-
-      {/* Join Us Section */}
-      <section className="py-16">
-        <div className="bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50 dark:from-blue-950 dark:via-cyan-950 dark:to-teal-950 rounded-2xl p-12 text-center relative overflow-hidden">
-          {/* Background decoration */}
-          <div className="absolute inset-0 opacity-20">
-            <div className="absolute top-0 left-1/4 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl animate-pulse"></div>
-            <div className="absolute bottom-0 right-1/4 w-72 h-72 bg-cyan-300 rounded-full mix-blend-multiply filter blur-xl animate-pulse animation-delay-2000"></div>
+            {/* Aktif Dönem Diğer Ekipler */}
+            {otherTeams.length > 0 && (
+                <section className="py-12 bg-slate-50 dark:bg-slate-900/50 rounded-2xl">
+                    <div className="container mx-auto">
+                         <div className="text-center mb-10">
+                            <h2 className="text-3xl font-bold">Koordinatörlükler ve Ekipleri</h2>
+                            <p className="text-slate-600 dark:text-slate-400 mt-2 max-w-2xl mx-auto">Projelerimizi ve etkinliklerimizi hayata geçiren dinamik ekiplerimiz.</p>
           </div>
-          
-          <div className="relative z-10 max-w-2xl mx-auto space-y-8">
-            <div className="text-6xl mb-6">🚀</div>
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white">
-              Ekibimize Katılmak İster Misiniz?
-            </h2>
-            <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
-              Psikoloji alanında kendini geliştirmek, deneyim kazanmak ve topluluk çalışmalarına 
-              katkı sağlamak istiyorsan ekibimizin bir parçası olabilirsin.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="group">
-                <Users className="h-5 w-5 mr-2 group-hover:rotate-12 transition-transform duration-200" />
-                Üyelik Başvurusu Yap
-              </Button>
-              <Button variant="outline" size="lg" className="group">
-                <Mail className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform duration-200" />
-                Detaylı Bilgi Al
-              </Button>
+                        <Accordion type="single" collapsible className="w-full max-w-4xl mx-auto">
+                            {otherTeams.sort((a,b) => (a.sort_order || 0) - (b.sort_order || 0)).map(team => (
+                                <AccordionItem key={team.id} value={team.id}>
+                                    <AccordionTrigger className="text-xl font-semibold hover:no-underline">
+                                        <div className="flex items-center gap-4">
+                                            <span>{team.name}</span>
+                                            <Badge variant="secondary">{team.team_members.length} Üye</Badge>
             </div>
+                                    </AccordionTrigger>
+                                    <AccordionContent className="pt-4">
+                                        <p className="text-slate-600 dark:text-slate-400 mb-6">{team.description}</p>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            {team.team_members.sort((a,b) => (a.sort_order || 0) - (b.sort_order || 0)).map(member => (
+                                                <MemberCard key={member.id} member={member} />
+                                            ))}
           </div>
+                                    </AccordionContent>
+                                </AccordionItem>
+                            ))}
+                        </Accordion>
         </div>
       </section>
+            )}
+
+            {/* Geçmiş Dönemler */}
+            {pastPeriods.length > 0 && (
+                <section className="py-12">
+                     <div className="text-center mb-10">
+                        <h2 className="text-3xl font-bold">Geçmiş Dönem Yönetim Kurulları</h2>
+                        <p className="text-slate-600 dark:text-slate-400 mt-2 max-w-2xl mx-auto">Topluluğumuzun bugünlere gelmesinde emeği geçen geçmiş dönem liderlerimiz.</p>
+                    </div>
+                     <Accordion type="single" collapsible className="w-full max-w-4xl mx-auto">
+                        {pastPeriods.map(period => {
+                            const pastBoard = period.teams.find(t => t.is_board);
+                            if (!pastBoard || pastBoard.team_members.length === 0) return null;
+
+                            return (
+                                <AccordionItem key={period.id} value={period.id}>
+                                    <AccordionTrigger className="text-xl font-semibold hover:no-underline">
+                                        <div className='flex items-center gap-4'>
+                                            <Calendar className="h-5 w-5 text-slate-500" />
+                                            <span>{period.name}</span>
+                                        </div>
+                                    </AccordionTrigger>
+                                    <AccordionContent className="pt-4">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            {pastBoard.team_members.sort((a,b) => (a.sort_order || 0) - (b.sort_order || 0)).map(member => (
+                                                <MemberCard key={member.id} member={member} />
+                                            ))}
+                                        </div>
+                                    </AccordionContent>
+                                </AccordionItem>
+                            );
+                        })}
+                    </Accordion>
+                </section>
+            )}
     </PageContainer>
   );
 };

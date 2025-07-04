@@ -264,22 +264,50 @@ CREATE TABLE public.article_submissions (
 -- 5. GENEL İÇERİK
 -- ====================================================================
 
--- Ekip Üyeleri
-CREATE TABLE public.team_members (
+-- Dönemler (örn: "2025-2026 Dönemi")
+CREATE TABLE public.periods (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    name TEXT NOT NULL,
-    role TEXT NOT NULL,
-    team TEXT NOT NULL CHECK (team IN ('yonetim', 'teknik', 'etkinlik', 'iletisim', 'dergi')),
-    bio TEXT,
-    profile_image TEXT,
-    linkedin_url TEXT,
-    email TEXT,
-    year INTEGER NOT NULL DEFAULT EXTRACT(YEAR FROM NOW()),
-    sort_order INTEGER DEFAULT 0,
-    active BOOLEAN DEFAULT true,
+    name TEXT NOT NULL UNIQUE,
+    start_date DATE,
+    end_date DATE,
+    is_active BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+COMMENT ON TABLE public.periods IS 'Yönetim kadrolarının görev yaptığı dönemleri (örn: 2024-2025) yönetir.';
+COMMENT ON COLUMN public.periods.is_active IS 'Sitede aktif olarak gösterilecek olan mevcut dönemi işaretler.';
+
+-- Ekipler (örn: "Yönetim Kurulu", "Etkinlik Ekibi")
+CREATE TABLE public.teams (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    period_id UUID REFERENCES public.periods(id) ON DELETE CASCADE NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    is_board BOOLEAN DEFAULT false, -- Yönetim Kurulu'nu ayırt etmek için
+    sort_order INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(period_id, name)
+);
+COMMENT ON TABLE public.teams IS 'Her döneme ait ekipleri (Yönetim Kurulu, İletişim, Etkinlik vb.) tanımlar.';
+COMMENT ON COLUMN public.teams.is_board IS 'Bu ekibin "Yönetim Kurulu" olup olmadığını belirtir. Ekipler sayfasında ayrı gösterilir.';
+
+-- Ekip Üyeleri (Yeniden Yapılandırıldı)
+CREATE TABLE public.team_members (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    team_id UUID REFERENCES public.teams(id) ON DELETE CASCADE NOT NULL,
+    user_id UUID REFERENCES public.users(id) ON DELETE SET NULL, -- Sisteme kayıtlı kullanıcıyla eşleştirme (opsiyonel)
+    name TEXT NOT NULL,
+    role TEXT NOT NULL,
+    bio TEXT,
+    profile_image TEXT,
+    social_links JSONB, -- { "email": "...", "linkedin": "..." }
+    sort_order INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+COMMENT ON TABLE public.team_members IS 'Ekiplere atanan üyeleri ve bilgilerini içerir.';
+COMMENT ON COLUMN public.team_members.social_links IS 'Üyenin sosyal medya (email, linkedin, twitter vb.) linklerini JSON formatında tutar.';
 
 -- Akademik Belgeler
 CREATE TABLE public.academic_documents (
@@ -528,6 +556,8 @@ CREATE TRIGGER handle_updated_at_news BEFORE UPDATE ON public.news FOR EACH ROW 
 CREATE TRIGGER handle_updated_at_events BEFORE UPDATE ON public.events FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER handle_updated_at_magazine_issues BEFORE UPDATE ON public.magazine_issues FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER handle_updated_at_sponsors BEFORE UPDATE ON public.sponsors FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+CREATE TRIGGER handle_updated_at_periods BEFORE UPDATE ON public.periods FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+CREATE TRIGGER handle_updated_at_teams BEFORE UPDATE ON public.teams FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER handle_updated_at_team_members BEFORE UPDATE ON public.team_members FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER handle_updated_at_academic_documents BEFORE UPDATE ON public.academic_documents FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER handle_updated_at_internships BEFORE UPDATE ON public.internships FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
@@ -551,6 +581,8 @@ ALTER TABLE public.news ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.magazine_issues ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sponsors ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.periods ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.teams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.team_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.academic_documents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.internships ENABLE ROW LEVEL SECURITY;
@@ -593,6 +625,12 @@ CREATE POLICY "magazine_issues_all_policy" ON public.magazine_issues FOR ALL USI
 
 CREATE POLICY "sponsors_select_policy" ON public.sponsors FOR SELECT USING (true);
 CREATE POLICY "sponsors_all_policy" ON public.sponsors FOR ALL USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "periods_select_policy" ON public.periods FOR SELECT USING (true);
+CREATE POLICY "periods_all_policy" ON public.periods FOR ALL USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "teams_select_policy" ON public.teams FOR SELECT USING (true);
+CREATE POLICY "teams_all_policy" ON public.teams FOR ALL USING (auth.uid() IS NOT NULL);
 
 CREATE POLICY "team_members_select_policy" ON public.team_members FOR SELECT USING (true);
 CREATE POLICY "team_members_all_policy" ON public.team_members FOR ALL USING (auth.uid() IS NOT NULL);

@@ -544,25 +544,56 @@ export const useDeleteSponsor = () => {
   });
 };
 
-// Team members hooks
-export const useTeamMembers = (active = true) => {
+// ====================================================================
+// TEAM & PERIODS HOOKS (Yeniden Yapılandırıldı)
+// ====================================================================
+
+// Periods hooks
+export const usePeriods = () => {
   return useQuery({
-    queryKey: ['team_members', active],
+    queryKey: ['periods'],
     queryFn: async () => {
-      let query = supabase
-        .from('team_members')
+      const { data, error } = await supabase
+        .from('periods')
         .select('*')
-        .order('year', { ascending: false })
-        .order('sort_order', { ascending: true });
-      
-      if (active) {
-        query = query.eq('active', true);
-      }
-      
-      const { data, error } = await query;
+        .order('name', { ascending: false });
       if (error) throw error;
       return data;
     },
+  });
+};
+
+// Teams hooks
+export const useTeams = (periodId?: string) => {
+  return useQuery({
+    queryKey: ['teams', periodId],
+    queryFn: async () => {
+      let query = supabase.from('teams').select('*');
+      if (periodId) {
+        query = query.eq('period_id', periodId);
+      }
+      const { data, error } = await query.order('sort_order', { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!periodId, // Sadece periodId varsa çalıştır
+  });
+};
+
+// Team Members hooks (Updated)
+export const useTeamMembers = (teamId?: string) => {
+  return useQuery({
+    queryKey: ['team_members', teamId],
+    queryFn: async () => {
+      let query = supabase.from('team_members').select('*');
+      if (teamId) {
+        query = query.eq('team_id', teamId);
+      }
+      const { data, error } = await query.order('sort_order', { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!teamId,
   });
 };
 
@@ -570,17 +601,18 @@ export const useCreateTeamMember = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (teamMemberData: Tables['team_members']['Insert']) => {
+    mutationFn: async (memberData: Tables['team_members']['Insert']) => {
       const { data, error } = await supabase
         .from('team_members')
-        .insert([teamMemberData])
+        .insert([memberData])
         .select()
         .single();
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['team_members'] });
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['team_members', data.team_id] });
+      queryClient.invalidateQueries({ queryKey: ['teams'] }); // Ekipler sayfasını da yenile
     },
   });
 };
@@ -599,8 +631,9 @@ export const useUpdateTeamMember = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['team_members'] });
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['team_members', data.team_id] });
+      queryClient.invalidateQueries({ queryKey: ['teams'] });
     },
   });
 };
@@ -610,14 +643,19 @@ export const useDeleteTeamMember = () => {
   
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('team_members')
-        .delete()
-        .eq('id', id);
+      // Önce üyenin team_id'sini alalım ki cache'i doğru yenileyebilelim
+      const { data: member } = await supabase.from('team_members').select('team_id').eq('id', id).single();
+
+      const { error } = await supabase.from('team_members').delete().eq('id', id);
       if (error) throw error;
+      
+      return { team_id: member?.team_id };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['team_members'] });
+    onSuccess: (data) => {
+      if (data.team_id) {
+        queryClient.invalidateQueries({ queryKey: ['team_members', data.team_id] });
+      }
+      queryClient.invalidateQueries({ queryKey: ['teams'] });
     },
   });
 };
