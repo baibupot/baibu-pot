@@ -49,7 +49,7 @@ import FormResponsesModal from '@/components/admin/FormResponsesModal';
 import { downloadFileSafely } from '@/utils/githubStorageHelper';
 import { EVENT_TYPES, EVENT_STATUSES } from '@/constants/eventConstants';
 
-import { useNews, useEvents, useMagazineIssues, useSurveys, useSponsors, useTeamMembers, useAcademicDocuments, useInternships, useContactMessages, useUpdateContactMessage, useDeleteContactMessage, useUsers, useUserRoles, useMagazineAnalytics, useMagazineContributors, useArticleSubmissions, useEventSuggestions, useUpdateEventSuggestion, useProducts, useProductDesignRequests, useUpdateProductDesignRequest, useIncrementDocumentDownloads } from '@/hooks/useSupabaseData';
+import { useNews, useEvents, useMagazineIssues, useSurveys, useSponsors, useTeamMembers, useAcademicDocuments, useInternships, useContactMessages, useUpdateContactMessage, useDeleteContactMessage, useUsers, useUserRoles, useMagazineAnalytics, useMagazineContributors, useArticleSubmissions, useEventSuggestions, useUpdateEventSuggestion, useProducts, useProductDesignRequests, useUpdateProductDesignRequest, useIncrementDocumentDownloads, useAcademics, useInternshipGuides, useInternshipExperiences, useUpdateInternshipExperience, useDeleteInternshipExperience } from '@/hooks/useSupabaseData';
 import { deleteMagazineFilesByUrls, deleteAllProductFilesFromGitHub } from '@/utils/githubStorageHelper';
 import { getGitHubStorageConfig, isGitHubStorageConfigured } from '@/integrations/github/config';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -58,10 +58,13 @@ import type { Database } from '@/integrations/supabase/types';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/utils'; // formatDate'i import et
 import TeamManagementSection from '@/components/admin/TeamManagementSection';
+import InternshipModal from '@/components/admin/InternshipModal';
+import AcademicModal from '@/components/admin/AcademicModal';
+import InternshipGuideModal from '@/components/admin/InternshipGuideModal';
 
 type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T];
 
-type ManageableTables = 'news' | 'events' | 'magazine_issues' | 'sponsors' | 'surveys' | 'team_members' | 'products';
+type ManageableTables = 'news' | 'events' | 'magazine_issues' | 'sponsors' | 'surveys' | 'team_members' | 'products' | 'internships' | 'academics' | 'internship_guides' | 'internship_experiences';
 
 interface User {
   id: string;
@@ -87,6 +90,9 @@ const AdminDashboard = () => {
   const [teamMemberModalOpen, setTeamMemberModalOpen] = useState(false);
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [selectedDocumentModal, setSelectedDocumentModal] = useState<{ mode: 'create' | 'edit'; document?: any } | null>(null);
+  const [internshipModalOpen, setInternshipModalOpen] = useState(false);
+  const [academicModalOpen, setAcademicModalOpen] = useState(false);
+  const [internshipGuideModalOpen, setInternshipGuideModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   
   // Article modal states - YENİ
@@ -117,12 +123,19 @@ const AdminDashboard = () => {
   const { data: events } = useEvents();
   const { data: magazines } = useMagazineIssues(false);
   const { data: surveys } = useSurveys();
-  const { data: internships } = useInternships(false);
+  const { data: internships, refetch: refetchInternships } = useInternships(false);
+  const { data: academics, refetch: refetchAcademics } = useAcademics();
+  const { data: internshipGuides, refetch: refetchGuides } = useInternshipGuides();
+  const { data: internshipExperiences, refetch: refetchExperiences } = useInternshipExperiences();
   const { data: documents } = useAcademicDocuments();
   const { data: contactMessages } = useContactMessages();
   const { data: sponsors } = useSponsors(false);
   const { data: teamMembers } = useTeamMembers(false);
   const { data: products } = useProducts(false);
+  
+  // Staj deneyimi onaylama/silme hook'u
+  const updateInternshipExperience = useUpdateInternshipExperience();
+  const deleteInternshipExperience = useDeleteInternshipExperience();
   
   // Dergi istatistikleri için yeni hook'lar
   const { data: magazineReads } = useMagazineAnalytics();
@@ -655,6 +668,9 @@ const AdminDashboard = () => {
       case 'surveys': setSurveyModalOpen(true); break;
       case 'team_members': setTeamMemberModalOpen(true); break;
       case 'products': setProductModalOpen(true); break;
+      case 'internships': setInternshipModalOpen(true); break;
+      case 'academics': setAcademicModalOpen(true); break;
+      case 'internship_guides': setInternshipGuideModalOpen(true); break;
     }
   };
 
@@ -666,6 +682,7 @@ const AdminDashboard = () => {
     let permissionKey = tableName;
     if (tableName === 'team_members') permissionKey = 'team';
     if (tableName === 'magazine_issues') permissionKey = 'magazine';
+    if (tableName === 'internships' || tableName === 'academics' || tableName === 'internship_guides' || tableName === 'internship_experiences') permissionKey = 'internships';
 
     if (!hasPermission(permissionKey)) {
       toast.error('Bu işlemi yapma yetkiniz yok.');
@@ -2415,49 +2432,121 @@ const AdminDashboard = () => {
             {/* Internships Tab */}
             {hasPermission('internships') && (
               <TabsContent value="internships" className="space-y-6">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <h2 className="text-2xl font-bold">Staj İlanları</h2>
-                  <Button onClick={() => toast.info('Staj ekleme modalı henüz hazır değil')}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Yeni Staj İlanı
-                  </Button>
-                </div>
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="space-y-4">
-                      {internships?.map(internship => (
-                        <div key={internship.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg gap-4">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-medium truncate">{internship.position}</h3>
-                            <p className="text-sm text-muted-foreground">{internship.company_name}</p>
-                            <div className="flex flex-wrap items-center gap-2 mt-2">
-                              <Badge variant="outline">{internship.location}</Badge>
-                              <Badge variant={internship.active ? "default" : "secondary"}>
-                                {internship.active ? "Aktif" : "Pasif"}
-                              </Badge>
-                              {internship.application_deadline && (
-                                <span className="text-sm text-muted-foreground">
-                                  Son Başvuru: {new Date(internship.application_deadline).toLocaleDateString('tr-TR')}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex space-x-2 flex-shrink-0">
-                            <Button variant="outline" size="sm">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                      {(!internships || internships?.length === 0) && (
-                        <p className="text-center text-muted-foreground py-8">Henüz staj ilanı bulunmuyor</p>
-                      )}
+                <Tabs defaultValue="internship-list" className="w-full">
+                  <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="internship-list">İlanlar</TabsTrigger>
+                    <TabsTrigger value="guides">Rehber</TabsTrigger>
+                    <TabsTrigger value="experiences">Deneyimler</TabsTrigger>
+                    <TabsTrigger value="academics">Akademisyenler</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="internship-list" className="mt-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold">Staj İlanları</h3>
+                      <Button onClick={() => { setEditingItem(null); setInternshipModalOpen(true); }}>Yeni İlan Ekle</Button>
                     </div>
-                  </CardContent>
-                </Card>
+                    <div className="space-y-2">
+                      {internships?.map(item => (
+                        <Card key={item.id} className="flex justify-between items-center p-3">
+                          <div>{item.position} - {item.company_name}</div>
+                          <div className="space-x-2">
+                            <Button variant="outline" size="sm" onClick={() => { setEditingItem(item); setInternshipModalOpen(true); }}>Düzenle</Button>
+                            <Button variant="destructive" size="sm" onClick={() => handleDelete(item.id, 'internships')}>Sil</Button>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="guides" className="mt-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold">Staj Rehberi</h3>
+                      <Button onClick={() => { setEditingItem(null); setInternshipGuideModalOpen(true); }}>Yeni Rehber Ekle</Button>
+                    </div>
+                     <div className="space-y-2">
+                      {internshipGuides?.map(item => (
+                        <Card key={item.id} className="flex justify-between items-center p-3">
+                          <div>{item.title}</div>
+                          <div className="space-x-2">
+                            <Button variant="outline" size="sm" onClick={() => { setEditingItem(item); setInternshipGuideModalOpen(true); }}>Düzenle</Button>
+                            <Button variant="destructive" size="sm" onClick={() => handleDelete(item.id, 'internship_guides')}>Sil</Button>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="experiences" className="mt-4">
+                    <div className="space-y-6">
+                        <div>
+                            <h3 className="text-lg font-semibold mb-4">Onay Bekleyen Staj Deneyimleri ({internshipExperiences?.filter(e => !e.is_approved).length || 0})</h3>
+                            <div className="space-y-2">
+                            {internshipExperiences?.filter(e => !e.is_approved).map(item => (
+                                <Card key={item.id} className="p-3">
+                                <p><strong>{item.student_name}</strong> - {item.internship_place} ({item.internship_year})</p>
+                                <p className="text-sm text-muted-foreground mt-1">{item.experience_text}</p>
+                                <div className="flex justify-end space-x-2 mt-2">
+                                    <Button variant="outline" size="sm" onClick={async () => {
+                                    await updateInternshipExperience.mutateAsync({id: item.id, is_approved: true});
+                                    toast.success("Deneyim onaylandı.");
+                                    refetchExperiences();
+                                    }}>Onayla</Button>
+                                    <Button variant="destructive" size="sm" onClick={async () => {
+                                        if (window.confirm("Bu deneyimi kalıcı olarak silmek istediğinizden emin misiniz?")) {
+                                            await deleteInternshipExperience.mutateAsync(item.id);
+                                            toast.success("Deneyim silindi.");
+                                            refetchExperiences();
+                                        }
+                                    }}>Sil</Button>
+                                </div>
+                                </Card>
+                            ))}
+                            {internshipExperiences?.filter(e => !e.is_approved).length === 0 && <p className="text-muted-foreground text-center py-4">Onay bekleyen deneyim yok.</p>}
+                            </div>
+                        </div>
+
+                        <div className="border-t pt-6">
+                            <h3 className="text-lg font-semibold mb-4">Onaylanmış Deneyimler ({internshipExperiences?.filter(e => e.is_approved).length || 0})</h3>
+                             <div className="space-y-2">
+                                {internshipExperiences?.filter(e => e.is_approved).map(item => (
+                                    <Card key={item.id} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-800/50">
+                                        <div>
+                                            <p><strong>{item.student_name}</strong> - {item.internship_place}</p>
+                                            <p className="text-xs text-muted-foreground">{new Date(item.created_at).toLocaleDateString()}</p>
+                                        </div>
+                                        <Button variant="destructive" size="sm" onClick={async () => {
+                                            if (window.confirm("Bu onaylanmış deneyimi kalıcı olarak silmek istediğinizden emin misiniz?")) {
+                                                await deleteInternshipExperience.mutateAsync(item.id);
+                                                toast.success("Deneyim silindi.");
+                                                refetchExperiences();
+                                            }
+                                        }}>Sil</Button>
+                                    </Card>
+                                ))}
+                                {internshipExperiences?.filter(e => e.is_approved).length === 0 && <p className="text-muted-foreground text-center py-4">Henüz onaylanmış deneyim yok.</p>}
+                            </div>
+                        </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="academics" className="mt-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold">İlgili Akademisyenler</h3>
+                      <Button onClick={() => { setEditingItem(null); setAcademicModalOpen(true); }}>Yeni Akademisyen Ekle</Button>
+                    </div>
+                    <div className="space-y-2">
+                      {academics?.map(item => (
+                        <Card key={item.id} className="flex justify-between items-center p-3">
+                          <div>{item.name} - {item.title}</div>
+                          <div className="space-x-2">
+                            <Button variant="outline" size="sm" onClick={() => { setEditingItem(item); setAcademicModalOpen(true); }}>Düzenle</Button>
+                            <Button variant="destructive" size="sm" onClick={() => handleDelete(item.id, 'academics')}>Sil</Button>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </TabsContent>
+                </Tabs>
               </TabsContent>
             )}
 
@@ -3582,6 +3671,22 @@ const AdminDashboard = () => {
             initialData={selectedDocumentModal.document}
           />
         )}
+
+        <InternshipModal
+            isOpen={internshipModalOpen}
+            onClose={() => setInternshipModalOpen(false)}
+            initialData={editingItem}
+        />
+        <AcademicModal
+            isOpen={academicModalOpen}
+            onClose={() => setAcademicModalOpen(false)}
+            initialData={editingItem}
+        />
+        <InternshipGuideModal
+            isOpen={internshipGuideModalOpen}
+            onClose={() => setInternshipGuideModalOpen(false)}
+            initialData={editingItem}
+        />
       </div>
     </ThemeProvider>
   );

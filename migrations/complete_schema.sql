@@ -419,6 +419,43 @@ CREATE TABLE public.product_design_requests (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Akademisyenler (Staj Sorumluları)
+CREATE TABLE public.academics (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name TEXT NOT NULL,
+    title TEXT, -- (örn: Prof. Dr., Öğr. Gör.)
+    email TEXT UNIQUE,
+    profile_image TEXT,
+    sort_order INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Staj Rehberleri (Video, Metin vb.)
+CREATE TABLE public.internship_guides (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    title TEXT NOT NULL,
+    content TEXT,
+    youtube_video_url TEXT,
+    document_links JSONB, -- [{ "label": "Staj Başvuru Formu", "document_id": "..." }]
+    sort_order INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Staj Deneyimleri (Öğrencilerden Gelen)
+CREATE TABLE public.internship_experiences (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    student_name TEXT NOT NULL,
+    internship_place TEXT NOT NULL, -- (örn: Bolu Devlet Hastanesi)
+    internship_year INTEGER,
+    experience_text TEXT NOT NULL,
+    is_approved BOOLEAN DEFAULT false,
+    approved_by UUID REFERENCES public.users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- ====================================================================
 -- 6. FORM VE İLETİŞİM
 -- ====================================================================
@@ -566,6 +603,9 @@ CREATE TRIGGER handle_updated_at_magazine_contributors BEFORE UPDATE ON public.m
 CREATE TRIGGER handle_updated_at_article_submissions BEFORE UPDATE ON public.article_submissions FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER handle_updated_at_event_suggestions BEFORE UPDATE ON public.event_suggestions FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER handle_updated_at_product_design_requests BEFORE UPDATE ON public.product_design_requests FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+CREATE TRIGGER handle_updated_at_academics BEFORE UPDATE ON public.academics FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+CREATE TRIGGER handle_updated_at_internship_guides BEFORE UPDATE ON public.internship_guides FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+CREATE TRIGGER handle_updated_at_internship_experiences BEFORE UPDATE ON public.internship_experiences FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
 -- ====================================================================
 -- 9. GÜVENLİK POLİTİKALARI (RLS)
@@ -598,6 +638,9 @@ ALTER TABLE public.article_submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.product_design_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.event_sponsors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.event_suggestions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.academics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.internship_guides ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.internship_experiences ENABLE ROW LEVEL SECURITY;
 
 -- Kullanıcı politikaları
 CREATE POLICY "users_select_policy" ON public.users FOR SELECT USING (true);
@@ -699,6 +742,19 @@ CREATE POLICY "product_design_requests_insert_policy" ON public.product_design_r
 CREATE POLICY "product_design_requests_select_admin_policy" ON public.product_design_requests FOR SELECT USING (auth.uid() IS NOT NULL);
 CREATE POLICY "product_design_requests_update_admin_policy" ON public.product_design_requests FOR UPDATE USING (auth.uid() IS NOT NULL);
 CREATE POLICY "product_design_requests_delete_admin_policy" ON public.product_design_requests FOR DELETE USING (auth.uid() IS NOT NULL);
+
+-- Akademisyen politikaları
+CREATE POLICY "academics_select_policy" ON public.academics FOR SELECT USING (true);
+CREATE POLICY "academics_all_policy" ON public.academics FOR ALL USING (auth.uid() IS NOT NULL);
+
+-- Staj Rehberi politikaları
+CREATE POLICY "internship_guides_select_policy" ON public.internship_guides FOR SELECT USING (true);
+CREATE POLICY "internship_guides_all_policy" ON public.internship_guides FOR ALL USING (auth.uid() IS NOT NULL);
+
+-- Staj Deneyimi politikaları
+CREATE POLICY "internship_experiences_select_policy" ON public.internship_experiences FOR SELECT USING (is_approved = true);
+CREATE POLICY "internship_experiences_insert_policy" ON public.internship_experiences FOR INSERT WITH CHECK (true);
+CREATE POLICY "internship_experiences_admin_all_policy" ON public.internship_experiences FOR ALL USING (auth.uid() IS NOT NULL);
 
 -- ====================================================================
 -- 10. YETKİLERİ AYARLA

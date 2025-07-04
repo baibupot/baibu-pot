@@ -750,7 +750,7 @@ export const useIncrementDocumentDownloads = () => {
   });
 };
 
-// Internships hooks
+// Internships hooks (Updated to be more comprehensive)
 export const useInternships = (active = true) => {
   return useQuery({
     queryKey: ['internships', active],
@@ -773,14 +773,9 @@ export const useInternships = (active = true) => {
 
 export const useCreateInternship = () => {
   const queryClient = useQueryClient();
-  
   return useMutation({
-    mutationFn: async (internshipData: Tables['internships']['Insert']) => {
-      const { data, error } = await supabase
-        .from('internships')
-        .insert([internshipData])
-        .select()
-        .single();
+    mutationFn: async (internshipData: Tables<'internships'>['Insert']) => {
+      const { data, error } = await supabase.from('internships').insert([internshipData]).select().single();
       if (error) throw error;
       return data;
     },
@@ -792,15 +787,9 @@ export const useCreateInternship = () => {
 
 export const useUpdateInternship = () => {
   const queryClient = useQueryClient();
-  
   return useMutation({
-    mutationFn: async ({ id, ...updateData }: { id: string } & Tables['internships']['Update']) => {
-      const { data, error } = await supabase
-        .from('internships')
-        .update(updateData)
-        .eq('id', id)
-        .select()
-        .single();
+    mutationFn: async ({ id, ...updateData }: { id: string } & Tables<'internships'>['Update']) => {
+      const { data, error } = await supabase.from('internships').update(updateData).eq('id', id).select().single();
       if (error) throw error;
       return data;
     },
@@ -812,19 +801,82 @@ export const useUpdateInternship = () => {
 
 export const useDeleteInternship = () => {
   const queryClient = useQueryClient();
-  
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('internships')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.from('internships').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['internships'] });
     },
   });
+};
+
+// Internship Guides hooks
+export const useInternshipGuides = () => {
+    return useQuery({
+        queryKey: ['internship_guides'],
+        queryFn: async () => {
+            const { data, error } = await supabase.from('internship_guides').select('*').order('sort_order', { ascending: true });
+            if (error) throw error;
+            return data;
+        },
+    });
+};
+
+// Internship Experiences hooks
+export const useInternshipExperiences = (approvedOnly = false) => {
+    return useQuery({
+        queryKey: ['internship_experiences', approvedOnly],
+        queryFn: async () => {
+            let query = supabase.from('internship_experiences').select('*').order('created_at', { ascending: false });
+            if(approvedOnly) {
+                query = query.eq('is_approved', true);
+            }
+            const { data, error } = await query;
+            if (error) throw error;
+            return data;
+        },
+    });
+};
+
+export const useUpdateInternshipExperience = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async ({ id, ...updateData }: { id: string } & Tables<'internship_experiences'>['Update']) => {
+            const { data, error } = await supabase.from('internship_experiences').update(updateData).eq('id', id).select().single();
+            if (error) throw error;
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['internship_experiences'] });
+        },
+    });
+};
+
+export const useDeleteInternshipExperience = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (id: string) => {
+            const { error } = await supabase.from('internship_experiences').delete().eq('id', id);
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['internship_experiences'] });
+        },
+    });
+};
+
+// Academics hooks
+export const useAcademics = () => {
+    return useQuery({
+        queryKey: ['academics'],
+        queryFn: async () => {
+            const { data, error } = await supabase.from('academics').select('*').order('sort_order', { ascending: true });
+            if (error) throw error;
+            return data;
+        },
+    });
 };
 
 // Surveys hooks
