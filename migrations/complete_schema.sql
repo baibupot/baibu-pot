@@ -328,6 +328,7 @@ CREATE TABLE public.surveys (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     title TEXT NOT NULL,
     description TEXT,
+    slug TEXT UNIQUE,
     survey_link TEXT,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,

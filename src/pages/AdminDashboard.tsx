@@ -56,6 +56,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { toast } from 'sonner';
 import type { Database } from '@/integrations/supabase/types';
 import { cn } from '@/lib/utils';
+import { formatDate } from '@/lib/utils'; // formatDate'i import et
 
 type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T];
 
@@ -99,6 +100,7 @@ const AdminDashboard = () => {
   
   // Form Responses modal states - YENİ
   const [responseModalOpen, setResponseModalOpen] = useState(false);
+  const [selectedItemForResponses, setSelectedItemForResponses] = useState<{ formId: string; formTitle: string; formType: 'event_registration' | 'survey' } | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
 
   // Product Design Request modal states - YENİ
@@ -431,10 +433,10 @@ const AdminDashboard = () => {
   const handleSaveEvent = async (eventData: any) => {
     let savedEventId: string | null = null;
     const isNewEvent = !editingItem;
-
+    
     try {
       const { sponsorIds = [], ...eventDataWithoutSponsors } = eventData;
-
+      
       if (editingItem) {
         // Güncelleme
         const { error } = await supabase
@@ -443,14 +445,14 @@ const AdminDashboard = () => {
           .eq('id', editingItem.id);
         if (error) throw error;
         savedEventId = editingItem.id;
-
+        
         // Eski sponsor ilişkilerini sil
         const { error: sponsorDeleteError } = await supabase
           .from('event_sponsors')
           .delete()
           .eq('event_id', savedEventId);
         if (sponsorDeleteError) throw sponsorDeleteError;
-
+          
         toast.success('Etkinlik güncellendi');
       } else {
         // Yeni kayıt
@@ -463,7 +465,7 @@ const AdminDashboard = () => {
         savedEventId = data.id;
         toast.success('Etkinlik eklendi');
       }
-
+      
       // Sponsor ilişkilerini ekle
       if (sponsorIds.length > 0 && savedEventId) {
         const sponsorInserts = sponsorIds.map((id: string, index: number) => ({
@@ -472,18 +474,18 @@ const AdminDashboard = () => {
           sponsor_type: 'destekci', // varsayılan
           sort_order: index,
         }));
-
+        
         const { error: sponsorError } = await supabase
           .from('event_sponsors')
           .insert(sponsorInserts);
-        if (sponsorError) throw sponsorError;
-
+          if (sponsorError) throw sponsorError;
+          
         toast.success(`${sponsorIds.length} sponsor ilişkilendirildi`);
       }
     } catch (error) {
       toast.error('Bir hata oluştu');
       console.error('Error saving event:', error);
-
+      
       // Rollback yeni ekleme sırasında ilişki hatası
       if (isNewEvent && savedEventId) {
         await supabase.from('events').delete().eq('id', savedEventId);
@@ -642,7 +644,7 @@ const AdminDashboard = () => {
     | Tables<'team_members'>['Row']
     | Tables<'products'>['Row'];
 
-  const openEditModal = (item: EditableItem, type: ManageableTables) => {
+  const openEditModal = (item: EditableItem | null, type: ManageableTables) => {
     setEditingItem(item);
     switch(type) {
       case 'news': setNewsModalOpen(true); break;
@@ -841,6 +843,14 @@ const AdminDashboard = () => {
   const cancelStatusChange = () => {
     setConfirmationModalOpen(false);
     setPendingStatusChange(null);
+  };
+
+  const handleViewResponses = (item: { id: string; title: string; slug?: string | null }, type: 'event' | 'survey') => {
+    // Etkinlikler için formId olarak slug veya id kullanılır, anketler için id.
+    const formId = type === 'event' ? item.slug || item.id : item.id;
+    const formType = type === 'event' ? 'event_registration' : 'survey';
+    setSelectedItemForResponses({ formId, formTitle: item.title, formType });
+    setResponseModalOpen(true);
   };
 
   if (!user) {
@@ -2003,45 +2013,54 @@ const AdminDashboard = () => {
             {/* Surveys Tab */}
             {hasPermission('surveys') && (
               <TabsContent value="surveys" className="space-y-6">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="flex justify-between items-center">
                   <h2 className="text-2xl font-bold">Anket Yönetimi</h2>
-                  <Button onClick={() => { setEditingItem(null); setSurveyModalOpen(true); }}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Yeni Anket
+                  <Button onClick={() => openEditModal(null, 'surveys')}>
+                    <Plus className="mr-2 h-4 w-4" /> Yeni Anket
                   </Button>
                 </div>
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {surveys?.map(survey => (
-                        <div key={survey.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg gap-4">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-medium truncate">{survey.title}</h3>
-                            <div className="flex flex-wrap items-center gap-2 mt-2">
-                              <span className="text-sm text-muted-foreground">
-                                {new Date(survey.start_date).toLocaleDateString('tr-TR')} - {new Date(survey.end_date).toLocaleDateString('tr-TR')}
-                              </span>
-                              <Badge variant={survey.active ? "default" : "secondary"}>
-                                {survey.active ? "Aktif" : "Pasif"}
+                    <Card key={survey.id}>
+                      <CardHeader>
+                        <CardTitle>{survey.title}</CardTitle>
+                        <CardDescription>
+                          {formatDate(new Date(survey.start_date))} - {formatDate(new Date(survey.end_date))}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Badge variant={survey.active ? 'default' : 'secondary'}>
+                          {survey.active ? 'Aktif' : 'Pasif'}
                               </Badge>
-                            </div>
-                          </div>
-                          <div className="flex space-x-2 flex-shrink-0">
-                            <Button variant="outline" size="sm" onClick={() => openEditModal(survey, 'surveys')}>
-                              <Edit className="h-4 w-4" />
+                        {survey.has_custom_form ? (
+                          <Badge variant="outline" className="ml-2">Dahili Form</Badge>
+                        ) : (
+                          <Badge variant="outline" className="ml-2">Harici Link</Badge>
+                        )}
+                      </CardContent>
+                      <CardFooter className="flex justify-end gap-2">
+                        {survey.has_custom_form && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewResponses(survey, 'survey')}
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            Yanıtları Görüntüle
                             </Button>
-                            <Button variant="outline" size="sm" onClick={() => handleDelete(survey.id, 'surveys')}>
-                              <Trash2 className="h-4 w-4" />
+                        )}
+                        <Button variant="outline" size="sm" onClick={() => openEditModal(survey, 'surveys')}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Düzenle
                             </Button>
-                          </div>
-                        </div>
-                      ))}
-                      {(!surveys || surveys?.length === 0) && (
-                        <p className="text-center text-muted-foreground py-8">Henüz anket bulunmuyor</p>
-                      )}
+                        <Button variant="destructive" size="sm" onClick={() => handleDelete(survey.id, 'surveys')}>
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Sil
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  ))}
                     </div>
-                  </CardContent>
-                </Card>
               </TabsContent>
             )}
 
@@ -2077,11 +2096,11 @@ const AdminDashboard = () => {
                             <CardDescription>
                               <Badge variant="secondary">{sponsor.sponsor_type}</Badge>
                             </CardDescription>
-                          </div>
+                            </div>
                           {sponsor.logo && (
                             <img src={sponsor.logo} alt={sponsor.name} className="w-16 h-16 object-contain rounded-md border p-1" />
                           )}
-                        </div>
+                          </div>
                       </CardHeader>
                       <CardContent className="flex-grow space-y-4">
                         <p className="text-sm text-muted-foreground">
@@ -2107,7 +2126,7 @@ const AdminDashboard = () => {
                         >
                           <Edit className="h-4 w-4 mr-2" />
                           Düzenle
-                        </Button>
+                            </Button>
                         <Button
                           variant="destructive"
                           size="sm"
@@ -2116,18 +2135,18 @@ const AdminDashboard = () => {
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
                           Sil
-                        </Button>
+                            </Button>
                       </CardFooter>
                     </Card>
-                  ))}
+                      ))}
                 </div>
 
-                {(!sponsors || sponsors?.length === 0) && (
+                      {(!sponsors || sponsors?.length === 0) && (
                   <div className="text-center py-12 border-2 border-dashed rounded-lg">
                     <Building2 className="mx-auto h-12 w-12 text-gray-400" />
                     <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">Henüz sponsor eklenmemiş.</h3>
                     <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Başlamak için yeni bir sponsor ekleyin.</p>
-                  </div>
+                    </div>
                 )}
               </TabsContent>
             )}
@@ -3013,7 +3032,20 @@ const AdminDashboard = () => {
         />
 
         {/* Form Responses Modal */}
-        {selectedEvent && (
+        {responseModalOpen && selectedItemForResponses && (
+          <FormResponsesModal
+            isOpen={responseModalOpen}
+            onClose={() => {
+              setResponseModalOpen(false);
+              setSelectedItemForResponses(null);
+            }}
+            formId={selectedItemForResponses.formId}
+            formType={selectedItemForResponses.formType}
+            formTitle={selectedItemForResponses.formTitle}
+          />
+        )}
+        
+        {responseModalOpen && selectedEvent && (
           <FormResponsesModal
             isOpen={responseModalOpen}
             onClose={() => {

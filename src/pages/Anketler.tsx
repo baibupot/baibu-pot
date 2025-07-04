@@ -9,9 +9,11 @@ import PageHero from '@/components/ui/page-hero';
 import LoadingPage from '@/components/ui/loading-page';
 import ErrorState from '@/components/ui/error-state';
 import EmptyState from '@/components/ui/empty-state';
+import { useNavigate } from 'react-router-dom';
 
 const Anketler = () => {
   const { data: surveys = [], isLoading, error } = useSurveys();
+  const navigate = useNavigate();
 
   const activeSurveys = surveys.filter(survey => survey.active);
   const completedSurveys = surveys.filter(survey => !survey.active);
@@ -30,6 +32,16 @@ const Anketler = () => {
     const diffTime = end.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays > 0 ? diffDays : 0;
+  };
+
+  const handleSurveyClick = (survey: typeof surveys[0]) => {
+    if (survey.has_custom_form) {
+      // `slug` alanı varsa onu kullan, yoksa `id`'yi kullan
+      const targetSlug = survey.slug || survey.id;
+      navigate(`/anketler/${targetSlug}`);
+    } else if (survey.survey_link) {
+      window.open(survey.survey_link, '_blank', 'noopener,noreferrer');
+    }
   };
 
   // Loading state
@@ -144,11 +156,20 @@ const Anketler = () => {
                   
                   <Button 
                     className="w-full group-hover:shadow-lg transition-all duration-200"
-                    onClick={() => window.open(survey.survey_link, '_blank')}
+                    onClick={() => handleSurveyClick(survey)}
                   >
-                    <Users className="h-4 w-4 mr-2" />
-                    Ankete Katıl
-                    <ExternalLink className="h-4 w-4 ml-2" />
+                    {survey.has_custom_form ? (
+                      <>
+                        <Users className="h-4 w-4 mr-2" />
+                        Ankete Katıl
+                      </>
+                    ) : (
+                      <>
+                        <Users className="h-4 w-4 mr-2" />
+                        Ankete Git
+                        <ExternalLink className="h-4 w-4 ml-2" />
+                      </>
+                    )}
                   </Button>
                 </CardContent>
               </Card>

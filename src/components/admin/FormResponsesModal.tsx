@@ -59,18 +59,20 @@ const getFileIcon = (fileName: string) => {
 interface FormResponsesModalProps {
   isOpen: boolean;
   onClose: () => void;
-  eventId: string;
-  eventTitle: string;
+  formId: string;
+  formTitle: string;
+  formType: 'event_registration' | 'survey';
 }
 
 const FormResponsesModal: React.FC<FormResponsesModalProps> = ({
   isOpen,
   onClose,
-  eventId,
-  eventTitle
+  formId,
+  formTitle,
+  formType
 }) => {
-  const { data: existingFields } = useFormFields(eventId, 'event_registration');
-  const { data: formResponses = [] } = useFormResponses(eventId, 'event_registration');
+  const { data: formFields = [], isLoading: fieldsLoading } = useFormFields(formId, formType);
+  const { data: formResponses = [], isLoading: responsesLoading } = useFormResponses(formId, formType);
   const deleteFormResponse = useDeleteFormResponse();
   
   // 🖼️ Image preview modal state
@@ -85,18 +87,16 @@ const FormResponsesModal: React.FC<FormResponsesModalProps> = ({
     return ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(extension || '');
   };
 
-  // 📋 Get all unique form fields for table headers
-  const getAllFormFields = () => {
-    const fieldSet = new Set<string>();
-    formResponses.forEach(response => {
-      Object.keys(response.response_data).forEach(key => {
-        if (!key.endsWith('_file')) {
-          fieldSet.add(key);
-        }
-      });
-    });
-    return Array.from(fieldSet);
-  };
+  // 📋 Sütun başlıklarını form alanlarından al
+  const tableHeaders = formFields
+    .filter(field => field.field_type !== 'file') // Dosya alanlarını şimdilik hariç tut
+    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+    .map(field => ({
+      key: field.field_name,
+      label: field.field_label
+    }));
+
+  const isLoading = fieldsLoading || responsesLoading;
 
   const exportResponses = () => {
     if (formResponses.length === 0) {
@@ -105,10 +105,10 @@ const FormResponsesModal: React.FC<FormResponsesModalProps> = ({
     }
 
     try {
-      const formattedData = formatFormResponsesForExcel(formResponses, existingFields || []);
+      const formattedData = formatFormResponsesForExcel(formResponses, formFields || []);
       const now = new Date();
       const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      const filename = `${eventTitle}_yanitlari_${dateStr}`;
+      const filename = `${formTitle}_yanitlari_${dateStr}`;
       exportToExcel(formattedData, filename);
       toast.success('🎉 Excel dosyası başarıyla indirildi! Dosya ve dosya bilgileri dahil edildi.');
     } catch (error) {
@@ -135,10 +135,10 @@ const FormResponsesModal: React.FC<FormResponsesModalProps> = ({
         <DialogHeader>
           <DialogTitle className="text-xl font-bold flex items-center gap-2">
             <Users className="h-6 w-6 text-blue-600" />
-            {eventTitle} - Kayıt Yanıtları
+            {formTitle} - Yanıtları
           </DialogTitle>
           <DialogDescription id="responses-description">
-            Bu etkinlik için alınan kayıt yanıtlarını görüntüleyin ve yönetin.
+            Bu form için alınan yanıtları görüntüleyin ve yönetin.
           </DialogDescription>
         </DialogHeader>
 
@@ -148,7 +148,7 @@ const FormResponsesModal: React.FC<FormResponsesModalProps> = ({
             <div>
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <Users className="h-5 w-5" />
-                Etkinlik Kayıtları
+                Form Kayıtları
               </h3>
               <p className="text-sm text-muted-foreground">
                 {formResponses.length} kayıt alındı
@@ -167,16 +167,8 @@ const FormResponsesModal: React.FC<FormResponsesModalProps> = ({
           </div>
 
           {/* Content */}
-          {formResponses.length === 0 ? (
-            <Card>
-              <CardContent className="text-center py-12">
-                <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h4 className="text-lg font-semibold mb-2">Henüz kayıt yok</h4>
-                <p className="text-muted-foreground">
-                  Bu etkinlik için henüz kimse kayıt olmamış
-                </p>
-              </CardContent>
-            </Card>
+          {isLoading ? (
+            <div className="text-center py-12">Yükleniyor...</div>
           ) : (
             <div className="space-y-4">
               {/* 📊 İstatistik Kartları */}
@@ -200,132 +192,53 @@ const FormResponsesModal: React.FC<FormResponsesModalProps> = ({
               </div>
 
               {/* 📋 Tablo */}
-              <Card>
-                <CardContent className="p-0">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="bg-gray-50 dark:bg-gray-800">
-                        <tr>
-                          <th className="sticky left-0 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-300 border-r">#</th>
-                          <th className="sticky left-10 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-300 border-r min-w-[150px]">Katılımcı</th>
-                          <th className="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-300 min-w-[120px]">Kayıt Tarihi</th>
-                          {getAllFormFields().map(field => (
-                            <th key={field} className="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-300 min-w-[100px]">
-                              {field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                            </th>
-                          ))}
-                          <th className="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-300">Dosyalar</th>
-                          <th className="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-300 w-20">İşlemler</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {formResponses.map((response, index) => {
-                          const fileFields = existingFields?.filter(field => field.field_type === 'file') || [];
-                          const responseFiles = fileFields.map(field => ({
-                            fieldName: field.field_name,
-                            fieldLabel: field.field_label,
-                            fileName: response.response_data[field.field_name],
-                            base64Data: response.response_data[`${field.field_name}_file`]
-                          })).filter(file => file.fileName && file.base64Data);
-
-                          return (
+              {formResponses.length === 0 ? (
+                <Card>
+                  <CardContent className="text-center py-12">
+                    <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h4 className="text-lg font-semibold mb-2">Henüz kayıt yok</h4>
+                    <p className="text-muted-foreground">
+                      Bu form için henüz kimse kayıt olmamış
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50 dark:bg-gray-800">
+                          <tr>
+                            <th className="px-4 py-3 text-left font-medium">#</th>
+                            <th className="px-4 py-3 text-left font-medium">Katılımcı</th>
+                            <th className="px-4 py-3 text-left font-medium">Kayıt Tarihi</th>
+                            {tableHeaders.map(header => (
+                              <th key={header.key} className="px-4 py-3 text-left font-medium">
+                                {header.label}
+                              </th>
+                            ))}
+                            <th className="px-4 py-3 text-left font-medium">İşlemler</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {formResponses.map((response, index) => (
                             <tr key={response.id} className="border-t hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                              {/* Sıra No */}
-                              <td className="sticky left-0 bg-white dark:bg-gray-900 px-4 py-3 border-r">
-                                <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium">
-                                  {index + 1}
-                                </div>
-                              </td>
+                              <td className="px-4 py-3">{index + 1}</td>
+                              <td className="px-4 py-3">{response.user_name || 'Anonim'}</td>
+                              <td className="px-4 py-3">{new Date(response.submitted_at).toLocaleString('tr-TR')}</td>
                               
-                              {/* Katılımcı */}
-                              <td className="sticky left-10 bg-white dark:bg-gray-900 px-4 py-3 border-r">
-                                 <div className="font-medium text-gray-900 dark:text-gray-100">
-                                  {response.user_name || 'Anonim'}
-                                </div>
-                              </td>
-                              
-                              {/* Kayıt Tarihi */}
-                              <td className="px-4 py-3">
-                                <div className="text-gray-900 dark:text-gray-100">
-                                  {new Date(response.submitted_at).toLocaleDateString('tr-TR')}
-                                </div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400">
-                                  {new Date(response.submitted_at).toLocaleTimeString('tr-TR')}
-                                </div>
-                              </td>
-                              
-                              {/* Form Alanları */}
-                              {getAllFormFields().map(field => (
-                                <td key={field} className="px-4 py-3">
-                                  <div className="text-gray-900 dark:text-gray-100 truncate max-w-[200px]" title={
-                                    Array.isArray(response.response_data[field]) 
-                                      ? response.response_data[field]?.join(', ') 
-                                      : String(response.response_data[field] || '')
-                                  }>
-                                    {Array.isArray(response.response_data[field]) 
-                                      ? response.response_data[field]?.join(', ') 
-                                      : String(response.response_data[field] || '-')}
-                                  </div>
+                              {tableHeaders.map(header => (
+                                <td key={header.key} className="px-4 py-3">
+                                  {String(response.response_data[header.key] || '-')}
                                 </td>
                               ))}
-                              
-                              {/* Dosyalar */}
-                              <td className="px-4 py-3">
-                                {responseFiles.length > 0 ? (
-                                  <div className="flex flex-wrap gap-1">
-                                    {responseFiles.map((file, fileIndex) => (
-                                      <div key={fileIndex} className="flex items-center gap-1">
-                                        {isImageFile(file.fileName) ? (
-                                          <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => setPreviewImage({src: file.base64Data, name: file.fileName})}
-                                            className="h-8 w-8 p-0 hover:bg-blue-100"
-                                            title={`${file.fieldLabel}: ${file.fileName}`}
-                                          >
-                                            <Image className="h-4 w-4 text-blue-600" />
-                                          </Button>
-                                        ) : (
-                                          <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => openBase64FileInNewTab(file.base64Data, file.fileName)}
-                                            className="h-8 w-8 p-0 hover:bg-green-100"
-                                            title={`${file.fieldLabel}: ${file.fileName}`}
-                                          >
-                                            <span className="text-sm">{getFileIcon(file.fileName)}</span>
-                                          </Button>
-                                        )}
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => downloadBase64File(file.base64Data, file.fileName)}
-                                          className="h-8 w-8 p-0 hover:bg-purple-100"
-                                          title={`İndir: ${file.fileName}`}
-                                        >
-                                          <Download className="h-3 w-3 text-purple-600" />
-                                        </Button>
-                                      </div>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <span className="text-gray-400">-</span>
-                                )}
-                              </td>
 
-                              {/* İşlemler */}
                               <td className="px-4 py-3">
                                 <Button
                                   type="button"
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => setDeleteConfirm({
-                                    id: response.id, 
-                                    name: response.user_name || 'Anonim'
-                                  })}
+                                  onClick={() => setDeleteConfirm({ id: response.id, name: response.user_name || 'Anonim' })}
                                   className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600"
                                   title="Kayıt Sil"
                                 >
@@ -333,13 +246,13 @@ const FormResponsesModal: React.FC<FormResponsesModalProps> = ({
                                 </Button>
                               </td>
                             </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )}
         </div>

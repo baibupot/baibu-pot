@@ -810,6 +810,30 @@ export const useSurveys = (active?: boolean) => {
   });
 };
 
+export const useSurveyBySlug = (slug?: string) => {
+  return useQuery({
+    queryKey: ['surveys', slug],
+    queryFn: async () => {
+      if (!slug) return null;
+      const { data, error } = await supabase
+        .from('surveys')
+        .select('*')
+        .eq('slug', slug)
+        .single();
+      
+      if (error) {
+        // slug'a ait anket bulunamadığında hata fırlatma, null dön
+        if (error.code === 'PGRST116') {
+          return null;
+        }
+        throw error;
+      }
+      return data;
+    },
+    enabled: !!slug, // Sadece slug mevcut olduğunda sorguyu çalıştır
+  });
+};
+
 export const useCreateSurvey = () => {
   const queryClient = useQueryClient();
   

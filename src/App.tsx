@@ -21,6 +21,7 @@ import GizlilikPolitikasi from '@/pages/GizlilikPolitikasi';
 import SiteHaritasi from '@/pages/SiteHaritasi';
 import DergiDetay from '@/pages/DergiDetay';
 import EtkinlikDetay from '@/pages/EtkinlikDetay';
+import AnketDetay from '@/pages/AnketDetay';
 import NotFound from '@/pages/NotFound';
 
 const queryClient = new QueryClient({
@@ -45,6 +46,7 @@ function AppRoutes() {
           <Route path="/etkinlikler" element={<Etkinlikler />} />
           <Route path="/etkinlikler/:slug" element={<EtkinlikDetay />} />
           <Route path="/anketler" element={<Anketler />} />
+          <Route path="/anketler/:slug" element={<AnketDetay />} />
           <Route path="/sponsorlar" element={<Sponsorlar />} />
           <Route path="/urunler" element={<Urunler />} />
           <Route path="/ekipler" element={<Ekipler />} />
