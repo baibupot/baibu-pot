@@ -90,11 +90,11 @@ const FormResponsesModal: React.FC<FormResponsesModalProps> = ({
 
   // 📋 Sütun başlıklarını form alanlarından al
   const tableHeaders = formFields
-    .filter(field => field.field_type !== 'file') // Dosya alanlarını şimdilik hariç tut
     .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
     .map(field => ({
       key: field.field_name,
-      label: field.field_label
+      label: field.field_label,
+      type: field.field_type
     }));
 
   const isLoading = fieldsLoading || responsesLoading;
@@ -170,7 +170,7 @@ const FormResponsesModal: React.FC<FormResponsesModalProps> = ({
           ) : (
             <div className="space-y-4">
               {/* 📊 İstatistik Kartları */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                   <div className="text-2xl font-bold text-blue-600">{formResponses.length}</div>
                   <div className="text-sm text-muted-foreground">Toplam Kayıt</div>
@@ -186,6 +186,21 @@ const FormResponsesModal: React.FC<FormResponsesModalProps> = ({
                     {formResponses.length > 0 ? new Date(formResponses[0]?.submitted_at).toLocaleTimeString('tr-TR') : '-'}
                   </div>
                   <div className="text-sm text-muted-foreground">Son Kayıt Saati</div>
+                </div>
+                <div className="text-center p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                  <div className="text-2xl font-bold text-orange-600">
+                    {(() => {
+                      const fileFields = formFields.filter(field => field.field_type === 'file');
+                      const totalFiles = formResponses.reduce((total, response) => {
+                        return total + fileFields.filter(field => 
+                          response.response_data[field.field_name] && 
+                          response.response_data[`${field.field_name}_file`]
+                        ).length;
+                      }, 0);
+                      return totalFiles;
+                    })()}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Yüklenen Dosya</div>
                 </div>
               </div>
 
@@ -212,7 +227,10 @@ const FormResponsesModal: React.FC<FormResponsesModalProps> = ({
                             <th className="px-4 py-3 text-left font-medium">Kayıt Tarihi</th>
                             {tableHeaders.map(header => (
                               <th key={header.key} className="px-4 py-3 text-left font-medium">
-                                {header.label}
+                                <div className="flex items-center gap-1">
+                                  {header.type === 'file' && <span>📎</span>}
+                                  {header.label}
+                                </div>
                               </th>
                             ))}
                             <th className="px-4 py-3 text-left font-medium">İşlemler</th>
@@ -227,7 +245,64 @@ const FormResponsesModal: React.FC<FormResponsesModalProps> = ({
                               
                               {tableHeaders.map(header => (
                                 <td key={header.key} className="px-4 py-3">
-                                  {String(response.response_data[header.key] || '-')}
+                                  {header.type === 'file' ? (
+                                    // 📁 Dosya alanı için özel render
+                                    (() => {
+                                      const fileName = response.response_data[header.key];
+                                      const base64Data = response.response_data[`${header.key}_file`];
+                                      
+                                      if (!fileName || !base64Data) {
+                                        return <span className="text-gray-400">-</span>;
+                                      }
+                                      
+                                      const isImage = isImageFile(fileName);
+                                      
+                                      return (
+                                        <div className="flex items-center gap-2">
+                                          <div className="flex items-center gap-1 text-blue-600 hover:text-blue-800">
+                                            <span className="text-sm">{getFileIcon(fileName)}</span>
+                                            <span className="text-xs font-medium truncate max-w-32">
+                                              {fileName}
+                                            </span>
+                                          </div>
+                                          
+                                          <div className="flex gap-1">
+                                            {isImage && (
+                                              <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setPreviewImage({ src: base64Data, name: fileName })}
+                                                className="h-6 w-6 p-0 hover:bg-blue-100"
+                                                title="Önizle"
+                                              >
+                                                <Eye className="h-3 w-3" />
+                                              </Button>
+                                            )}
+                                            <Button
+                                              type="button"
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => downloadBase64File(base64Data, fileName)}
+                                              className="h-6 w-6 p-0 hover:bg-green-100"
+                                              title="İndir"
+                                            >
+                                              <Download className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      );
+                                    })()
+                                  ) : (
+                                    // 📝 Normal alan için standart render
+                                    (() => {
+                                      const value = response.response_data[header.key];
+                                      if (Array.isArray(value)) {
+                                        return <span className="text-sm">{value.join(', ')}</span>;
+                                      }
+                                      return <span className="text-sm">{String(value || '-')}</span>;
+                                    })()
+                                  )}
                                 </td>
                               ))}
 

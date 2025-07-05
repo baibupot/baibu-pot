@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, MessageSquare, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { AdminPageContainer, SectionHeader, ItemCard, ActionBar, StatsCard, ConfirmDialog } from '@/components/admin/shared';
@@ -8,6 +9,7 @@ import { useAdminContext } from '@/contexts/AdminDashboardContext';
 import { useEvents, useEventSuggestions, useUpdateEventSuggestion } from '@/hooks/useSupabaseData';
 import EventModal from '@/components/admin/EventModal';
 import FormResponsesModal from '@/components/admin/FormResponsesModal';
+import EventSuggestionDetailModal from '@/components/admin/EventSuggestionDetailModal';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Database } from '@/integrations/supabase/types';
@@ -28,6 +30,8 @@ export const EventsPage: React.FC = () => {
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [responsesModalOpen, setResponsesModalOpen] = useState(false);
   const [selectedEventForResponses, setSelectedEventForResponses] = useState<EventRow | null>(null);
+  const [suggestionDetailModalOpen, setSuggestionDetailModalOpen] = useState(false);
+  const [selectedSuggestion, setSelectedSuggestion] = useState<EventSuggestionRow | null>(null);
   
   const handleSaveEvent = async (eventData: any) => {
     let savedEventId: string | null = null;
@@ -117,6 +121,11 @@ export const EventsPage: React.FC = () => {
   const openResponsesModal = (event: EventRow) => {
     setSelectedEventForResponses(event);
     setResponsesModalOpen(true);
+  };
+
+  const openSuggestionDetailModal = (suggestion: EventSuggestionRow) => {
+    setSelectedSuggestion(suggestion);
+    setSuggestionDetailModalOpen(true);
   };
 
   const eventStats = {
@@ -223,16 +232,25 @@ export const EventsPage: React.FC = () => {
                     { label: 'Tarih', value: new Date(suggestion.created_at).toLocaleDateString() }
                   ]}
                   actions={
-                    suggestion.status === 'pending' && (
-                      <div className="flex gap-2">
-                        <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleSuggestionStatusChange(suggestion.id, 'approved')}>
-                          <CheckCircle className="h-4 w-4 mr-2"/> Onayla
-                        </Button>
-                        <Button size="sm" variant="destructive" onClick={() => handleSuggestionStatusChange(suggestion.id, 'rejected')}>
-                          <XCircle className="h-4 w-4 mr-2"/> Reddet
-                        </Button>
-                      </div>
-                    )
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => openSuggestionDetailModal(suggestion)}
+                      >
+                        Detayları Gör
+                      </Button>
+                      {suggestion.status === 'pending' && (
+                        <>
+                          <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleSuggestionStatusChange(suggestion.id, 'approved')}>
+                            <CheckCircle className="h-4 w-4 mr-2"/> Onayla
+                          </Button>
+                          <Button size="sm" variant="destructive" onClick={() => handleSuggestionStatusChange(suggestion.id, 'rejected')}>
+                            <XCircle className="h-4 w-4 mr-2"/> Reddet
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   }
                 >
                     <div></div>
@@ -266,6 +284,18 @@ export const EventsPage: React.FC = () => {
           formId={selectedEventForResponses.slug || selectedEventForResponses.id}
           formType="event_registration"
           formTitle={selectedEventForResponses.title}
+        />
+      )}
+
+      {suggestionDetailModalOpen && selectedSuggestion && (
+        <EventSuggestionDetailModal
+          isOpen={suggestionDetailModalOpen}
+          onClose={() => {
+            setSuggestionDetailModalOpen(false);
+            setSelectedSuggestion(null);
+          }}
+          suggestion={selectedSuggestion}
+          onStatusChange={handleSuggestionStatusChange}
         />
       )}
     </AdminPageContainer>

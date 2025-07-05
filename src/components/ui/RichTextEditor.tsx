@@ -61,23 +61,23 @@ const RichTextEditor = ({ content, onChange, onImageUpload, onEditorInstance }) 
     return (
         <div className="border rounded-lg">
             <div className="p-2 flex flex-wrap items-center gap-2 border-b">
-                <Button variant="ghost" size="sm" onClick={() => editor.chain().focus().toggleBold().run()} disabled={!editor.can().chain().focus().toggleBold().run()} className={editor.isActive('bold') ? 'is-active' : ''}><Bold size={16}/></Button>
-                <Button variant="ghost" size="sm" onClick={() => editor.chain().focus().toggleItalic().run()} disabled={!editor.can().chain().focus().toggleItalic().run()} className={editor.isActive('italic') ? 'is-active' : ''}><Italic size={16}/></Button>
-                <Button variant="ghost" size="sm" onClick={() => editor.chain().focus().toggleStrike().run()} disabled={!editor.can().chain().focus().toggleStrike().run()} className={editor.isActive('strike') ? 'is-active' : ''}><Strikethrough size={16}/></Button>
-                <Button variant="ghost" size="sm" onClick={() => editor.chain().focus().toggleCode().run()} disabled={!editor.can().chain().focus().toggleCode().run()} className={editor.isActive('code') ? 'is-active' : ''}><Code size={16}/></Button>
-                <Button variant="ghost" size="sm" onClick={() => editor.chain().focus().toggleBulletList().run()} className={editor.isActive('bulletList') ? 'is-active' : ''}><List size={16}/></Button>
-                <Button variant="ghost" size="sm" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={editor.isActive('orderedList') ? 'is-active' : ''}><ListOrdered size={16}/></Button>
-                <Button variant="ghost" size="sm" onClick={() => editor.chain().focus().toggleBlockquote().run()} className={editor.isActive('blockquote') ? 'is-active' : ''}><Quote size={16}/></Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => editor.chain().focus().toggleBold().run()} disabled={!editor.can().chain().focus().toggleBold().run()} className={editor.isActive('bold') ? 'is-active' : ''}><Bold size={16}/></Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => editor.chain().focus().toggleItalic().run()} disabled={!editor.can().chain().focus().toggleItalic().run()} className={editor.isActive('italic') ? 'is-active' : ''}><Italic size={16}/></Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => editor.chain().focus().toggleStrike().run()} disabled={!editor.can().chain().focus().toggleStrike().run()} className={editor.isActive('strike') ? 'is-active' : ''}><Strikethrough size={16}/></Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => editor.chain().focus().toggleCode().run()} disabled={!editor.can().chain().focus().toggleCode().run()} className={editor.isActive('code') ? 'is-active' : ''}><Code size={16}/></Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => editor.chain().focus().toggleBulletList().run()} className={editor.isActive('bulletList') ? 'is-active' : ''}><List size={16}/></Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={editor.isActive('orderedList') ? 'is-active' : ''}><ListOrdered size={16}/></Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => editor.chain().focus().toggleBlockquote().run()} className={editor.isActive('blockquote') ? 'is-active' : ''}><Quote size={16}/></Button>
                 
                 <input type="file" id="image-upload" className="hidden" onChange={handleImageUpload} accept="image/*" />
-                <Button variant="ghost" size="sm" onClick={() => document.getElementById('image-upload').click()}><ImageIcon size={16}/></Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => document.getElementById('image-upload').click()}><ImageIcon size={16}/></Button>
 
-                <Button variant="ghost" size="sm" onClick={() => {
+                <Button type="button" variant="ghost" size="sm" onClick={() => {
                     const url = window.prompt('YouTube URL');
                     if (url) editor.commands.setYoutubeVideo({ src: url });
                 }}><YoutubeIcon size={16}/></Button>
                 
-                <Button variant="ghost" size="sm" onClick={() => {
+                <Button type="button" variant="ghost" size="sm" onClick={() => {
                      const url = window.prompt('URL');
                      if (url) editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
                 }}><LinkIcon size={16}/></Button>

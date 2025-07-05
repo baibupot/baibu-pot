@@ -529,29 +529,11 @@ const MagazineModal = ({ isOpen, onClose, onSave, initialData }: MagazineModalPr
       isFormValid={canSubmit()}
       saveLabel={initialData ? 'Güncelle' : 'Kaydet'}
       size="3xl"
+      hideFooter={true}
     >
       <div className="space-y-6">
         
-        {/* Upload Progress & Status */}
-        {(uploadStatus || isUploading) && (
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-            <div className="flex items-center gap-3 mb-3">
-              {isUploading ? (
-                <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-              ) : uploadStatus.includes('✅') ? (
-                <CheckCircle className="w-4 h-4 text-green-600" />
-              ) : uploadStatus.includes('❌') ? (
-                <AlertCircle className="w-4 h-4 text-red-600" />
-              ) : (
-                <Upload className="w-4 h-4 text-blue-600" />
-              )}
-              <p className="text-sm font-medium">{uploadStatus}</p>
-            </div>
-            {uploadProgress > 0 && (
-              <Progress value={uploadProgress} className="h-2" />
-            )}
-          </div>
-        )}
+
         
         {/* Temel Bilgiler */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -999,6 +981,91 @@ const MagazineModal = ({ isOpen, onClose, onSave, initialData }: MagazineModalPr
           </div>
         </div>
       </div>
+
+      {/* Özel Footer - İlerleme Çubuğu ile */}
+      {(uploadStatus || isUploading || uploadProgress > 0) && (
+        <div className="flex-shrink-0 bg-muted/30 border-t p-3 sm:p-4">
+          {/* İlerleme Durumu */}
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-3">
+            <div className="flex items-center gap-3 mb-2">
+              {isUploading ? (
+                <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+              ) : uploadStatus.includes('✅') ? (
+                <CheckCircle className="w-4 h-4 text-green-600" />
+              ) : uploadStatus.includes('❌') ? (
+                <AlertCircle className="w-4 h-4 text-red-600" />
+              ) : (
+                <Upload className="w-4 h-4 text-blue-600" />
+              )}
+              <p className="text-sm font-medium">{uploadStatus}</p>
+            </div>
+            {uploadProgress > 0 && (
+              <Progress value={uploadProgress} className="h-2" />
+            )}
+          </div>
+
+          {/* Butonlar */}
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onClose} 
+              disabled={isUploading}
+              className="flex-1 sm:flex-none"
+            >
+              <X className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">İptal</span>
+              <span className="sm:hidden">İptal</span>
+            </Button>
+            <Button 
+              type="submit" 
+              onClick={handleSubmit} 
+              disabled={isUploading || !canSubmit()}
+              className="flex-1 sm:flex-none"
+            >
+              {isUploading ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              <span className="hidden sm:inline">
+                {isUploading ? 'Kaydediliyor...' : (initialData ? 'Güncelle' : 'Kaydet')}
+              </span>
+              <span className="sm:hidden">
+                {isUploading ? '...' : 'Kaydet'}
+              </span>
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Normal Footer - İlerleme yoksa */}
+      {!uploadStatus && !isUploading && uploadProgress === 0 && (
+        <div className="flex-shrink-0 flex flex-col sm:flex-row gap-2 bg-muted/30 border-t p-3 sm:p-4">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={onClose} 
+            className="flex-1 sm:flex-none"
+          >
+            <X className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">İptal</span>
+            <span className="sm:hidden">İptal</span>
+          </Button>
+          <Button 
+            type="submit" 
+            onClick={handleSubmit} 
+            disabled={!canSubmit()}
+            className="flex-1 sm:flex-none"
+          >
+            <Save className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">
+              {initialData ? 'Güncelle' : 'Kaydet'}
+            </span>
+            <span className="sm:hidden">Kaydet</span>
+          </Button>
+        </div>
+      )}
     </AdminModal>
   );
 };

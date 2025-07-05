@@ -65,9 +65,19 @@ const Etkinlikler = () => {
   // Etkinlik önerme fonksiyonu
   const handleEventSuggestion = async (suggestionData: any) => {
     try {
+      // Boş string'leri null'a çevir
+      const cleanedData = {
+        ...suggestionData,
+        suggested_date: suggestionData.suggested_date || null,
+        estimated_participants: suggestionData.estimated_participants || null,
+        estimated_budget: suggestionData.estimated_budget || null,
+        contact_phone: suggestionData.contact_phone || null,
+        additional_notes: suggestionData.additional_notes || null
+      };
+
       const { error } = await supabase
         .from('event_suggestions')
-        .insert([suggestionData]);
+        .insert([cleanedData]);
 
       if (error) throw error;
       

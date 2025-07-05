@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
@@ -15,17 +15,14 @@ interface SponsorSelectProps {
 const SponsorSelect = ({ selectedIds, onChange, maxSelection }: SponsorSelectProps) => {
   const { data: sponsors = [], isLoading } = useSponsors(true);
   const [search, setSearch] = useState('');
-  const [filteredSponsors, setFilteredSponsors] = useState<typeof sponsors>([]);
-
-  useEffect(() => {
+  
+  const filteredSponsors = useMemo(() => {
     if (!search.trim()) {
-      setFilteredSponsors(sponsors);
+      return sponsors;
     } else {
       const lowercasedFilter = search.toLowerCase();
-      setFilteredSponsors(
-        sponsors.filter((sponsor) =>
-          sponsor.name.toLowerCase().includes(lowercasedFilter)
-        )
+      return sponsors.filter((sponsor) =>
+        sponsor.name.toLowerCase().includes(lowercasedFilter)
       );
     }
   }, [search, sponsors]);

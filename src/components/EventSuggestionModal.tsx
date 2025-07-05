@@ -63,7 +63,18 @@ const EventSuggestionModal = ({ isOpen, onClose, onSubmit }: EventSuggestionModa
     setIsSubmitting(true);
     
     try {
-      await onSubmit(formData);
+      // Boş string'leri temizle
+      const cleanedFormData = {
+        ...formData,
+        suggested_date: formData.suggested_date || null,
+        suggested_location: formData.suggested_location || null,
+        estimated_participants: formData.estimated_participants || null,
+        estimated_budget: formData.estimated_budget || null,
+        contact_phone: formData.contact_phone || null,
+        additional_notes: formData.additional_notes || null
+      };
+      
+      await onSubmit(cleanedFormData);
       setIsSubmitted(true);
       toast.success('🎉 Etkinlik öneriniz başarıyla gönderildi!');
       

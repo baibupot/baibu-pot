@@ -685,7 +685,7 @@ const ProductDesignRequestModal: React.FC<ProductDesignRequestModalProps> = ({ i
           <div className="space-y-4">
             <div className="flex items-center gap-2 pb-2 border-b">
               <span className="text-2xl">📞</span>
-              <h3 className="text-lg font-semibold">İletişim Bilgileri</h3>
+              <h3 className="text-lg font-semibold">İletişim Bilgileri (Detayları konuşabilmek için)</h3>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

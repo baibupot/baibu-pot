@@ -6,6 +6,7 @@ import { AdminPageContainer, SectionHeader, ItemCard, ActionBar, StatsCard, Conf
 import { useAdminContext } from '@/contexts/AdminDashboardContext';
 import { useMagazineIssues, useMagazineAnalytics, useArticleSubmissions } from '@/hooks/useSupabaseData';
 import MagazineModal from '@/components/admin/MagazineModal';
+import ArticleSubmissionDetailModal from '@/components/admin/ArticleSubmissionDetailModal';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Database } from '@/integrations/supabase/types';
@@ -22,6 +23,8 @@ export const MagazinePage: React.FC = () => {
   const [editingItem, setEditingItem] = useState<MagazineIssue | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
 
   const calculateMagazineStats = () => {
     if (!magazineReads) return { thisMonth: 0, total: 0, avgDuration: 0 };
@@ -101,6 +104,31 @@ export const MagazinePage: React.FC = () => {
     setDialogOpen(true);
   };
 
+  const openDetailModal = (submission: any) => {
+    setSelectedSubmission(submission);
+    setDetailModalOpen(true);
+  };
+
+  const handleStatusChange = async (id: string, status: string) => {
+    try {
+      const { error } = await supabase
+        .from('article_submissions')
+        .update({ 
+          status,
+          decision_date: status === 'accepted' || status === 'rejected' ? new Date().toISOString().split('T')[0] : null
+        })
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      toast.success(`Makale durumu "${status}" olarak güncellendi`);
+      refreshData();
+      setDetailModalOpen(false);
+    } catch (error: any) {
+      toast.error('Durum güncellenirken hata oluştu: ' + error.message);
+    }
+  };
+
   if (!hasPermission('magazine')) {
     return <AdminPageContainer><p>Bu sayfayı görüntüleme yetkiniz yok.</p></AdminPageContainer>;
   }
@@ -159,9 +187,22 @@ export const MagazinePage: React.FC = () => {
                 key={submission.id}
                 title={submission.title}
                 subtitle={submission.author_name}
-                badges={[{label: submission.category, variant: 'secondary'}]}
+                badges={[
+                  {label: submission.category, variant: 'secondary'},
+                  {label: submission.status === 'submitted' ? 'Gönderildi' : 
+                         submission.status === 'under_review' ? 'İncelemede' :
+                         submission.status === 'revision_requested' ? 'Revizyon' :
+                         submission.status === 'accepted' ? 'Kabul' :
+                         submission.status === 'rejected' ? 'Red' :
+                         submission.status === 'published' ? 'Yayınlandı' : submission.status, 
+                   variant: submission.status === 'accepted' ? 'default' :
+                           submission.status === 'rejected' ? 'destructive' :
+                           submission.status === 'published' ? 'default' :
+                           submission.status === 'under_review' ? 'secondary' :
+                           submission.status === 'revision_requested' ? 'secondary' : 'outline'}
+                ]}
                 metadata={[{label: 'Tarih', value: new Date(submission.created_at).toLocaleDateString()}]}
-                actions={<Button variant="outline" size="sm"><Eye className="h-4 w-4 mr-2"/> Detay</Button>}
+                actions={<Button variant="outline" size="sm" onClick={() => openDetailModal(submission)}><Eye className="h-4 w-4 mr-2"/> Detay</Button>}
               >
                   <div></div>
               </ItemCard>
@@ -188,6 +229,13 @@ export const MagazinePage: React.FC = () => {
         title="Dergi Sayısını Sil"
         description="Bu dergi sayısını silmek istediğinizden emin misiniz? Bu işlem geri alınamaz."
         itemType="dergi sayısı"
+      />
+
+      <ArticleSubmissionDetailModal
+        isOpen={detailModalOpen}
+        onClose={() => setDetailModalOpen(false)}
+        submission={selectedSubmission}
+        onStatusChange={handleStatusChange}
       />
     </AdminPageContainer>
   );

@@ -63,8 +63,16 @@ const getFileInfo = async (
       return { exists: true, sha: data.sha };
     }
     
+    // 404 hatası normal, dosya yok demektir
+    if (response.status === 404) {
+      return { exists: false };
+    }
+    
+    // Diğer hatalar için console'a yazdırma
+    console.warn(`GitHub API error for ${filePath}: ${response.status} ${response.statusText}`);
     return { exists: false };
-  } catch {
+  } catch (error) {
+    // Network hatalarını sessizce handle et
     return { exists: false };
   }
 };

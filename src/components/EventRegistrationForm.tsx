@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { useFormFields, useCreateFormResponse, useEvent, useFormResponses } from '@/hooks/useSupabaseData';
+import { useFormFields, useCreateFormResponse, useEventBySlug, useFormResponses } from '@/hooks/useSupabaseData';
 import { toast } from 'sonner';
 import { Calendar, UserPlus, CheckCircle2, AlertCircle, Users, Clock, XCircle } from 'lucide-react';
 
@@ -25,7 +25,7 @@ const fileToBase64 = (file: File): Promise<string> => {
 };
 
 interface EventRegistrationFormProps {
-  eventId: string;
+  eventId: string; // Bu aslında slug
   eventTitle: string;
   isOpen: boolean;
   onClose: () => void;
@@ -33,7 +33,7 @@ interface EventRegistrationFormProps {
 }
 
 const EventRegistrationForm = ({ 
-  eventId, 
+  eventId, // Bu aslında slug
   eventTitle, 
   isOpen, 
   onClose, 
@@ -44,7 +44,7 @@ const EventRegistrationForm = ({
   const [submitted, setSubmitted] = useState(false);
 
   const { data: formFields = [] } = useFormFields(eventId, 'event_registration');
-  const { data: eventData } = useEvent(eventId);
+  const { data: eventData } = useEventBySlug(eventId);
   const { data: formResponses = [] } = useFormResponses(eventId, 'event_registration');
   const createFormResponse = useCreateFormResponse();
 

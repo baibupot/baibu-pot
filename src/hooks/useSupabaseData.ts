@@ -256,6 +256,28 @@ export const useEvent = (id: string) => {
   });
 };
 
+export const useEventBySlug = (slug: string) => {
+  return useQuery({
+    queryKey: ['events', 'slug', slug],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select(`
+          *,
+          event_sponsors (
+            sponsor_id,
+            sponsors ( id, name, logo, website, sponsor_type )
+          )
+        `)
+        .eq('slug', slug)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!slug,
+  });
+};
+
 export const useCreateEvent = () => {
   const queryClient = useQueryClient();
   
