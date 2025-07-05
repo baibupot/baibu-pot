@@ -12,9 +12,12 @@ import {
   X, 
   Crown,
   Save,
-  RefreshCw 
+  RefreshCw,
+  AlertTriangle,
+  CheckCircle
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface RolePermissionManagerProps {
   currentUserRoles: string[];
@@ -37,18 +40,18 @@ const AVAILABLE_PERMISSIONS = [
 ];
 
 const ROLES = [
-  { key: 'baskan', label: 'Başkan', color: 'bg-purple-100 text-purple-800', icon: Crown },
-  { key: 'baskan_yardimcisi', label: 'Başkan Yardımcısı', color: 'bg-blue-100 text-blue-800', icon: Crown },
-  { key: 'iletisim_koordinator', label: 'İletişim Koordinatörü', color: 'bg-green-100 text-green-800', icon: Users },
-  { key: 'teknik_koordinator', label: 'Teknik Koordinatör', color: 'bg-yellow-100 text-yellow-800', icon: Settings },
-  { key: 'etkinlik_koordinator', label: 'Etkinlik Koordinatörü', color: 'bg-orange-100 text-orange-800', icon: Users },
-  { key: 'dergi_koordinator', label: 'Dergi Koordinatörü', color: 'bg-pink-100 text-pink-800', icon: Users },
-  { key: 'mali_koordinator', label: 'Mali Koordinatör', color: 'bg-indigo-100 text-indigo-800', icon: Users },
-  { key: 'iletisim_ekip', label: 'İletişim Ekip', color: 'bg-green-50 text-green-600', icon: Users },
-  { key: 'teknik_ekip', label: 'Teknik Ekip', color: 'bg-yellow-50 text-yellow-600', icon: Users },
-  { key: 'etkinlik_ekip', label: 'Etkinlik Ekip', color: 'bg-orange-50 text-orange-600', icon: Users },
-  { key: 'dergi_ekip', label: 'Dergi Ekip', color: 'bg-pink-50 text-pink-600', icon: Users },
-  { key: 'mali_ekip', label: 'Mali Ekip', color: 'bg-indigo-50 text-indigo-600', icon: Users }
+  { key: 'baskan', label: 'Başkan', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300', icon: Crown },
+  { key: 'baskan_yardimcisi', label: 'Başkan Yardımcısı', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300', icon: Crown },
+  { key: 'iletisim_koordinator', label: 'İletişim Koordinatörü', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300', icon: Users },
+  { key: 'teknik_koordinator', label: 'Teknik Koordinatör', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300', icon: Settings },
+  { key: 'etkinlik_koordinator', label: 'Etkinlik Koordinatörü', color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300', icon: Users },
+  { key: 'dergi_koordinator', label: 'Dergi Koordinatörü', color: 'bg-pink-100 text-pink-800 dark:bg-pink-900/20 dark:text-pink-300', icon: Users },
+  { key: 'mali_koordinator', label: 'Mali Koordinatör', color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-300', icon: Users },
+  { key: 'iletisim_ekip', label: 'İletişim Ekip', color: 'bg-green-50 text-green-600 dark:bg-green-900/10 dark:text-green-400', icon: Users },
+  { key: 'teknik_ekip', label: 'Teknik Ekip', color: 'bg-yellow-50 text-yellow-600 dark:bg-yellow-900/10 dark:text-yellow-400', icon: Users },
+  { key: 'etkinlik_ekip', label: 'Etkinlik Ekip', color: 'bg-orange-50 text-orange-600 dark:bg-orange-900/10 dark:text-orange-400', icon: Users },
+  { key: 'dergi_ekip', label: 'Dergi Ekip', color: 'bg-pink-50 text-pink-600 dark:bg-pink-900/10 dark:text-pink-400', icon: Users },
+  { key: 'mali_ekip', label: 'Mali Ekip', color: 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/10 dark:text-indigo-400', icon: Users }
 ];
 
 const RolePermissionManager: React.FC<RolePermissionManagerProps> = ({ 
@@ -96,7 +99,7 @@ const RolePermissionManager: React.FC<RolePermissionManagerProps> = ({
       setRolePermissions(permissionsByRole);
     } catch (error) {
       console.error('❌ Role permissions yüklenemedi:', error);
-      alert('❌ Permissions yüklenemedi: ' + (error as any)?.message);
+      toast.error('Permissions yüklenemedi: ' + (error as any)?.message);
     } finally {
       setLoading(false);
     }
@@ -152,7 +155,7 @@ const RolePermissionManager: React.FC<RolePermissionManagerProps> = ({
       }
       
       setHasChanges(false);
-      alert('✅ Permissions başarıyla güncellendi!');
+      toast.success('✅ Permissions başarıyla güncellendi!');
       
       // Ana dashboard'ı yenile
       setTimeout(() => {
@@ -161,7 +164,7 @@ const RolePermissionManager: React.FC<RolePermissionManagerProps> = ({
       
     } catch (error) {
       console.error('❌ Permission kaydetme hatası:', error);
-      alert('❌ Permissions kaydedilemedi: ' + (error as any)?.message);
+      toast.error('Permissions kaydedilemedi: ' + (error as any)?.message);
     } finally {
       setSaving(false);
     }
@@ -177,7 +180,7 @@ const RolePermissionManager: React.FC<RolePermissionManagerProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-600 mb-4">
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
             Bu özelliğe sadece Başkan ve Başkan Yardımcısı erişebilir.
           </p>
           <Button onClick={onClose} variant="outline">
@@ -210,7 +213,7 @@ const RolePermissionManager: React.FC<RolePermissionManagerProps> = ({
             <Shield className="h-6 w-6 text-purple-600" />
             🎯 Dynamic Role Permission Management
           </CardTitle>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-400">
             Rol bazında sayfa erişim yetkilerini dinamik olarak yönetin.
             Değişiklikler tüm sistemde anında etkin olur.
           </p>
@@ -221,7 +224,7 @@ const RolePermissionManager: React.FC<RolePermissionManagerProps> = ({
       <Card>
         <CardHeader>
           <CardTitle>Permission Matrix</CardTitle>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             Her rol için hangi sayfalara erişim olacağını belirleyin
           </p>
         </CardHeader>
@@ -244,7 +247,7 @@ const RolePermissionManager: React.FC<RolePermissionManagerProps> = ({
                 {ROLES.map(role => {
                   const IconComponent = role.icon;
                   return (
-                    <tr key={role.key} className="border-t">
+                    <tr key={role.key} className="border-t border-gray-200 dark:border-gray-700">
                       <td className="p-3">
                         <Badge variant="secondary" className={role.color}>
                           <IconComponent className="h-4 w-4 mr-1" />
@@ -256,7 +259,6 @@ const RolePermissionManager: React.FC<RolePermissionManagerProps> = ({
                           <Switch
                             checked={rolePermissions[role.key]?.includes(perm.key) || false}
                             onCheckedChange={() => togglePermission(role.key, perm.key)}
-                            size="sm"
                           />
                         </td>
                       ))}
@@ -297,11 +299,23 @@ const RolePermissionManager: React.FC<RolePermissionManagerProps> = ({
       </div>
 
       {hasChanges && (
-        <Card className="border-orange-200 bg-orange-50">
+        <Card className="border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-900/20">
           <CardContent className="py-3">
-            <p className="text-orange-800 text-sm flex items-center gap-2">
-              <Settings className="h-4 w-4" />
+            <p className="text-orange-800 dark:text-orange-200 text-sm flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
               Kaydedilmemiş değişiklikleriniz var. Değişiklikleri kaydetmeyi unutmayın!
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Success Message */}
+      {!hasChanges && !loading && (
+        <Card className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20">
+          <CardContent className="py-3">
+            <p className="text-green-800 dark:text-green-200 text-sm flex items-center gap-2">
+              <CheckCircle className="h-4 w-4" />
+              Tüm değişiklikler kaydedildi. Sistem güncel durumda.
             </p>
           </CardContent>
         </Card>

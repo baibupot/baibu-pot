@@ -15,8 +15,6 @@ import {
 import { useCreateFormField, useUpdateFormField, useDeleteFormField, useFormFields } from '@/hooks/useSupabaseData';
 import { toast } from 'sonner';
 
-// ✅ File utilities FormResponsesModal'a taşındı
-
 interface FormField {
   id?: string;
   field_type: string;
@@ -244,15 +242,11 @@ const FormBuilder = ({ formId, formType, onSave, formTitle }: FormBuilderProps) 
     }
   };
 
-
-
   // 🎯 Unsaved fields kontrolü - manuel kaydetme için
   const hasUnsavedChanges = fields.some(f => !f.id);
 
   return (
     <div className="space-y-6">
-      {/* ✅ Etkinlik Kayıtları bölümü AdminDashboard'a taşındı */}
-
       {/* Add New Field */}
       <Card>
         <CardHeader>
@@ -362,8 +356,8 @@ const FormBuilder = ({ formId, formType, onSave, formTitle }: FormBuilderProps) 
                   <p className="text-sm text-muted-foreground">
                     {fields.filter(f => !f.id).length} yeni alan kaydedilmeyi bekliyor
                   </p>
-        </div>
-      </div>
+                </div>
+              </div>
               <Button 
                 type="button"
                 onClick={saveForm}
@@ -630,4 +624,4 @@ const FormBuilder = ({ formId, formType, onSave, formTitle }: FormBuilderProps) 
   );
 };
 
-export default FormBuilder;
+export default FormBuilder; 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { AdminModal } from '@/components/admin/shared/AdminModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -45,8 +45,8 @@ const InternshipModal = ({ isOpen, onClose, initialData }: InternshipModalProps)
     }
   }, [isOpen, initialData, isEditMode]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setIsProcessing(true);
     const toastId = toast.loading(isEditMode ? 'İlan güncelleniyor...' : 'İlan oluşturuluyor...');
 
@@ -71,15 +71,17 @@ const InternshipModal = ({ isOpen, onClose, initialData }: InternshipModalProps)
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{isEditMode ? 'Staj İlanı Düzenle' : 'Yeni Staj İlanı Ekle'}</DialogTitle>
-          <DialogDescription>
-            Öğrenciler için yeni bir staj fırsatı oluşturun veya mevcut bir ilanı düzenleyin.
-          </DialogDescription>
-        </DialogHeader>
-        
+    <AdminModal
+      isOpen={isOpen}
+      onClose={onClose}
+      onSave={handleSubmit}
+      title={isEditMode ? 'Staj İlanı Düzenle' : 'Yeni Staj İlanı Ekle'}
+      description="Öğrenciler için yeni bir staj fırsatı oluşturun veya mevcut bir ilanı düzenleyin."
+      icon={<Briefcase className="w-6 h-6 text-white" />}
+      isSaving={isProcessing}
+      saveLabel={isEditMode ? 'Değişiklikleri Kaydet' : 'İlanı Oluştur'}
+      size="2xl"
+    >
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -151,19 +153,8 @@ const InternshipModal = ({ isOpen, onClose, initialData }: InternshipModalProps)
             <Switch id="active" checked={formData.active} onCheckedChange={value => handleChange('active', value)} />
             <Label htmlFor="active">İlan Aktif mi?</Label>
           </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose} disabled={isProcessing}>
-              İptal
-            </Button>
-            <Button type="submit" disabled={isProcessing}>
-              {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEditMode ? 'Değişiklikleri Kaydet' : 'İlanı Oluştur'}
-            </Button>
-          </DialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+    </AdminModal>
   );
 };
 

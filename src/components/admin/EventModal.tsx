@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { AdminModal } from '@/components/admin/shared/AdminModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -317,51 +317,22 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[95vh] w-[95vw] p-0 overflow-hidden">
-                {/* Header */}
-        <DialogHeader className="px-6 py-4 border-b bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-xl">{initialData ? '✏️' : '🎉'}</span>
-              </div>
-              <div>
-                <DialogTitle className="text-xl font-bold">
-                  {initialData ? 'Etkinlik Düzenle' : 'Yeni Etkinlik'}
-                </DialogTitle>
-                <DialogDescription>
-                  Etkinlik detaylarını buradan ekleyebilir veya güncelleyebilirsiniz.
-                </DialogDescription>
-              </div>
-            </div>
-            
-            {/* Header Kaydet Butonu */}
-            <Button
-              type="button"
-              onClick={handleSubmit}
-              disabled={isUploading || !isValid()}
-              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-            >
-              {isUploading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Kaydediliyor...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Kaydet
-                </>
-              )}
-            </Button>
-          </div>
-        </DialogHeader>
-        
-        <form onSubmit={handleSubmit} className="flex flex-col h-[calc(95vh-80px)]">
+    <AdminModal
+      isOpen={isOpen}
+      onClose={onClose}
+      onSave={handleSubmit}
+      title={initialData ? 'Etkinlik Düzenle' : 'Yeni Etkinlik'}
+      description="Etkinlik detaylarını buradan ekleyebilir veya güncelleyebilirsiniz."
+      icon={<Calendar className="h-6 w-6 text-white" />}
+      isSaving={isUploading}
+      isFormValid={isValid()}
+      saveLabel={initialData ? 'Güncelle' : 'Kaydet & Oluştur'}
+      size="5xl"
+    >
+        <form onSubmit={handleSubmit} className="flex flex-col h-full">
           <Tabs defaultValue="basic" className="flex flex-col h-full">
             {/* Tabs */}
-            <TabsList className="mx-6 mt-4 grid grid-cols-3 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+            <TabsList className="mx-6 mt-[-1rem] grid grid-cols-3 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
               <TabsTrigger value="basic" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 <span className="hidden sm:inline">Temel</span>
@@ -376,9 +347,9 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
               </TabsTrigger>
             </TabsList>
             
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto pt-6">
               {/* Basic Info */}
-              <TabsContent value="basic" className="p-6 space-y-6">
+              <TabsContent value="basic" className="px-6 mt-0 space-y-6">
                 <div className="space-y-6">
                   {/* Title */}
                   <div className="space-y-2">
@@ -526,7 +497,7 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
             </TabsContent>
 
               {/* Media */}
-              <TabsContent value="media" className="p-6 space-y-6">
+              <TabsContent value="media" className="px-6 mt-0 space-y-6">
                 {/* Featured Image */}
                 <div className="space-y-4">
                   <Label>Öne Çıkan Görsel</Label>
@@ -621,7 +592,7 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
               </TabsContent>
 
               {/* Registration & Form */}
-              <TabsContent value="registration" className="p-6 space-y-6">
+              <TabsContent value="registration" className="px-6 mt-0 space-y-6">
                 <div className="space-y-6">
                   {/* 🎛️ Kayıt Kontrol Paneli */}
                   <div className="space-y-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border">
@@ -870,62 +841,8 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
 
             </div>
           </Tabs>
-
-          {/* Footer */}
-          <div className="px-6 py-4 border-t bg-gray-50 dark:bg-gray-900/50">
-            {/* Upload Progress */}
-            {isUploading && (
-              <div className="mb-4 flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                <span className="text-sm text-blue-800 dark:text-blue-300">{uploadProgress}</span>
-              </div>
-            )}
-
-            {/* Validation */}
-            {!isValid() && (
-              <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200">
-                <p className="text-sm text-amber-800 dark:text-amber-300">
-                  ⚠️ Zorunlu alanları doldurun: 
-                  {!formData.title.trim() && " Başlık"}
-                  {!formData.description.trim() && " Açıklama"}
-                  {!formData.event_date && " Tarih"}
-                </p>
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="flex flex-col sm:flex-row gap-3 sm:justify-between">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span>Değişiklikler otomatik kaydedilecek</span>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-3">
-            <Button type="button" variant="outline" onClick={onClose}>
-              İptal
-            </Button>
-                <Button 
-                  type="submit"
-                  disabled={isUploading || !isValid()}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                >
-                  {isUploading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      Yükleniyor...
-                    </>
-                  ) : (
-                    <>
-                      <span className="mr-2">{initialData ? '✏️' : '🎉'}</span>
-                      {initialData ? 'Güncelle' : 'Kaydet & Oluştur'}
-                    </>
-                  )}
-            </Button>
-              </div>
-            </div>
-          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+    </AdminModal>
   );
 };
 

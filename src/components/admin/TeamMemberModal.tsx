@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { AdminModal } from '@/components/admin/shared/AdminModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,7 +9,7 @@ import { useCreateTeamMember, useUpdateTeamMember } from '@/hooks/useSupabaseDat
 import { uploadFileObjectToGitHub } from '@/utils/githubStorageHelper';
 import { getGitHubStorageConfig } from '@/integrations/github/config';
 import { toast } from 'sonner';
-import { Loader2, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Image as ImageIcon, User } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -258,8 +258,8 @@ const TeamMemberModal = ({ isOpen, onClose, initialData }: TeamMemberModalProps)
       }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (isEditMode) {
         handleUpdateSubmit();
     } else {
@@ -268,17 +268,20 @@ const TeamMemberModal = ({ isOpen, onClose, initialData }: TeamMemberModalProps)
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[95vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{isEditMode ? 'Ekip Üyesini Düzenle' : 'Yeni Ekip Üyesi Ekle'}</DialogTitle>
-          <DialogDescription>
-            {isEditMode 
-                ? 'Üyenin kişisel bilgilerini güncelleyin.' 
-                : 'Üyenin dönemini ve rolünü belirtin. Sistem, üyeyi doğru ekiplere otomatik olarak yerleştirecektir.'}
-          </DialogDescription>
-        </DialogHeader>
-        
+    <AdminModal
+      isOpen={isOpen}
+      onClose={onClose}
+      onSave={handleSubmit}
+      title={isEditMode ? 'Ekip Üyesini Düzenle' : 'Yeni Ekip Üyesi Ekle'}
+      description={isEditMode 
+          ? 'Üyenin kişisel bilgilerini güncelleyin.' 
+          : 'Üyenin dönemini ve rolünü belirtin. Sistem, üyeyi doğru ekiplere otomatik olarak yerleştirecektir.'}
+      icon={<User className="h-6 w-6 text-white" />}
+      isSaving={isProcessing}
+      saveLabel={isEditMode ? 'Değişiklikleri Kaydet' : 'Üyeyi Ekle'}
+      isFormValid={isEditMode ? true : !periodError && !!periodName && !!selectedRole}
+      size="3xl"
+    >
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-6 py-4">
           <div className="md:col-span-1 space-y-4">
             <Label>Profil Fotoğrafı</Label>
@@ -343,18 +346,7 @@ const TeamMemberModal = ({ isOpen, onClose, initialData }: TeamMemberModalProps)
             </div>
           </div>
         </form>
-
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose} disabled={isProcessing}>
-              İptal
-            </Button>
-          <Button type="submit" onClick={handleSubmit} disabled={isProcessing || (isEditMode ? false : (!!periodError || !periodName || !selectedRole))}>
-            {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isProcessing ? 'Kaydediliyor...' : (isEditMode ? 'Değişiklikleri Kaydet' : 'Üyeyi Ekle')}
-            </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </AdminModal>
   );
 };
 

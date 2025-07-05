@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { AdminModal } from '@/components/admin/shared/AdminModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,7 +11,7 @@ import RichTextEditor from '@/components/ui/RichTextEditor';
 import { uploadFileObjectToGitHub } from '@/utils/githubStorageHelper';
 import { getGitHubStorageConfig } from '@/integrations/github/config';
 import { toast } from 'sonner';
-import { Loader2, Image as ImageIcon, Link2 } from 'lucide-react';
+import { Loader2, Image as ImageIcon, Link2, FileText } from 'lucide-react';
 import { Editor } from '@tiptap/react';
 
 type NewsData = Database['public']['Tables']['news']['Insert'];
@@ -92,8 +92,8 @@ const NewsModal = ({ isOpen, onClose, onSave, initialData }: NewsModalProps) => 
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setIsProcessing(true);
     const toastId = toast.loading('Haber kaydediliyor...');
     try {
@@ -118,14 +118,18 @@ const NewsModal = ({ isOpen, onClose, onSave, initialData }: NewsModalProps) => 
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>{isEditMode ? 'Haberi Düzenle' : 'Yeni Haber Ekle'}</DialogTitle>
-          <DialogDescription>Haber veya duyuru içeriğini buradan oluşturun ve düzenleyin.</DialogDescription>
-        </DialogHeader>
-        
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+    <AdminModal
+        isOpen={isOpen}
+        onClose={onClose}
+        onSave={handleSubmit}
+        title={isEditMode ? 'Haberi Düzenle' : 'Yeni Haber Ekle'}
+        description='Haber veya duyuru içeriğini buradan oluşturun ve düzenleyin.'
+        icon={<FileText className="h-6 w-6 text-white" />}
+        isSaving={isProcessing}
+        saveLabel={isEditMode ? 'Değişiklikleri Kaydet' : 'Haberi Oluştur'}
+        size="4xl"
+    >
+        <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="md:col-span-1 space-y-2">
                     <Label>Öne Çıkan Kapak Fotoğrafı</Label>
@@ -182,17 +186,8 @@ const NewsModal = ({ isOpen, onClose, onSave, initialData }: NewsModalProps) => 
                 <Switch id="published" checked={formData.published} onCheckedChange={value => handleChange('published', value)} />
                 <Label htmlFor="published">Yayında mı?</Label>
             </div>
-        </div>
-
-        <DialogFooter className="flex-shrink-0">
-            <Button type="button" variant="outline" onClick={onClose} disabled={isProcessing}>İptal</Button>
-            <Button type="button" onClick={handleSubmit} disabled={isProcessing}>
-                {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isEditMode ? 'Değişiklikleri Kaydet' : 'Haberi Oluştur'}
-            </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </form>
+    </AdminModal>
   );
 };
 

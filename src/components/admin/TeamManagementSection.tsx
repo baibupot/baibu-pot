@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Edit, Trash2, User, Calendar, Users, Loader2 } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -129,7 +130,6 @@ const TeamManagementSection: React.FC<TeamManagementSectionProps> = ({ onEditMem
   );
 };
 
-// Bunları `AdminDashboard`'dan import edebilmek için ekliyoruz, normalde ayrı dosyada olmaları daha iyi
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+
 
 export default TeamManagementSection; 

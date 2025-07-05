@@ -29,18 +29,18 @@ const AVAILABLE_PERMISSIONS = [
 ];
 
 const ROLES = [
-  { key: 'baskan', label: 'Başkan', color: 'bg-purple-100 text-purple-800', icon: Crown },
-  { key: 'baskan_yardimcisi', label: 'Başkan Yardımcısı', color: 'bg-blue-100 text-blue-800', icon: Crown },
-  { key: 'iletisim_koordinator', label: 'İletişim Koordinatörü', color: 'bg-green-100 text-green-800', icon: User },
-  { key: 'teknik_koordinator', label: 'Teknik Koordinatör', color: 'bg-yellow-100 text-yellow-800', icon: Settings },
-  { key: 'etkinlik_koordinator', label: 'Etkinlik Koordinatörü', color: 'bg-orange-100 text-orange-800', icon: User },
-  { key: 'dergi_koordinator', label: 'Dergi Koordinatörü', color: 'bg-pink-100 text-pink-800', icon: User },
-  { key: 'mali_koordinator', label: 'Mali Koordinatör', color: 'bg-indigo-100 text-indigo-800', icon: User },
-  { key: 'iletisim_ekip', label: 'İletişim Ekip', color: 'bg-green-50 text-green-600', icon: User },
-  { key: 'teknik_ekip', label: 'Teknik Ekip', color: 'bg-yellow-50 text-yellow-600', icon: User },
-  { key: 'etkinlik_ekip', label: 'Etkinlik Ekip', color: 'bg-orange-50 text-orange-600', icon: User },
-  { key: 'dergi_ekip', label: 'Dergi Ekip', color: 'bg-pink-50 text-pink-600', icon: User },
-  { key: 'mali_ekip', label: 'Mali Ekip', color: 'bg-indigo-50 text-indigo-600', icon: User }
+  { key: 'baskan', label: 'Başkan', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300', icon: Crown },
+  { key: 'baskan_yardimcisi', label: 'Başkan Yardımcısı', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300', icon: Crown },
+  { key: 'iletisim_koordinator', label: 'İletişim Koordinatörü', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300', icon: User },
+  { key: 'teknik_koordinator', label: 'Teknik Koordinatör', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300', icon: Settings },
+  { key: 'etkinlik_koordinator', label: 'Etkinlik Koordinatörü', color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300', icon: User },
+  { key: 'dergi_koordinator', label: 'Dergi Koordinatörü', color: 'bg-pink-100 text-pink-800 dark:bg-pink-900/20 dark:text-pink-300', icon: User },
+  { key: 'mali_koordinator', label: 'Mali Koordinatör', color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-300', icon: User },
+  { key: 'iletisim_ekip', label: 'İletişim Ekip', color: 'bg-green-50 text-green-600 dark:bg-green-900/10 dark:text-green-400', icon: User },
+  { key: 'teknik_ekip', label: 'Teknik Ekip', color: 'bg-yellow-50 text-yellow-600 dark:bg-yellow-900/10 dark:text-yellow-400', icon: User },
+  { key: 'etkinlik_ekip', label: 'Etkinlik Ekip', color: 'bg-orange-50 text-orange-600 dark:bg-orange-900/10 dark:text-orange-400', icon: User },
+  { key: 'dergi_ekip', label: 'Dergi Ekip', color: 'bg-pink-50 text-pink-600 dark:bg-pink-900/10 dark:text-pink-400', icon: User },
+  { key: 'mali_ekip', label: 'Mali Ekip', color: 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/10 dark:text-indigo-400', icon: User }
 ];
 
 interface UserRoleManagementProps {
@@ -579,7 +579,6 @@ const UserRoleManagement: React.FC<UserRoleManagementProps> = ({
                                   <Switch
                                     checked={rolePermissions[role.key]?.includes(perm.key) || false}
                                     onCheckedChange={() => togglePermission(role.key, perm.key)}
-                                    size="sm"
                                   />
                                 </td>
                               ))}

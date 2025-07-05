@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -550,6 +550,116 @@ export type Database = {
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      academics: {
+        Row: {
+          id: string
+          name: string
+          title: string | null
+          email: string | null
+          profile_image: string | null
+          sort_order: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          title?: string | null
+          email?: string | null
+          profile_image?: string | null
+          sort_order?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          title?: string | null
+          email?: string | null
+          profile_image?: string | null
+          sort_order?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      internship_guides: {
+        Row: {
+          id: string
+          title: string
+          content: string | null
+          youtube_video_url: string | null
+          document_links: Json | null
+          sort_order: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          content?: string | null
+          youtube_video_url?: string | null
+          document_links?: Json | null
+          sort_order?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          content?: string | null
+          youtube_video_url?: string | null
+          document_links?: Json | null
+          sort_order?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      internship_experiences: {
+        Row: {
+          id: string
+          student_name: string
+          internship_place: string
+          internship_year: number | null
+          experience_text: string
+          is_approved: boolean
+          approved_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          student_name: string
+          internship_place: string
+          internship_year?: number | null
+          experience_text: string
+          is_approved?: boolean
+          approved_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          student_name?: string
+          internship_place?: string
+          internship_year?: number | null
+          experience_text?: string
+          is_approved?: boolean
+          approved_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internship_experiences_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
         ]
       }
       magazine_contributors: {

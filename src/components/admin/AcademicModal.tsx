@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { AdminModal } from '@/components/admin/shared/AdminModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { uploadFileObjectToGitHub } from '@/utils/githubStorageHelper';
 import { getGitHubStorageConfig } from '@/integrations/github/config';
 import { toast } from 'sonner';
-import { Loader2, User, Image as ImageIcon } from 'lucide-react';
+import { Loader2, User, Briefcase } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -41,8 +41,8 @@ const AcademicModal = ({ isOpen, onClose, initialData }: AcademicModalProps) => 
     }
   }, [isOpen, initialData, isEditMode]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setIsProcessing(true);
     const toastId = toast.loading('İşlem yürütülüyor...');
 
@@ -87,12 +87,17 @@ const AcademicModal = ({ isOpen, onClose, initialData }: AcademicModalProps) => 
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{isEditMode ? 'Akademisyen Düzenle' : 'Yeni Akademisyen Ekle'}</DialogTitle>
-          <DialogDescription>Stajlarla ilgili akademisyenlerin bilgilerini buradan yönetebilirsiniz.</DialogDescription>
-        </DialogHeader>
+    <AdminModal
+        isOpen={isOpen}
+        onClose={onClose}
+        onSave={handleSubmit}
+        title={isEditMode ? 'Akademisyen Düzenle' : 'Yeni Akademisyen Ekle'}
+        description='Stajlarla ilgili akademisyenlerin bilgilerini buradan yönetebilirsiniz.'
+        icon={<Briefcase className="w-6 h-6 text-white" />}
+        isSaving={isProcessing}
+        saveLabel={isEditMode ? 'Değişiklikleri Kaydet' : 'Ekle'}
+        size="2xl"
+    >
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
             <div className="flex items-center space-x-4">
                 <div className="w-24 h-24 rounded-full border-2 border-dashed flex items-center justify-center bg-slate-50 dark:bg-slate-800">
@@ -124,17 +129,8 @@ const AcademicModal = ({ isOpen, onClose, initialData }: AcademicModalProps) => 
                 <Label htmlFor="sort_order">Sıralama</Label>
                 <Input id="sort_order" type="number" value={formData.sort_order || 0} onChange={e => handleChange('sort_order', parseInt(e.target.value,10))} />
             </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose} disabled={isProcessing}>İptal</Button>
-            <Button type="submit" disabled={isProcessing}>
-              {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEditMode ? 'Kaydet' : 'Ekle'}
-            </Button>
-          </DialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+    </AdminModal>
   );
 };
 

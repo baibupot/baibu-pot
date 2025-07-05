@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AdminModal } from '@/components/admin/shared/AdminModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Badge } from '@/components/ui/badge';
 import { EVENT_TYPES } from '@/constants/eventConstants';
 import { toast } from 'sonner';
+import { Lightbulb } from 'lucide-react';
 
 interface EventSuggestionData {
   title: string;
@@ -45,8 +47,8 @@ const EventSuggestionModal = ({ isOpen, onClose, onSubmit }: EventSuggestionModa
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     
     if (!formData.title.trim() || !formData.description.trim() || !formData.contact_name.trim() || !formData.contact_email.trim()) {
       toast.error('❌ Lütfen zorunlu alanları doldurun');
@@ -100,23 +102,19 @@ const EventSuggestionModal = ({ isOpen, onClose, onSubmit }: EventSuggestionModa
   const today = new Date().toISOString().split('T')[0]; // Bugünden önceki tarihleri engelle
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[98vw] sm:max-w-3xl max-h-[98vh] overflow-y-auto p-0">
-        {/* Header - Mobile Optimized */}
-        <DialogHeader className="text-center p-4 sm:p-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-b">
-          <div className="space-y-2 sm:space-y-3">
-            <div className="text-4xl sm:text-5xl">💡</div>
-            <DialogTitle className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Etkinlik Önerisi Gönder
-            </DialogTitle>
-            <DialogDescription className="text-sm sm:text-base text-gray-600 dark:text-gray-300 max-w-md mx-auto leading-relaxed">
-              Aklınızdaki harika etkinlik fikrini bizimle paylaşın! 🚀<br />
-              <span className="font-medium text-blue-600 dark:text-blue-400">Birlikte gerçekleştirelim</span>
-            </DialogDescription>
-          </div>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-6">
+    <AdminModal
+      isOpen={isOpen}
+      onClose={onClose}
+      onSave={handleSubmit}
+      title="Etkinlik Önerisi Gönder"
+      description="Aklınızdaki harika etkinlik fikrini bizimle paylaşın! 🚀 Birlikte gerçekleştirelim."
+      icon={<Lightbulb className="h-6 w-6 text-white" />}
+      isSaving={isSubmitting}
+      isFormValid={!!(formData.title.trim() && formData.description.trim() && formData.contact_name.trim() && formData.contact_email.trim())}
+      saveLabel="🚀 Önerimi Gönder"
+      size="3xl"
+    >
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* ETKİNLİK BİLGİLERİ */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 pb-2 border-b border-gray-200 dark:border-gray-700">
@@ -372,35 +370,8 @@ const EventSuggestionModal = ({ isOpen, onClose, onSubmit }: EventSuggestionModa
               </div>
             </div>
           </div>
-
-          {/* BUTONLAR */}
-          <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={onClose}
-              className="h-12 px-6 text-base font-medium border-2 rounded-xl order-2 sm:order-1"
-            >
-              ❌ İptal
-            </Button>
-            <Button 
-              type="submit"
-              disabled={isSubmitting}
-              className="h-12 px-8 text-base font-bold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 rounded-xl order-1 sm:order-2 flex-1"
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-2"></div>
-                  Gönderiliyor...
-                </>
-              ) : (
-                <>🚀 Önerimi Gönder</>
-              )}
-            </Button>
-          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+    </AdminModal>
   );
 };
 

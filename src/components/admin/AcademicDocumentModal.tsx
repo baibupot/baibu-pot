@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AdminModal } from '@/components/admin/shared/AdminModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { X, Plus, Upload, FileText, Loader2 } from 'lucide-react';
+import { X, Plus, Upload, FileText, Loader2, GraduationCap } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Database } from '@/integrations/supabase/types';
 import { 
@@ -93,8 +93,8 @@ const AcademicDocumentModal = ({ isOpen, onClose, onSave, initialData }: Academi
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     
     let fileUrl = formData.file_url;
     
@@ -125,14 +125,18 @@ const AcademicDocumentModal = ({ isOpen, onClose, onSave, initialData }: Academi
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {initialData ? 'Belge Düzenle' : 'Yeni Belge Ekle'}
-          </DialogTitle>
-        </DialogHeader>
-        
+    <AdminModal
+      isOpen={isOpen}
+      onClose={onClose}
+      onSave={handleSubmit}
+      title={initialData ? 'Belge Düzenle' : 'Yeni Belge Ekle'}
+      description="Akademik bir belge yükleyin veya mevcut bir belgeyi güncelleyin."
+      icon={<GraduationCap className="h-6 w-6 text-white" />}
+      isSaving={isUploading}
+      isFormValid={!(uploadMode === 'file' && !selectedFile && !initialData)}
+      saveLabel={initialData ? 'Güncelle' : 'Kaydet'}
+      size="2xl"
+    >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="title">Belge Başlığı</Label>
@@ -299,25 +303,8 @@ const AcademicDocumentModal = ({ isOpen, onClose, onSave, initialData }: Academi
               placeholder="psikoloji, araştırma, yöntem"
             />
           </div>
-
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose} disabled={isUploading}>
-              İptal
-            </Button>
-            <Button type="submit" disabled={isUploading || (uploadMode === 'file' && !selectedFile && !initialData)}>
-              {isUploading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Yükleniyor...
-                </>
-              ) : (
-                initialData ? 'Güncelle' : 'Kaydet'
-              )}
-            </Button>
-          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+    </AdminModal>
   );
 };
 

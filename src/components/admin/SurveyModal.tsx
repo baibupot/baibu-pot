@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { AdminModal } from '@/components/admin/shared/AdminModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Link, FileText, Settings, FormInput } from 'lucide-react';
+import { Link, FileText, Settings, FormInput, ClipboardList } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 import FormBuilder from './FormBuilder';
 
@@ -60,8 +60,8 @@ const SurveyModal = ({ isOpen, onClose, onSave, initialData }: SurveyModalProps)
     }
   }, [initialData, isOpen]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     // has_custom_form true ise survey_link'i null yap
     const finalData = {
       ...formData,
@@ -90,19 +90,19 @@ const SurveyModal = ({ isOpen, onClose, onSave, initialData }: SurveyModalProps)
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
-        <DialogHeader className="p-6 border-b">
-          <DialogTitle className="text-xl">
-            {initialData ? 'Anket Düzenle' : 'Yeni Anket Oluştur'}
-          </DialogTitle>
-          <DialogDescription>
-            Harici bir link veya dahili özel form kullanarak anket yayınlayın.
-          </DialogDescription>
-        </DialogHeader>
-        
+    <AdminModal
+      isOpen={isOpen}
+      onClose={onClose}
+      onSave={handleSubmit}
+      title={initialData ? 'Anket Düzenle' : 'Yeni Anket Oluştur'}
+      description="Harici bir link veya dahili özel form kullanarak anket yayınlayın."
+      icon={<ClipboardList className="h-6 w-6 text-white" />}
+      isSaving={false}
+      saveLabel={initialData ? 'Değişiklikleri Kaydet' : 'Anketi Oluştur'}
+      size="4xl"
+    >
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
-        <Tabs defaultValue="content" className="p-6">
+        <Tabs defaultValue="content" className="mt-[-1rem] pt-0">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="content">
               <FileText className="mr-2 h-4 w-4" /> İçerik
@@ -213,17 +213,7 @@ const SurveyModal = ({ isOpen, onClose, onSave, initialData }: SurveyModalProps)
           </TabsContent>
         </Tabs>
         </form>
-
-        <div className="flex justify-end space-x-2 p-4 border-t bg-muted/50">
-          <Button type="button" variant="outline" onClick={onClose}>
-            İptal
-          </Button>
-          <Button type="submit" onClick={handleSubmit}>
-            {initialData ? 'Değişiklikleri Kaydet' : 'Anketi Oluştur'}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+    </AdminModal>
   );
 };
 

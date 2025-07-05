@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { AdminModal } from '@/components/admin/shared/AdminModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -91,33 +91,27 @@ const SponsorModal = ({ isOpen, onClose, onSave, initialData }: SponsorModalProp
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     onSave(formData, initialData?.id);
     onClose();
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0">
-        <DialogHeader className="p-6 flex-shrink-0 border-b">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-              <Building className="text-white" />
-            </div>
-            <div>
-              <DialogTitle className="text-2xl font-bold">
-                {initialData ? 'Sponsor Düzenle' : 'Yeni Sponsor Ekle'}
-              </DialogTitle>
-              <DialogDescription>
-                Sponsor bilgilerini girin veya mevcut bilgileri güncelleyin.
-              </DialogDescription>
-            </div>
-          </div>
-        </DialogHeader>
-        
+    <AdminModal
+      isOpen={isOpen}
+      onClose={onClose}
+      onSave={handleSubmit}
+      title={initialData ? 'Sponsor Düzenle' : 'Yeni Sponsor Ekle'}
+      description="Sponsor bilgilerini girin veya mevcut bilgileri güncelleyin."
+      icon={<Building className="text-white" />}
+      isSaving={isUploading}
+      isFormValid={!!formData.name}
+      saveLabel={initialData ? 'Değişiklikleri Kaydet' : 'Sponsoru Ekle'}
+      size="2xl"
+    >
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="flex-1 overflow-y-auto space-y-6">
             {/* Temel Bilgiler */}
             <div className="space-y-4 p-4 border rounded-lg">
               <h3 className="text-lg font-semibold flex items-center gap-2">
@@ -246,23 +240,8 @@ const SponsorModal = ({ isOpen, onClose, onSave, initialData }: SponsorModalProp
               </div>
             </div>
           </div>
-
-          <DialogFooter className="flex-shrink-0 flex justify-end space-x-2 p-4 bg-muted/50 border-t">
-            <Button type="button" variant="outline" onClick={onClose}>
-              İptal
-            </Button>
-            <Button type="submit" disabled={isUploading || !formData.name}>
-              {isUploading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Kaydediliyor...
-                </>
-              ) : (initialData ? 'Değişiklikleri Kaydet' : 'Sponsorü Ekle')}
-            </Button>
-          </DialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+    </AdminModal>
   );
 };
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AdminModal } from '@/components/admin/shared/AdminModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { X, Plus, Upload, Image, Trash2, Loader2 } from 'lucide-react';
+import { X, Plus, Upload, Image, Trash2, Loader2, Package } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 import { uploadProductImages, deleteProductImagesFromGitHub, optimizeProductImage } from '@/utils/githubStorageHelper';
 import { getGitHubStorageConfig, isGitHubStorageConfigured } from '@/integrations/github/config';
@@ -75,8 +75,8 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, pr
     setNewFeature('');
   }, [product, isOpen]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     
     const productData = {
       ...formData,
@@ -232,14 +232,17 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, pr
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {product ? 'Ürün Düzenle' : 'Yeni Ürün Ekle'}
-          </DialogTitle>
-        </DialogHeader>
-
+    <AdminModal
+      isOpen={isOpen}
+      onClose={onClose}
+      onSave={handleSubmit}
+      title={product ? 'Ürün Düzenle' : 'Yeni Ürün Ekle'}
+      description="Yeni bir ürün ekleyin veya mevcut bir ürünü güncelleyin."
+      icon={<Package className="h-6 w-6 text-white" />}
+      isSaving={isUploading}
+      saveLabel={product ? 'Güncelle' : 'Kaydet'}
+      size="2xl"
+    >
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -511,18 +514,8 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, pr
               <Label htmlFor="available">Satışta</Label>
             </div>
           </div>
-
-          <div className="flex justify-end space-x-4 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              İptal
-            </Button>
-            <Button type="submit">
-              {product ? 'Güncelle' : 'Kaydet'}
-            </Button>
-          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+    </AdminModal>
   );
 };
 

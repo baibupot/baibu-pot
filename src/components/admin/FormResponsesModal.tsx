@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AdminModal } from '@/components/admin/shared/AdminModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -130,18 +131,15 @@ const FormResponsesModal: React.FC<FormResponsesModalProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl max-h-[95vh] overflow-y-auto" aria-describedby="responses-description">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-bold flex items-center gap-2">
-            <Users className="h-6 w-6 text-blue-600" />
-            {formTitle} - Yanıtları
-          </DialogTitle>
-          <DialogDescription id="responses-description">
-            Bu form için alınan yanıtları görüntüleyin ve yönetin.
-          </DialogDescription>
-        </DialogHeader>
-
+    <AdminModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={`${formTitle} - Yanıtları`}
+      description="Bu form için alınan yanıtları görüntüleyin ve yönetin."
+      icon={<Users className="h-6 w-6 text-white" />}
+      hideFooter={true}
+      size="6xl"
+    >
         <div className="space-y-6">
           {/* Header Stats */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -356,8 +354,7 @@ const FormResponsesModal: React.FC<FormResponsesModalProps> = ({
             </DialogContent>
           </Dialog>
         )}
-      </DialogContent>
-    </Dialog>
+    </AdminModal>
   );
 };
 

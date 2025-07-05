@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AdminModal } from '@/components/admin/shared/AdminModal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -191,66 +191,16 @@ const ProductDesignRequestDetailModal: React.FC<ProductDesignRequestDetailModalP
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-bold flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Eye className="h-5 w-5" />
-              🎨 Tasarım Talebi Detayları
-            </div>
-            
-            {/* Admin Edit Controls */}
-            {onUpdate && (
-              <div className="flex items-center gap-2">
-                {isEditing ? (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleCancelEdit}
-                      disabled={isSaving}
-                      className="text-xs"
-                    >
-                      <X className="h-4 w-4 mr-1" />
-                      İptal
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={handleSaveChanges}
-                      disabled={isSaving}
-                      className="text-xs bg-green-600 hover:bg-green-700"
-                    >
-                      {isSaving ? (
-                        <>
-                          <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent mr-1"></div>
-                          Kaydediliyor...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="h-4 w-4 mr-1" />
-                          Kaydet
-                        </>
-                      )}
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsEditing(true)}
-                    className="text-xs"
-                  >
-                    <Edit3 className="h-4 w-4 mr-1" />
-                    Düzenle
-                  </Button>
-                )}
-              </div>
-            )}
-          </DialogTitle>
-        </DialogHeader>
-        
-        <div className="space-y-6 mt-4">
+    <AdminModal
+        isOpen={isOpen}
+        onClose={onClose}
+        title="🎨 Tasarım Talebi Detayları"
+        description="Kullanıcı tarafından gönderilen ürün tasarım talebinin detayları."
+        icon={<Eye className="h-6 w-6 text-white" />}
+        hideFooter={true}
+        size="6xl"
+    >
+        <div className="space-y-6">
           {/* Temel Bilgiler */}
           <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
             <h3 className="font-semibold text-blue-800 dark:text-blue-300 mb-3 flex items-center gap-2">
@@ -831,13 +781,58 @@ const ProductDesignRequestDetailModal: React.FC<ProductDesignRequestDetailModalP
 
           {/* Footer Buttons */}
           <div className="flex justify-end gap-3 pt-4 border-t">
+              {onUpdate && (
+                <div className="flex items-center gap-2">
+                    {isEditing ? (
+                    <>
+                        <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCancelEdit}
+                        disabled={isSaving}
+                        className="text-xs"
+                        >
+                        <X className="h-4 w-4 mr-1" />
+                        İptal
+                        </Button>
+                        <Button
+                        size="sm"
+                        onClick={handleSaveChanges}
+                        disabled={isSaving}
+                        className="text-xs bg-green-600 hover:bg-green-700"
+                        >
+                        {isSaving ? (
+                            <>
+                            <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent mr-1"></div>
+                            Kaydediliyor...
+                            </>
+                        ) : (
+                            <>
+                            <Save className="h-4 w-4 mr-1" />
+                            Kaydet
+                            </>
+                        )}
+                        </Button>
+                    </>
+                    ) : (
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsEditing(true)}
+                        className="text-xs"
+                    >
+                        <Edit3 className="h-4 w-4 mr-1" />
+                        Düzenle
+                    </Button>
+                    )}
+                </div>
+                )}
             <Button variant="outline" onClick={onClose}>
               ❌ Kapat
             </Button>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+    </AdminModal>
   );
 };
 

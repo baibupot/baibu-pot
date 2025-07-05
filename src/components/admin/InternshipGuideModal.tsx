@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { AdminModal } from '@/components/admin/shared/AdminModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, BookOpen } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -35,8 +35,8 @@ const InternshipGuideModal = ({ isOpen, onClose, initialData }: InternshipGuideM
     }
   }, [isOpen, initialData, isEditMode]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setIsProcessing(true);
     const toastId = toast.loading('İşlem yürütülüyor...');
 
@@ -63,12 +63,17 @@ const InternshipGuideModal = ({ isOpen, onClose, initialData }: InternshipGuideM
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{isEditMode ? 'Rehber Düzenle' : 'Yeni Rehber Ekle'}</DialogTitle>
-          <DialogDescription>Stajlar sayfasında görünecek rehber içeriğini yönetin.</DialogDescription>
-        </DialogHeader>
+    <AdminModal
+      isOpen={isOpen}
+      onClose={onClose}
+      onSave={handleSubmit}
+      title={isEditMode ? 'Rehber Düzenle' : 'Yeni Rehber Ekle'}
+      description="Stajlar sayfasında görünecek rehber içeriğini yönetin."
+      icon={<BookOpen className="h-6 w-6 text-white" />}
+      isSaving={isProcessing}
+      saveLabel={isEditMode ? 'Kaydet' : 'Ekle'}
+      size="2xl"
+    >
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
             <div>
                 <Label htmlFor="title">Başlık *</Label>
@@ -86,17 +91,8 @@ const InternshipGuideModal = ({ isOpen, onClose, initialData }: InternshipGuideM
                 <Label htmlFor="sort_order">Sıralama</Label>
                 <Input id="sort_order" type="number" value={formData.sort_order || 0} onChange={e => handleChange('sort_order', parseInt(e.target.value,10))} />
             </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose} disabled={isProcessing}>İptal</Button>
-            <Button type="submit" disabled={isProcessing}>
-              {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEditMode ? 'Kaydet' : 'Ekle'}
-            </Button>
-          </DialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+    </AdminModal>
   );
 };
 
