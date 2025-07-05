@@ -62,6 +62,23 @@ const MemberCard = ({ member }: { member: TeamMember }) => {
     );
 };
 
+const customSort = (a, b) => {
+  const roleOrder = [
+    "Başkan",
+    "Başkan Yardımcısı"
+  ];
+  const aIndex = roleOrder.indexOf(a.role);
+  const bIndex = roleOrder.indexOf(b.role);
+
+  if (aIndex !== -1 && bIndex !== -1) {
+    return aIndex - bIndex;
+  }
+  if (aIndex !== -1) return -1;
+  if (bIndex !== -1) return 1;
+  // Diğerleri sort_order'a göre
+  return (a.sort_order || 0) - (b.sort_order || 0);
+};
+
 const Ekipler = () => {
     const { data, isLoading, error } = useQuery({
         queryKey: ['teams_by_period'],
@@ -149,9 +166,9 @@ const Ekipler = () => {
 ♥</p>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-                        {board.team_members.sort((a,b) => (a.sort_order || 0) - (b.sort_order || 0)).map(member => (
-                            <MemberCard key={member.id} member={member} />
-                ))}
+                    {board.team_members.sort(customSort).map(member => (
+  <MemberCard key={member.id} member={member} />
+))}
               </div>
             </section>
             )}
