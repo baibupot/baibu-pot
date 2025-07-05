@@ -9,6 +9,35 @@ export const useUsers = () => {
   return useQuery({
     queryKey: ['users'],
     queryFn: async () => {
+      // 🔒 Permission kontrolü - sadece admin kullanıcılar
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Unauthorized');
+      }
+
+      // Kullanıcının rollerini kontrol et
+      const { data: userRoles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('is_approved', true);
+
+      if (!userRoles || userRoles.length === 0) {
+        throw new Error('No permissions');
+      }
+
+      // Role permissions'ları kontrol et
+      const { data: rolePermissions } = await supabase
+        .from('role_permissions')
+        .select('permission')
+        .in('role', userRoles.map(ur => ur.role));
+
+      const hasUsersPermission = rolePermissions?.some(rp => rp.permission === 'users');
+      
+      if (!hasUsersPermission) {
+        throw new Error('No users permission');
+      }
+
       const { data, error } = await supabase
         .from('users')
         .select('*')
@@ -16,6 +45,7 @@ export const useUsers = () => {
       if (error) throw error;
       return data;
     },
+    retry: false,
   });
 };
 
@@ -24,16 +54,46 @@ export const useUserRoles = () => {
   return useQuery({
     queryKey: ['user_roles'],
     queryFn: async () => {
+      // 🔒 Permission kontrolü - sadece admin kullanıcılar
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Unauthorized');
+      }
+
+      // Kullanıcının rollerini kontrol et
+      const { data: currentUserRoles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('is_approved', true);
+
+      if (!currentUserRoles || currentUserRoles.length === 0) {
+        throw new Error('No permissions');
+      }
+
+      // Role permissions'ları kontrol et
+      const { data: rolePermissions } = await supabase
+        .from('role_permissions')
+        .select('permission')
+        .in('role', currentUserRoles.map(ur => ur.role));
+
+      const hasUsersPermission = rolePermissions?.some(rp => rp.permission === 'users');
+      
+      if (!hasUsersPermission) {
+        throw new Error('No users permission');
+      }
+
       const { data, error } = await supabase
         .from('user_roles')
         .select(`
           *,
-          user:users!user_id(name, email)
+          user:users(*)
         `)
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data;
     },
+    retry: false,
   });
 };
 
@@ -985,6 +1045,35 @@ export const useContactMessages = () => {
   return useQuery({
     queryKey: ['contact_messages'],
     queryFn: async () => {
+      // 🔒 Permission kontrolü - sadece admin kullanıcılar
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Unauthorized');
+      }
+
+      // Kullanıcının rollerini kontrol et
+      const { data: userRoles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('is_approved', true);
+
+      if (!userRoles || userRoles.length === 0) {
+        throw new Error('No permissions');
+      }
+
+      // Role permissions'ları kontrol et
+      const { data: rolePermissions } = await supabase
+        .from('role_permissions')
+        .select('permission')
+        .in('role', userRoles.map(ur => ur.role));
+
+      const hasMessagesPermission = rolePermissions?.some(rp => rp.permission === 'messages');
+      
+      if (!hasMessagesPermission) {
+        throw new Error('No messages permission');
+      }
+
       const { data, error } = await supabase
         .from('contact_messages')
         .select('*')
@@ -992,6 +1081,7 @@ export const useContactMessages = () => {
       if (error) throw error;
       return data;
     },
+    retry: false, // Permission hatası durumunda tekrar deneme
   });
 };
 
@@ -1525,5 +1615,76 @@ export const useDeleteProductDesignRequest = () => {
         console.log(`✅ Design request deleted with ${result.cleanedUpFiles.length} GitHub files cleaned up`);
       }
     },
+  });
+};
+
+// Aktivite logları hooks
+export const useActivityLogs = (limit = 50) => {
+  return useQuery({
+    queryKey: ['activity_logs', limit],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('activity_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      if (error) throw error;
+      return data;
+    },
+  });
+};
+
+export const useCreateActivityLog = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (logData: {
+      user_id?: string;
+      user_name: string;
+      user_role?: string;
+      action_type: 'create' | 'update' | 'delete' | 'publish' | 'unpublish' | 'approve' | 'reject' | 'login' | 'logout';
+      entity_type: 'news' | 'events' | 'magazine' | 'sponsors' | 'users' | 'team' | 'documents' | 'internships' | 'surveys' | 'products' | 'messages' | 'comments';
+      entity_id?: string;
+      entity_title?: string;
+      description?: string;
+      metadata?: any;
+    }) => {
+      const { data, error } = await supabase
+        .from('activity_logs')
+        .insert([{
+          ...logData,
+          ip_address: '127.0.0.1', // Gerçek IP için client-side'dan alınabilir
+          user_agent: navigator.userAgent
+        }])
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['activity_logs'] });
+    },
+  });
+};
+
+export const useActivityLogsByEntity = (entityType: string, entityId?: string) => {
+  return useQuery({
+    queryKey: ['activity_logs', entityType, entityId],
+    queryFn: async () => {
+      let query = supabase
+        .from('activity_logs')
+        .select('*')
+        .eq('entity_type', entityType)
+        .order('created_at', { ascending: false });
+      
+      if (entityId) {
+        query = query.eq('entity_id', entityId);
+      }
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!entityType,
   });
 };

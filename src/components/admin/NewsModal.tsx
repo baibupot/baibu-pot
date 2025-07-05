@@ -128,6 +128,7 @@ const NewsModal = ({ isOpen, onClose, onSave, initialData }: NewsModalProps) => 
         isSaving={isProcessing}
         saveLabel={isEditMode ? 'Değişiklikleri Kaydet' : 'Haberi Oluştur'}
         size="4xl"
+        compactHeader={true}
     >
         <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

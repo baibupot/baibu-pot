@@ -22,6 +22,9 @@ import {
 } from '@/utils/githubStorageHelper';
 import { getGitHubStorageConfig } from '@/integrations/github/config';
 import { useEventSponsors } from '@/hooks/useSupabaseData';
+import { logContentCreate, logContentUpdate } from '@/utils/activityLogger';
+import { useAdminContext } from '@/contexts/AdminDashboardContext';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   DEFAULT_EVENT_TYPE,
   DEFAULT_EVENT_STATUS,
@@ -56,6 +59,8 @@ interface EventModalProps {
 }
 
 const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) => {
+  const { user } = useAdminContext();
+  
   // 🎯 Form State
   const [formData, setFormData] = useState<Omit<EventData, 'id' | 'created_at' | 'updated_at' | 'created_by'>>({
     title: '',
@@ -312,6 +317,40 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
       registration_closed_reason: formData.registration_closed_reason, // 🎛️ Kapanma sebebi
     };
     
+    // Aktivite logu kaydet
+    try {
+      // Kullanıcı adını users tablosundan al
+      const { data: userProfile } = await supabase
+        .from('users')
+        .select('name')
+        .eq('id', user?.id)
+        .single();
+      
+      const userName = userProfile?.name || user?.email?.split('@')[0] || 'Bilinmeyen Kullanıcı';
+      const userRole = user?.userRoles?.[0] || 'Kullanıcı';
+      
+      if (initialData) {
+        // Güncelleme logu
+        await logContentUpdate(
+          userName,
+          userRole,
+          'events',
+          formData.title,
+          initialData.id
+        );
+      } else {
+        // Oluşturma logu
+        await logContentCreate(
+          userName,
+          userRole,
+          'events',
+          formData.title
+        );
+      }
+    } catch (error) {
+      console.error('Aktivite logu kaydedilemedi:', error);
+    }
+    
     onSave(eventData as EventData);
     onClose();
   };
@@ -325,9 +364,9 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
       description="Etkinlik detaylarını buradan ekleyebilir veya güncelleyebilirsiniz."
       icon={<Calendar className="h-6 w-6 text-white" />}
       isSaving={isUploading}
-      isFormValid={isValid()}
       saveLabel={initialData ? 'Güncelle' : 'Kaydet & Oluştur'}
       size="5xl"
+      compactHeader={true}
     >
         <form onSubmit={handleSubmit} className="flex flex-col h-full">
           <Tabs defaultValue="basic" className="flex flex-col h-full">

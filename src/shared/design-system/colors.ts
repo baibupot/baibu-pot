@@ -80,6 +80,35 @@ export const colors = {
     600: 'bg-orange-600',
     text: 'text-orange-600 dark:text-orange-400',
     border: 'border-orange-300 dark:border-orange-700'
+  },
+
+  // Additional Colors for Stats Cards
+  indigo: {
+    50: 'bg-indigo-50 dark:bg-indigo-900/20',
+    600: 'bg-indigo-600',
+    text: 'text-indigo-600 dark:text-indigo-400',
+    border: 'border-indigo-300 dark:border-indigo-700'
+  },
+
+  pink: {
+    50: 'bg-pink-50 dark:bg-pink-900/20',
+    600: 'bg-pink-600',
+    text: 'text-pink-600 dark:text-pink-400',
+    border: 'border-pink-300 dark:border-pink-700'
+  },
+
+  emerald: {
+    50: 'bg-emerald-50 dark:bg-emerald-900/20',
+    600: 'bg-emerald-600',
+    text: 'text-emerald-600 dark:text-emerald-400',
+    border: 'border-emerald-300 dark:border-emerald-700'
+  },
+
+  violet: {
+    50: 'bg-violet-50 dark:bg-violet-900/20',
+    600: 'bg-violet-600',
+    text: 'text-violet-600 dark:text-violet-400',
+    border: 'border-violet-300 dark:border-violet-700'
   }
 };
 

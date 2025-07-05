@@ -8,7 +8,7 @@ interface StatsCardProps {
   subtitle?: string;
   icon?: LucideIcon;
   emoji?: string;
-  variant?: 'primary' | 'success' | 'warning' | 'danger' | 'purple' | 'cyan' | 'orange';
+  variant?: 'primary' | 'success' | 'warning' | 'danger' | 'purple' | 'cyan' | 'orange' | 'indigo' | 'pink' | 'emerald' | 'violet';
   trend?: {
     value: string;
     isPositive?: boolean;
@@ -23,7 +23,11 @@ const variantClasses = {
   danger: 'from-red-500 to-red-600',
   purple: 'from-purple-500 to-purple-600',
   cyan: 'from-cyan-500 to-cyan-600',
-  orange: 'from-orange-500 to-orange-600'
+  orange: 'from-orange-500 to-orange-600',
+  indigo: 'from-indigo-500 to-indigo-600',
+  pink: 'from-pink-500 to-pink-600',
+  emerald: 'from-emerald-500 to-emerald-600',
+  violet: 'from-violet-500 to-violet-600'
 };
 
 export const StatsCard: React.FC<StatsCardProps> = ({

@@ -60,7 +60,7 @@ CREATE TABLE public.role_permissions (
     permission TEXT NOT NULL CHECK (permission IN (
         'overview', 'users', 'news', 'events', 'magazine', 
         'surveys', 'sponsors', 'products', 'team', 
-        'documents', 'internships', 'messages'
+        'documents', 'internships', 'messages', 'activity_logs'
     )),
     granted_by UUID REFERENCES public.users(id),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -471,6 +471,29 @@ CREATE TABLE public.contact_messages (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Aktivite Logları - Kullanıcı işlemlerini takip etmek için
+CREATE TABLE public.activity_logs (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+    user_name TEXT NOT NULL,
+    user_role TEXT,
+    action_type TEXT NOT NULL CHECK (action_type IN ('create', 'update', 'delete', 'publish', 'unpublish', 'approve', 'reject', 'login', 'logout')),
+    entity_type TEXT NOT NULL CHECK (entity_type IN ('news', 'events', 'magazine', 'sponsors', 'users', 'team', 'documents', 'internships', 'surveys', 'products', 'messages', 'comments')),
+    entity_id UUID,
+    entity_title TEXT,
+    description TEXT,
+    metadata JSONB DEFAULT '{}',
+    ip_address INET,
+    user_agent TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Aktivite logları için index
+CREATE INDEX idx_activity_logs_user_id ON public.activity_logs(user_id);
+CREATE INDEX idx_activity_logs_entity_type ON public.activity_logs(entity_type);
+CREATE INDEX idx_activity_logs_created_at ON public.activity_logs(created_at DESC);
+CREATE INDEX idx_activity_logs_action_type ON public.activity_logs(action_type);
+
 -- Yorumlar
 CREATE TABLE public.comments (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -641,6 +664,7 @@ ALTER TABLE public.event_suggestions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.academics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.internship_guides ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.internship_experiences ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
 
 -- Kullanıcı politikaları
 CREATE POLICY "users_select_policy" ON public.users FOR SELECT USING (true);
@@ -756,6 +780,27 @@ CREATE POLICY "internship_experiences_select_policy" ON public.internship_experi
 CREATE POLICY "internship_experiences_insert_policy" ON public.internship_experiences FOR INSERT WITH CHECK (true);
 CREATE POLICY "internship_experiences_admin_all_policy" ON public.internship_experiences FOR ALL USING (auth.uid() IS NOT NULL);
 
+-- Aktivite logları politikaları - Sadece izinli kullanıcılar görebilir
+CREATE POLICY "activity_logs_select_policy" ON public.activity_logs FOR SELECT USING (
+  EXISTS (
+    SELECT 1 FROM public.user_roles ur
+    JOIN public.role_permissions rp ON ur.role = rp.role
+    WHERE ur.user_id = auth.uid() 
+    AND ur.is_approved = true 
+    AND rp.permission = 'activity_logs'
+  )
+);
+CREATE POLICY "activity_logs_insert_policy" ON public.activity_logs FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "activity_logs_all_policy" ON public.activity_logs FOR ALL USING (
+  EXISTS (
+    SELECT 1 FROM public.user_roles ur
+    JOIN public.role_permissions rp ON ur.role = rp.role
+    WHERE ur.user_id = auth.uid() 
+    AND ur.is_approved = true 
+    AND rp.permission = 'activity_logs'
+  )
+);
+
 -- ====================================================================
 -- 10. YETKİLERİ AYARLA
 -- ====================================================================
@@ -773,13 +818,13 @@ INSERT INTO public.role_permissions (role, permission) VALUES
 -- Başkan - Tam yetki
 ('baskan', 'overview'), ('baskan', 'users'), ('baskan', 'news'), ('baskan', 'events'), 
 ('baskan', 'magazine'), ('baskan', 'surveys'), ('baskan', 'sponsors'), ('baskan', 'products'), 
-('baskan', 'team'), ('baskan', 'documents'), ('baskan', 'internships'), ('baskan', 'messages'),
+('baskan', 'team'), ('baskan', 'documents'), ('baskan', 'internships'), ('baskan', 'messages'), ('baskan', 'activity_logs'),
 
 -- Başkan Yardımcısı - Tam yetki  
 ('baskan_yardimcisi', 'overview'), ('baskan_yardimcisi', 'users'), ('baskan_yardimcisi', 'news'), 
 ('baskan_yardimcisi', 'events'), ('baskan_yardimcisi', 'magazine'), ('baskan_yardimcisi', 'surveys'), 
 ('baskan_yardimcisi', 'sponsors'), ('baskan_yardimcisi', 'products'), ('baskan_yardimcisi', 'team'), 
-('baskan_yardimcisi', 'documents'), ('baskan_yardimcisi', 'internships'), ('baskan_yardimcisi', 'messages'),
+('baskan_yardimcisi', 'documents'), ('baskan_yardimcisi', 'internships'), ('baskan_yardimcisi', 'messages'), ('baskan_yardimcisi', 'activity_logs'),
 
 -- İletişim Koordinatörü - Tam yetki
 ('iletisim_koordinator', 'overview'), ('iletisim_koordinator', 'users'), ('iletisim_koordinator', 'news'), 

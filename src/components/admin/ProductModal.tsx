@@ -242,6 +242,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, pr
       isSaving={isUploading}
       saveLabel={product ? 'Güncelle' : 'Kaydet'}
       size="2xl"
+      compactHeader={true}
     >
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Info */}

@@ -81,6 +81,7 @@ const InternshipModal = ({ isOpen, onClose, initialData }: InternshipModalProps)
       isSaving={isProcessing}
       saveLabel={isEditMode ? 'Değişiklikleri Kaydet' : 'İlanı Oluştur'}
       size="2xl"
+      compactHeader={true}
     >
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

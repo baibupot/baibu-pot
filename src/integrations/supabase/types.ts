@@ -214,6 +214,62 @@ export type Database = {
         }
         Relationships: []
       }
+      activity_logs: {
+        Row: {
+          id: string
+          user_id: string | null
+          user_name: string
+          user_role: string | null
+          action_type: string
+          entity_type: string
+          entity_id: string | null
+          entity_title: string | null
+          description: string | null
+          metadata: Json | null
+          ip_address: string | null
+          user_agent: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          user_name: string
+          user_role?: string | null
+          action_type: string
+          entity_type: string
+          entity_id?: string | null
+          entity_title?: string | null
+          description?: string | null
+          metadata?: Json | null
+          ip_address?: string | null
+          user_agent?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          user_name?: string
+          user_role?: string | null
+          action_type?: string
+          entity_type?: string
+          entity_id?: string | null
+          entity_title?: string | null
+          description?: string | null
+          metadata?: Json | null
+          ip_address?: string | null
+          user_agent?: string | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       event_sponsors: {
         Row: {
           created_at: string | null

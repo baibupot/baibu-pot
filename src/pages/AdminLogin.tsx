@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { useCreateUserRole } from '@/hooks/useSupabaseData';
 import { useAuthStatus } from '@/hooks/useAuth';
 import PageContainer from '@/components/ui/page-container';
+import { logUserLogin } from '@/utils/activityLogger';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -84,6 +85,23 @@ const AdminLogin = () => {
 
         // Success! 
         const roleNames = roleData.map(r => getRoleDisplayName(r.role)).join(', ');
+        
+        // Giriş logu kaydet
+        try {
+          // Kullanıcı adını users tablosundan al
+          const { data: userProfile } = await supabase
+            .from('users')
+            .select('name')
+            .eq('id', data.user.id)
+            .single();
+          
+          const userName = userProfile?.name || data.user.email?.split('@')[0] || 'Bilinmeyen Kullanıcı';
+          const userRole = roleData[0]?.role || 'Kullanıcı';
+          await logUserLogin(userName, userRole);
+        } catch (error) {
+          console.error('Giriş logu kaydedilemedi:', error);
+        }
+        
         toast.success(`🎉 Hoş geldiniz! (${roleNames})`);
         navigate('/admin/dashboard');
       }

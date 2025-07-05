@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LayoutDashboard, FileText, Calendar, Users, BookOpen, Briefcase, MessageSquare, LogOut, Shield, Package, Building2, ClipboardList, GraduationCap, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeProvider } from '@/components/ThemeProvider';
@@ -6,6 +6,8 @@ import { AdminDashboardProvider, useAdminContext } from '@/contexts/AdminDashboa
 import { OverviewPage, UsersPage, NewsPage, EventsPage, MagazinePage, SurveysPage, SponsorsPage, ProductsPage, TeamPage, DocumentsPage, InternshipsPage, MessagesPage } from '@/pages/admin';
 import ThemeToggle from '@/components/admin/ThemeToggle';
 import { cn } from '@/lib/utils';
+import { logUserLogout } from '@/utils/activityLogger';
+import { supabase } from '@/integrations/supabase/client';
 
 const NavLink: React.FC<{
   activeTab: string;
@@ -29,9 +31,54 @@ const NavLink: React.FC<{
 );
 
 const AdminDashboardContent: React.FC = () => {
-  const { user, hasPermission, logout, isLoading, getRoleLabel } = useAdminContext();
+  const { user, hasPermission, logout: originalLogout, isLoading, getRoleLabel } = useAdminContext();
+  
+  // Çıkış fonksiyonunu sarmalayarak log ekleme
+  const handleLogout = async () => {
+    try {
+      // Kullanıcı adını users tablosundan al
+      const { data: userProfile } = await supabase
+        .from('users')
+        .select('name')
+        .eq('id', user?.id)
+        .single();
+      
+      const userName = userProfile?.name || user?.email?.split('@')[0] || 'Bilinmeyen Kullanıcı';
+      const userRole = user?.userRoles?.[0] || 'Kullanıcı';
+      await logUserLogout(userName, userRole);
+    } catch (error) {
+      console.error('Çıkış logu kaydedilemedi:', error);
+    }
+    
+    await originalLogout();
+  };
   const [activeTab, setActiveTab] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // URL'den tab parametresini oku
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    if (tabParam && ['overview', 'users', 'news', 'events', 'magazine', 'surveys', 'sponsors', 'products', 'team', 'documents', 'internships', 'messages'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, []);
+
+  // Custom event'i dinle
+  useEffect(() => {
+    const handleTabChange = (event: CustomEvent) => {
+      const { tab } = event.detail;
+      if (tab && ['overview', 'users', 'news', 'events', 'magazine', 'surveys', 'sponsors', 'products', 'team', 'documents', 'internships', 'messages'].includes(tab)) {
+        setActiveTab(tab);
+      }
+    };
+
+    window.addEventListener('tabChange', handleTabChange as EventListener);
+    
+    return () => {
+      window.removeEventListener('tabChange', handleTabChange as EventListener);
+    };
+  }, []);
 
   const navItems = [
     { name: 'overview', label: 'Genel', icon: <LayoutDashboard className="h-5 w-5" />, permission: true },
@@ -50,6 +97,12 @@ const AdminDashboardContent: React.FC = () => {
   
   const handleTabClick = (tabName: string) => {
     setActiveTab(tabName);
+    
+    // URL'yi güncelle
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', tabName);
+    window.history.pushState({}, '', url.toString());
+    
     if(window.innerWidth < 768) { // md breakpoint
         setSidebarOpen(false);
     }
@@ -129,7 +182,7 @@ const AdminDashboardContent: React.FC = () => {
               ))}
             </nav>
             <div className="px-4 py-4 border-t dark:border-gray-700">
-                <Button variant="outline" size="sm" onClick={logout} className="w-full">
+                <Button variant="outline" size="sm" onClick={handleLogout} className="w-full">
                     <LogOut className="h-4 w-4 mr-2" />
                     Çıkış
                 </Button>

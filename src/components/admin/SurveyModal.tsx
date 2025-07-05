@@ -100,6 +100,7 @@ const SurveyModal = ({ isOpen, onClose, onSave, initialData }: SurveyModalProps)
       isSaving={false}
       saveLabel={initialData ? 'Değişiklikleri Kaydet' : 'Anketi Oluştur'}
       size="4xl"
+      compactHeader={true}
     >
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
         <Tabs defaultValue="content" className="mt-[-1rem] pt-0">
