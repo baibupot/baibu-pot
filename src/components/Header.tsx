@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, X, Sun, Moon, Search } from 'lucide-react';
+import { Menu, X, Sun, Moon, Search, Home, FileText, BookOpen, Calendar, ClipboardList, Building2, Users, Package, GraduationCap, Briefcase, Mail } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,21 +10,23 @@ const Header = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
 
+  // Ana navigasyon - en popüler sayfalar
   const navigationItems = [
-    { name: 'Anasayfa', href: '/' },
-    { name: 'Haberler/Duyurular', href: '/haberler' },
-    { name: 'Dergi', href: '/dergi' },
-    { name: 'Etkinlikler', href: '/etkinlikler' },
-    { name: 'Anketler', href: '/anketler' },
-    { name: 'Sponsorlar', href: '/sponsorlar' },
+    { name: 'Anasayfa', href: '/', icon: <Home className="h-4 w-4" /> },
+    { name: 'Haberler', href: '/haberler', icon: <FileText className="h-4 w-4" /> },
+    { name: 'Etkinlikler', href: '/etkinlikler', icon: <Calendar className="h-4 w-4" /> },
+    { name: 'Dergi', href: '/dergi', icon: <BookOpen className="h-4 w-4" /> },
+    { name: 'Anketler', href: '/anketler', icon: <ClipboardList className="h-4 w-4" /> },
+    { name: 'Sponsorlar', href: '/sponsorlar', icon: <Building2 className="h-4 w-4" /> },
   ];
 
+  // Daha az popüler sayfalar
   const moreItems = [
-    { name: 'Ekipler', href: '/ekipler' },
-    { name: 'Ürünler', href: '/urunler' },
-    { name: 'Akademik Belgeler', href: '/akademik-belgeler' },
-    { name: 'Stajlar', href: '/stajlar' },
-    { name: 'İletişim', href: '/iletisim' },
+    { name: 'Ekipler', href: '/ekipler', icon: <Users className="h-4 w-4" /> },
+    { name: 'Ürünler', href: '/urunler', icon: <Package className="h-4 w-4" /> },
+    { name: 'Akademik Belgeler', href: '/akademik-belgeler', icon: <GraduationCap className="h-4 w-4" /> },
+    { name: 'Stajlar', href: '/stajlar', icon: <Briefcase className="h-4 w-4" /> },
+    { name: 'İletişim', href: '/iletisim', icon: <Mail className="h-4 w-4" /> },
   ];
 
   return (
@@ -51,13 +52,15 @@ const Header = () => {
               <Link
                 key={item.name}
                 to={item.href}
-                className="px-2 xl:px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors duration-200 whitespace-nowrap"
+                className="px-2 xl:px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors duration-200 whitespace-nowrap flex items-center gap-2"
               >
+                {item.icon}
                 {item.name}
               </Link>
             ))}
             <div className="relative group">
-              <button className="px-2 xl:px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors duration-200">
+              <button className="px-2 xl:px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors duration-200 flex items-center gap-2">
+                <Users className="h-4 w-4" />
                 Daha Fazla
               </button>
               <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-800 rounded-md shadow-lg border border-slate-200 dark:border-slate-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
@@ -65,8 +68,9 @@ const Header = () => {
                   <Link
                     key={item.name}
                     to={item.href}
-                    className="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 first:rounded-t-md last:rounded-b-md"
+                    className="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 first:rounded-t-md last:rounded-b-md flex items-center gap-3"
                   >
+                    {item.icon}
                     {item.name}
                   </Link>
                 ))}
@@ -146,9 +150,10 @@ const Header = () => {
                 <Link
                   key={item.name}
                   to={item.href}
-                  className="block px-3 py-2 text-base font-medium text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors duration-200"
+                  className="block px-3 py-2 text-base font-medium text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors duration-200 flex items-center gap-3"
                   onClick={() => setIsMenuOpen(false)}
                 >
+                  {item.icon}
                   {item.name}
                 </Link>
               ))}

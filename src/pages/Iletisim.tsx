@@ -217,7 +217,7 @@ const Iletisim = () => {
                   <Button 
                     variant="outline" 
                     className="group-hover:shadow-lg transition-all duration-200 h-14 justify-start"
-                    onClick={() => window.open('https://www.youtube.com/channel/UCq_LNuabFO9CWm7dHFPxSHQ', '_blank')}
+                    onClick={() => window.open('https://www.youtube.com/@BA%C4%B0B%C3%9CPsikolojiToplulu%C4%9Fu', '_blank')}
                   >
                     <div className="flex items-center gap-3 w-full">
                       <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center">

@@ -49,20 +49,64 @@ const DergiDetay = () => {
   
   // Magazine sponsors verilerini çek
   const [magazineSponsors, setMagazineSponsors] = useState<any[]>([]);
+
+  // Sponsor türü renklerini ve etiketlerini belirle
+  const getSponsorTypeColor = (type: string) => {
+    const colors: Record<string, string> = {
+      'ana': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+      'destekci': 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300',
+      'medya': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
+      'akademik': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
+    };
+    return colors[type] || 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
+  };
+
+  const getSponsorTypeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      'ana': '🥇 Ana Sponsor',
+      'destekci': '🤝 Destekçi',
+      'medya': '📺 Medya Partneri',
+      'akademik': '🎓 Akademik Partner'
+    };
+    return labels[type] || type;
+  };
   
   useEffect(() => {
     const fetchSponsorsData = async () => {
       if (!magazine?.id) return;
       
       try {
-        // Yeni sistemde direkt magazine_sponsors tablosundan al
+        // Sponsors tablosuyla join yaparak sponsor bilgilerini al
         const { data: magazineSponsorData } = await supabase
           .from('magazine_sponsors')
-          .select('*')
+          .select(`
+            *,
+            sponsors (
+              id,
+              name,
+              logo,
+              website,
+              description,
+              sponsor_type
+            )
+          `)
           .eq('magazine_issue_id', magazine.id)
           .order('sort_order', { ascending: true });
           
-        setMagazineSponsors(magazineSponsorData || []);
+        // Sponsor bilgilerini düzenle
+        const formattedSponsors = (magazineSponsorData || []).map((item: any) => ({
+          id: item.id,
+          sponsor_id: item.sponsor_id,
+          sponsorship_type: item.sponsorship_type,
+          sort_order: item.sort_order,
+          sponsor_name: item.sponsors?.name || 'Bilinmeyen Sponsor',
+          logo_url: item.sponsors?.logo || null,
+          website_url: item.sponsors?.website || null,
+          description: item.sponsors?.description || null,
+          sponsor_type: item.sponsors?.sponsor_type || 'destekci'
+        }));
+          
+        setMagazineSponsors(formattedSponsors);
       } catch (error) {
         console.error('Sponsors yüklenirken hata:', error);
       }
@@ -557,57 +601,76 @@ const DergiDetay = () => {
               </Card>
             )}
 
-            {/* Sponsors Bölümü - KOMPAKT GRİD */}
+            {/* Sponsors Bölümü - GELİŞTİRİLMİŞ */}
             {magazineSponsors.length > 0 && (
               <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-blue-200 dark:border-blue-800">
-              <CardContent className="p-4">
-                  <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-3 flex items-center">
+                <CardContent className="p-6">
+                  <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-4 flex items-center gap-2">
                     🏢 Bu Sayının Sponsorları ({magazineSponsors.length})
                   </h4>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {magazineSponsors.map((magazineSponsor, index) => (
-                      <div key={index} className="flex flex-col items-center gap-2 p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg hover:shadow-md transition-all duration-200 text-center">
-                        {magazineSponsor.logo_url ? (
-                          <img 
-                            src={magazineSponsor.logo_url} 
-                            alt={magazineSponsor.sponsor_name}
-                            className="w-10 h-10 object-contain rounded border bg-white"
-                            onError={(e) => {
-                              e.currentTarget.src = '/placeholder.svg';
-                            }}
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded border bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-                            <span className="text-blue-600 dark:text-blue-300 font-bold text-sm">
-                              {magazineSponsor.sponsor_name?.charAt(0).toUpperCase() || '🏢'}
-                            </span>
+                      <div key={index} className="bg-white/70 dark:bg-gray-800/70 rounded-lg p-4 border border-blue-200 dark:border-blue-700 hover:shadow-lg transition-all duration-200 group">
+                        <div className="flex items-center gap-3 mb-3">
+                          {/* Logo */}
+                          <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-800 dark:to-cyan-800 rounded-lg flex items-center justify-center p-2 relative overflow-hidden">
+                            {magazineSponsor.logo_url ? (
+                              <img 
+                                src={magazineSponsor.logo_url} 
+                                alt={magazineSponsor.sponsor_name}
+                                className="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-300"
+                                onError={(e) => {
+                                  e.currentTarget.src = '/placeholder.svg';
+                                }}
+                              />
+                            ) : (
+                              <span className="text-blue-600 dark:text-blue-300 font-bold text-xl">
+                                {magazineSponsor.sponsor_name?.charAt(0).toUpperCase() || '🏢'}
+                              </span>
+                            )}
+                            {/* Shine effect */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 group-hover:animate-shimmer"></div>
                           </div>
-                        )}
-                        <div className="min-w-0 w-full">
-                          {magazineSponsor.website_url ? (
+                          
+                          {/* Sponsor bilgileri */}
+                          <div className="flex-1 min-w-0">
+                            <h5 className="font-semibold text-blue-900 dark:text-blue-100 text-sm mb-1 truncate">
+                              {magazineSponsor.sponsor_name || 'Sponsor'}
+                            </h5>
+                            <Badge className={`${getSponsorTypeColor(magazineSponsor.sponsor_type)} text-xs`}>
+                              {getSponsorTypeLabel(magazineSponsor.sponsor_type)}
+                            </Badge>
+                          </div>
+                          
+                          {/* Website link */}
+                          {magazineSponsor.website_url && (
                             <a 
                               href={magazineSponsor.website_url} 
                               target="_blank" 
                               rel="noopener noreferrer"
-                              className="font-medium text-xs text-blue-900 dark:text-blue-100 hover:text-blue-700 dark:hover:text-blue-300 underline block truncate"
-                              title={magazineSponsor.sponsor_name}
+                              className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors duration-200"
+                              title="Web sitesini ziyaret et"
                             >
-                              {magazineSponsor.sponsor_name || 'Sponsor'}
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                              </svg>
                             </a>
-                          ) : (
-                            <div className="font-medium text-xs text-blue-900 dark:text-blue-100 truncate" title={magazineSponsor.sponsor_name}>
-                              {magazineSponsor.sponsor_name || 'Sponsor'}
-                            </div>
                           )}
-                          <div className="text-xs text-blue-700 dark:text-blue-300 mt-1 truncate">
-                            {magazineSponsor.sponsorship_type || 'Sponsor'}
-                          </div>
-                  </div>
-                  </div>
+                        </div>
+                        
+                        {/* Sponsor açıklaması (varsa) */}
+                        {magazineSponsor.description && (
+                          <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+                            {magazineSponsor.description.length > 100 ? 
+                              `${magazineSponsor.description.substring(0, 100)}...` : 
+                              magazineSponsor.description}
+                          </p>
+                        )}
+                      </div>
                     ))}
-                </div>
-              </CardContent>
-            </Card>
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
             {/* 🗑️ Teknik butonlar sol panele taşındı */}

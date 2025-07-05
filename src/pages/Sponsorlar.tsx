@@ -215,14 +215,10 @@ const Sponsorlar = () => {
               katkı sağlamak ve kurumsal sosyal sorumluluk projelerinize değer katmak için 
               bizimle iletişime geçin.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="group">
+            <div className="flex justify-center">
+              <Button size="lg" className="group" onClick={() => window.location.href = '/iletisim'}>
                 <Mail className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform duration-200" />
                 İletişime Geç
-              </Button>
-              <Button variant="outline" size="lg" className="group">
-                <Heart className="h-5 w-5 mr-2 group-hover:rotate-12 transition-transform duration-200" />
-                Sponsorluk Paketi İndir
               </Button>
             </div>
           </div>

@@ -243,23 +243,6 @@ const Anketler = () => {
         />
       )}
 
-      {/* Call to Action */}
-      {surveys.length > 0 && (
-        <section className="py-16 text-center">
-          <div className="max-w-2xl mx-auto space-y-6">
-            <h2 className="text-3xl font-bold text-slate-900 dark:text-white">
-              Anket Önerisi
-            </h2>
-            <p className="text-lg text-slate-600 dark:text-slate-400">
-              Hangi konularda anket yapmamızı istiyorsunuz? Önerilerinizi bizimle paylaşın.
-            </p>
-            <Button size="lg" variant="outline" className="group">
-              <BarChart3 className="h-5 w-5 mr-2 group-hover:rotate-12 transition-transform duration-200" />
-              Anket Konusu Öner
-            </Button>
-          </div>
-        </section>
-      )}
     </PageContainer>
   );
 };
