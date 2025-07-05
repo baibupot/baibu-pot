@@ -68,8 +68,10 @@ const getFileInfo = async (
       return { exists: false };
     }
     
-    // Diğer hatalar için console'a yazdırma
-    console.warn(`GitHub API error for ${filePath}: ${response.status} ${response.statusText}`);
+    // Diğer hatalar için sadece debug modunda yazdır
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`GitHub API error for ${filePath}: ${response.status} ${response.statusText}`);
+    }
     return { exists: false };
   } catch (error) {
     // Network hatalarını sessizce handle et
@@ -289,8 +291,14 @@ export const uploadFileToGitHub = async (
       base64Content = arrayBufferToBase64(fileContent);
     }
 
-    // Dosyanın var olup olmadığını kontrol et
-    const fileInfo = await getFileInfo(config, filePath);
+    // Dosyanın var olup olmadığını kontrol et (sessizce)
+    let fileInfo: { exists: boolean; sha?: string } = { exists: false };
+    try {
+      fileInfo = await getFileInfo(config, filePath);
+    } catch (error) {
+      // Dosya bilgisi alınamazsa yeni dosya olarak kabul et
+      fileInfo = { exists: false };
+    }
 
     // GitHub API endpoint
     const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;

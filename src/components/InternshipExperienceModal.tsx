@@ -24,6 +24,7 @@ const InternshipExperienceModal: React.FC<InternshipExperienceModalProps> = ({ i
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return; // Çoklu gönderimi engelle
     setIsSubmitting(true);
     try {
       const { error } = await supabase.from('internship_experiences').insert({ ...formData, is_approved: false });

@@ -50,6 +50,8 @@ const EventSuggestionModal = ({ isOpen, onClose, onSubmit }: EventSuggestionModa
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (isSubmitting) return; // Çoklu gönderimi engelle
+    
     if (!formData.title.trim() || !formData.description.trim() || !formData.contact_name.trim() || !formData.contact_email.trim()) {
       toast.error('❌ Lütfen zorunlu alanları doldurun');
       return;

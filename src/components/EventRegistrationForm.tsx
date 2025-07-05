@@ -223,7 +223,7 @@ const EventRegistrationForm = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    if (!validateForm() || isSubmitting) return; // Çoklu gönderimi engelle
 
     setIsSubmitting(true);
     try {

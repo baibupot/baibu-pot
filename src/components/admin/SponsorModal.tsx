@@ -85,6 +85,7 @@ const SponsorModal = ({ isOpen, onClose, onSave, initialData }: SponsorModalProp
         throw new Error(result.error || 'Yükleme başarısız oldu.');
       }
     } catch (error: any) {
+      console.error('Logo upload error:', error);
       toast.error(`Logo yüklenemedi: ${error.message}`);
     } finally {
       setIsUploading(false);

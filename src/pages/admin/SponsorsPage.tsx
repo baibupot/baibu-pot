@@ -93,9 +93,9 @@ export const SponsorsPage: React.FC = () => {
                     {sponsor.name}
                     {!sponsor.active && <Badge variant="destructive">Pasif</Badge>}
                   </CardTitle>
-                  <CardDescription>
+                  <div className="text-sm text-muted-foreground">
                     <Badge variant="secondary">{sponsor.sponsor_type}</Badge>
-                  </CardDescription>
+                  </div>
                 </div>
                 {sponsor.logo && (
                   <img src={sponsor.logo} alt={sponsor.name} className="w-16 h-16 object-contain rounded-md border p-1" />

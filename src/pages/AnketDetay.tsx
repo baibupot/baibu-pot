@@ -15,6 +15,7 @@ import { useFormFields, useCreateFormResponse, useSurveyBySlug } from '@/hooks/u
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { CheckCircle, Clock, Loader2 } from 'lucide-react';
 
 const AnketDetay = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -27,6 +28,7 @@ const AnketDetay = () => {
   const [responses, setResponses] = useState<Record<string, any>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const handleInputChange = (fieldName: string, value: any) => {
     setResponses(prev => ({ ...prev, [fieldName]: value }));
@@ -42,8 +44,9 @@ const AnketDetay = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!survey) return;
+    if (!survey || isSubmitting) return; // Çoklu gönderimi engelle
 
+    // Form validasyonu
     for (const field of formFields || []) {
       if (field.required) {
         const response = responses[field.field_name];
@@ -63,8 +66,15 @@ const AnketDetay = () => {
         form_type: 'survey',
         response_data: responses,
       });
+      
+      // Başarılı gönderim
+      setIsSubmitted(true);
       toast.success('Anket yanıtınız başarıyla gönderildi! Teşekkür ederiz.');
-      setTimeout(() => navigate('/anketler'), 2000); 
+      
+      // 3 saniye sonra anketler sayfasına yönlendir
+      setTimeout(() => {
+        navigate('/anketler');
+      }, 3000);
 
     } catch (error) {
       toast.error('Yanıtınız gönderilirken bir hata oluştu.');
@@ -191,26 +201,62 @@ const AnketDetay = () => {
               </CardHeader>
               <CardContent className="p-6 md:p-8">
               {isSurveyActive() ? (
+                isSubmitted ? (
+                  // Başarılı gönderim ekranı
+                  <div className="text-center py-12 space-y-6">
+                    <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto">
+                      <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold text-green-600 dark:text-green-400 mb-2">
+                        Anketiniz Başarıyla Gönderildi!
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-400 text-lg">
+                        Değerli yanıtınız için teşekkür ederiz.
+                      </p>
+                    </div>
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                      <p className="text-sm text-blue-700 dark:text-blue-300">
+                        <Clock className="h-4 w-4 inline mr-2" />
+                        Anketler sayfasına yönlendiriliyorsunuz...
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  // Normal form
                   <form onSubmit={handleSubmit} className="space-y-8">
-                  {formFields?.sort((a,b) => (a.sort_order || 0) - (b.sort_order || 0)).map(field => (
+                    {formFields?.sort((a,b) => (a.sort_order || 0) - (b.sort_order || 0)).map(field => (
                       <div key={field.id} className="space-y-3 p-5 border rounded-lg bg-gray-50/50 dark:bg-gray-800/20">
-                      <Label htmlFor={field.field_name} className="text-base font-semibold">
+                        <Label htmlFor={field.field_name} className="text-base font-semibold">
                           {field.field_label}
                           {field.required && <span className="text-red-500 ml-1">*</span>}
-                      </Label>
-                      {renderField(field)}
+                        </Label>
+                        {renderField(field)}
                       </div>
-                  ))}
-                  {formError && <p className="text-red-500 text-sm text-center">{formError}</p>}
-                  <Button type="submit" disabled={isSubmitting} size="lg" className="w-full text-lg">
-                      {isSubmitting ? 'Yanıtlar Gönderiliyor...' : 'Anketi Tamamla ve Gönder'}
-                  </Button>
+                    ))}
+                    {formError && <p className="text-red-500 text-sm text-center">{formError}</p>}
+                    <Button 
+                      type="submit" 
+                      disabled={isSubmitting} 
+                      size="lg" 
+                      className="w-full text-lg"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                          Yanıtlar Gönderiliyor...
+                        </>
+                      ) : (
+                        'Anketi Tamamla ve Gönder'
+                      )}
+                    </Button>
                   </form>
+                )
               ) : (
-                  <div className="text-center py-12">
+                <div className="text-center py-12">
                   <h3 className="text-xl font-semibold">Bu anket şu anda aktif değil.</h3>
                   <p className="text-muted-foreground mt-2">İlginiz için teşekkür ederiz.</p>
-                  </div>
+                </div>
               )}
               </CardContent>
           </Card>
