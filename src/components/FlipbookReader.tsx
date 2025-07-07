@@ -84,8 +84,10 @@ const FlipbookReader: React.FC<FlipbookReaderProps> = ({ pages, title, magazineI
       // En az 2 saniye bakılmışsa gerçek okuma sayılır
       if (readingDuration >= 2000) {
         // Gizlice veritabanına kaydet
-        trackSimplePageRead(magazineId, prevPage + 1, readingDuration).catch(() => {
-          // Hata olursa sessizce geç
+        console.log(`📊 Sayfa ${prevPage + 1} için okuma süresi: ${readingDuration}ms`);
+        trackSimplePageRead(magazineId, prevPage + 1, readingDuration).catch((error) => {
+          // Hata olursa sessizce geç ama loglama yap
+          console.error(`❌ Sayfa ${prevPage + 1} okuma istatistiği kayıt hatası:`, error);
         });
         
         // Bu sayfayı gerçekten okumuş olarak işaretle
@@ -129,13 +131,18 @@ const FlipbookReader: React.FC<FlipbookReaderProps> = ({ pages, title, magazineI
       if (pageStartTimes[currentPage]) {
         const readingDuration = Date.now() - pageStartTimes[currentPage];
         if (readingDuration >= 2000) {
-          trackSimplePageRead(magazineId, currentPage + 1, readingDuration).catch(() => {
-            // Sessizce hata yakala
+          console.log(`📊 Component kapanırken son sayfa (${currentPage + 1}) okuma süresi: ${readingDuration}ms`);
+          trackSimplePageRead(magazineId, currentPage + 1, readingDuration).catch((error) => {
+            console.error(`❌ Son sayfa okuma istatistiği kayıt hatası:`, error);
           });
+          
+          // Oturum özeti istatistiği (toplam) - opsiyonel
+          const totalPages = [...viewedPages].length + 1; // Son sayfayı da ekle
+          console.log(`📚 Toplam okunan sayfa: ${totalPages}, toplam süre: ${readingDuration}ms`);
         }
       }
     };
-  }, [magazineId, currentPage, pageStartTimes]);
+  }, [magazineId, currentPage, pageStartTimes, viewedPages]);
 
   // Klavye ile çıkış
   useEffect(() => {
@@ -183,18 +190,18 @@ const FlipbookReader: React.FC<FlipbookReaderProps> = ({ pages, title, magazineI
           {/* Sol taraf: Kapatma + Başlık */}
           <div className="flex items-center gap-2 max-w-full overflow-x-auto">
             <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-white/20 transition-colors p-1">
-              <X className="h-4 w-4" />
-            </Button>
+            <X className="h-4 w-4" />
+          </Button>
             <span className="text-white font-medium truncate max-w-[40vw] sm:max-w-48 px-2">{title}</span>
-          </div>
+        </div>
           {/* Sağ taraf: Ses + Tam Ekran */}
           <div className="flex items-center gap-1 justify-end">
             <Button variant="ghost" size="icon" onClick={() => setSoundEnabled(!soundEnabled)} className="text-white hover:bg-white/20 transition-colors p-1" title={soundEnabled ? 'Sesi Kapat' : 'Sesi Aç'}>
-              {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-            </Button>
+            {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+          </Button>
             <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="text-white hover:bg-white/20 transition-colors p-1" title={isFullscreen ? 'Tam Ekrandan Çık' : 'Tam Ekran'}>
-              {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-            </Button>
+            {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+          </Button>
           </div>
         </div>
       </div>
@@ -223,14 +230,38 @@ const FlipbookReader: React.FC<FlipbookReaderProps> = ({ pages, title, magazineI
         </div>
       )}
 
-      {/* Dergi üst sınırı belirleyen ince çizgi */}
-      <div className="absolute top-16 sm:top-24 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent z-10"></div>
-
       {/* Flipbook Alanı */}
       <style>{`
         .page-corner {
           width: 64px !important;
           height: 64px !important;
+        }
+        
+        /* Sayfa resimlerinde koruma */
+        .protected-image {
+          user-select: none;
+          -webkit-user-select: none;
+          -webkit-touch-callout: none;
+          pointer-events: none;
+        }
+        
+        /* Sayfa içeriği için koruma, ancak sayfa çevirmeye izin ver */
+        .page-content {
+          user-select: none;
+          -webkit-user-select: none;
+          -webkit-touch-callout: none;
+          position: relative;
+        }
+        
+        /* Sayfa tıklamaları için görünmez katman */
+        .page-interaction-layer {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          z-index: 10;
+          cursor: pointer;
         }
         
         /* 850px'den itibaren yan boşluklar başlasın */
@@ -283,7 +314,13 @@ const FlipbookReader: React.FC<FlipbookReaderProps> = ({ pages, title, magazineI
           }
         }
       `}</style>
-      <div className="flex-1 flex items-center justify-center overflow-hidden relative py-10 sm:py-16 md:py-24 flipbook-container">
+      <div className="flex-1 flex items-center justify-center overflow-hidden relative py-10 sm:py-16 md:py-24 flipbook-container"
+        onContextMenu={(e) => {
+          // Sağ tık menüsünü engelle (tüm flipbook container'ında)
+          e.preventDefault();
+          return false;
+        }}
+      >
         {pages.length > 0 && pages.some(page => page !== '/placeholder.svg') ? (
           <HTMLFlipBook
             width={(() => {
@@ -423,19 +460,31 @@ const FlipbookReader: React.FC<FlipbookReaderProps> = ({ pages, title, magazineI
                     </div>
                   </div>
                 ) : (
+                  <div className="page-content w-full h-full flex items-center justify-center">
+                    {/* Sayfa etkileşimi için görünmez katman (sayfa çevirme için) */}
+                    <div className="page-interaction-layer"></div>
                   <img
                     src={page.includes('drive.google.com') ? 
                       `https://images.weserv.nl/?url=${encodeURIComponent(page)}` : 
                       page
                     }
                     alt={`Sayfa ${idx + 1}`}
-                    className="object-contain w-full h-full"
+                      className="object-contain w-full h-full protected-image"
                     draggable={false}
+                      onContextMenu={(e) => {
+                        e.preventDefault(); 
+                        return false;
+                      }}
+                      onDragStart={(e) => {
+                        e.preventDefault();
+                        return false;
+                      }}
                     onError={e => { 
                       console.log('❌ Resim yüklenemedi:', page);
                       (e.target as HTMLImageElement).src = '/placeholder.svg'; 
                     }}
                   />
+                  </div>
                 )}
               </div>
             ))}
@@ -499,9 +548,6 @@ const FlipbookReader: React.FC<FlipbookReaderProps> = ({ pages, title, magazineI
           </div>
         </div>
       )}
-
-      {/* Dergi alt sınırı belirleyen ince çizgi */}
-      <div className="absolute bottom-16 sm:bottom-24 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent z-10"></div>
     </div>
   );
 };

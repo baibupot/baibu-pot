@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BookOpen, Eye, Edit, Trash2 } from 'lucide-react';
@@ -16,7 +16,7 @@ type MagazineIssue = Database['public']['Tables']['magazine_issues']['Row'];
 export const MagazinePage: React.FC = () => {
   const { user, hasPermission, refreshData } = useAdminContext();
   const { data: magazines, refetch: refetchMagazines } = useMagazineIssues(false);
-  const { data: magazineReads } = useMagazineAnalytics();
+  const { data: magazineReads, refetch: refetchReads, isLoading: readsLoading } = useMagazineAnalytics();
   const { data: articleSubmissions } = useArticleSubmissions();
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -25,24 +25,73 @@ export const MagazinePage: React.FC = () => {
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
+  
+  // İstatistikleri periyodik olarak yenilemek için
+  useEffect(() => {
+    // Sayfa yüklendiğinde ve her 60 saniyede bir istatistikleri güncelle
+    refetchReads();
+    const interval = setInterval(() => {
+      refetchReads();
+    }, 60000); // 60 saniyede bir yenile
+    
+    return () => clearInterval(interval);
+  }, [refetchReads]);
+
+  // Debug - istatistik verilerinin doğru yüklendiğini kontrol et
+  useEffect(() => {
+    if (magazineReads) {
+      console.log(`📊 Toplam ${magazineReads.length} dergi okuma kaydı yüklendi:`, magazineReads);
+    }
+  }, [magazineReads]);
 
   const calculateMagazineStats = () => {
-    if (!magazineReads) return { thisMonth: 0, total: 0, avgDuration: 0 };
+    if (!magazineReads || magazineReads.length === 0) {
+      console.log('⚠️ Dergi istatistikleri hesaplanamıyor: Veri yok');
+      return { thisMonth: 0, total: 0, avgDuration: 0 };
+    }
+    
     const now = new Date();
     const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const thisMonthReads = magazineReads.filter(read => new Date(read.created_at) >= thisMonth).length;
-    const totalReads = magazineReads.length;
-    const avgDuration = totalReads > 0 ? Math.round(magazineReads.reduce((sum, read) => sum + (read.reading_duration || 0), 0) / totalReads / 60) : 0;
-    return { thisMonth: thisMonthReads, total: totalReads, avgDuration };
+    
+    // Geçerli tarihleri filtrele - null veya geçersiz tarihler hata oluşturabilir
+    const validReads = magazineReads.filter(read => read.created_at && new Date(read.created_at).toString() !== "Invalid Date");
+    
+    const thisMonthReads = validReads.filter(read => new Date(read.created_at as string) >= thisMonth).length;
+    const totalReads = validReads.length;
+    
+    // Süre hesaplamalarında null veya NaN değerlerini filtrele
+    const validDurations = validReads
+      .map(read => read.reading_duration || 0)
+      .filter(duration => !isNaN(duration) && duration > 0);
+      
+    const avgDuration = validDurations.length > 0 
+      ? Math.round(validDurations.reduce((sum, duration) => sum + duration, 0) / validDurations.length / 60) 
+      : 0;
+    
+    const result = { thisMonth: thisMonthReads, total: totalReads, avgDuration };
+    console.log('📊 Hesaplanan dergi istatistikleri:', result);
+    
+    return result;
   };
   
   const magazineStats = calculateMagazineStats();
 
   const getMagazineReadStats = (magazineId: string) => {
     if (!magazineReads) return { reads: 0, avgDuration: 0 };
-    const magazineSpecificReads = magazineReads.filter(read => read.magazine_issue_id === magazineId);
+    
+    // Belirli bir dergi için kayıtları filtrele
+    const magazineSpecificReads = magazineReads.filter(read => 
+      read.magazine_issue_id === magazineId && 
+      read.reading_duration && 
+      !isNaN(read.reading_duration)
+    );
+    
     const reads = magazineSpecificReads.length;
-    const avgDuration = reads > 0 ? Math.round(magazineSpecificReads.reduce((sum, read) => sum + (read.reading_duration || 0), 0) / reads / 60) : 0;
+    
+    const avgDuration = reads > 0 
+      ? Math.round(magazineSpecificReads.reduce((sum, read) => sum + (read.reading_duration || 0), 0) / reads / 60) 
+      : 0;
+    
     return { reads, avgDuration };
   };
 

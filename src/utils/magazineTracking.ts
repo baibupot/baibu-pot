@@ -53,6 +53,8 @@ export const trackMagazineRead = async (
       session_id: sessionId,
     };
 
+    console.log('📊 Dergi okuma verisi gönderiliyor:', readData);
+
     const { data, error } = await supabase
       .from('magazine_reads')
       .insert([readData])
@@ -60,11 +62,14 @@ export const trackMagazineRead = async (
       .single();
 
     if (error) {
+      console.error('❌ Dergi istatistiği kaydedilemedi:', error);
       return false;
     }
 
+    console.log('✅ Dergi istatistiği başarıyla kaydedildi:', data);
     return true;
   } catch (error) {
+    console.error('❌ Dergi tracking hatası:', error);
     return false;
   }
 };
@@ -120,6 +125,8 @@ export const trackSimplePageRead = async (
       zoom_level: 1.0,
     };
 
+    console.log(`📄 Sayfa ${pageNumber} için okuma verisi gönderiliyor:`, {magazineIssueId, timeSpent});
+
     const { data, error } = await supabase
       .from('magazine_page_reads')
       .insert([pageReadData])
@@ -127,11 +134,14 @@ export const trackSimplePageRead = async (
       .single();
 
     if (error) {
+      console.error(`❌ Sayfa ${pageNumber} istatistiği kaydedilemedi:`, error);
       return false;
     }
 
+    console.log(`✅ Sayfa ${pageNumber} istatistiği başarıyla kaydedildi:`, data);
     return true;
   } catch (error) {
+    console.error('❌ Sayfa tracking hatası:', error);
     return false;
   }
 };
