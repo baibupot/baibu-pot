@@ -31,6 +31,9 @@ const FlipbookReader: React.FC<FlipbookReaderProps> = ({ pages, title, magazineI
   // Gizli tracking için state'ler - kullanıcı hiç görmeyecek
   const [pageStartTimes, setPageStartTimes] = useState<{ [pageNumber: number]: number }>({});
   const [viewedPages, setViewedPages] = useState<Set<number>>(new Set());
+  // Kontrollerin görünürlüğü için state
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const [userInteracted, setUserInteracted] = useState(false);
 
   // İlk sayfa görselinin oranını al
   useEffect(() => {
@@ -70,6 +73,10 @@ const FlipbookReader: React.FC<FlipbookReaderProps> = ({ pages, title, magazineI
     const prevPage = currentPage;
     const now = Date.now();
     
+    // Kontrolleri göster çünkü etkileşim var
+    setControlsVisible(true);
+    setUserInteracted(true);
+    
     // Önceki sayfanın okuma süresini hesapla ve kaydet (sessizce)
     if (pageStartTimes[prevPage]) {
       const readingDuration = now - pageStartTimes[prevPage];
@@ -101,6 +108,9 @@ const FlipbookReader: React.FC<FlipbookReaderProps> = ({ pages, title, magazineI
   const onChangeState = (e: any) => {
     if (e.data === 'flipping') {
       playFlipSound();
+      // Çevirme sırasında kontrolleri göster
+      setControlsVisible(true);
+      setUserInteracted(true);
     }
   };
 
@@ -136,26 +146,55 @@ const FlipbookReader: React.FC<FlipbookReaderProps> = ({ pages, title, magazineI
     return () => window.removeEventListener('keydown', handleKey);
   }, [onClose]);
 
+  // Fare/dokunma hareketlerini dinle ve kontrolleri göster
+  useEffect(() => {
+    const showControls = () => {
+      setControlsVisible(true);
+      setUserInteracted(true);
+    };
+
+    // Kontrolleri belirli süre sonra otomatik gizle
+    if (userInteracted) {
+      const hideTimer = setTimeout(() => {
+        setControlsVisible(false);
+      }, 2500); // 2.5 saniye sonra gizle
+
+      return () => clearTimeout(hideTimer);
+    }
+
+    const container = document.querySelector('.flipbook-container');
+    if (container) {
+      container.addEventListener('mousemove', showControls);
+      container.addEventListener('touchstart', showControls);
+      return () => {
+        container.removeEventListener('mousemove', showControls);
+        container.removeEventListener('touchstart', showControls);
+      };
+    }
+  }, [userInteracted]);
+
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 z-50 flex flex-col overflow-hidden">
-      {/* Üst bar */}
-      <div className="absolute top-0 left-0 right-0 z-20 px-2 pt-2">
-        <div className="flex items-center justify-between gap-2 sm:gap-0 bg-black/80 backdrop-blur-md rounded-lg px-2 py-1 sm:p-3 border border-white/10 w-full text-xs sm:text-sm">
+    <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 z-50 flex flex-col overflow-hidden flipbook-container">
+      {/* Üst bar - kontrollerle birlikte opacity değişir */}
+      <div 
+        className={`absolute top-0 left-0 right-0 z-20 px-2 pt-4 transition-opacity duration-300 ${controlsVisible ? 'opacity-100' : 'opacity-0'}`}
+      >
+        <div className="flex items-center justify-between gap-2 sm:gap-0 bg-black/80 backdrop-blur-md rounded-lg px-3 py-2 sm:p-4 border border-white/20 w-full text-xs sm:text-sm shadow-lg">
           {/* Sol taraf: Kapatma + Başlık */}
-          <div className="flex items-center gap-1 max-w-full overflow-x-auto">
+          <div className="flex items-center gap-2 max-w-full overflow-x-auto">
             <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-white/20 transition-colors p-1">
-            <X className="h-4 w-4" />
-          </Button>
+              <X className="h-4 w-4" />
+            </Button>
             <span className="text-white font-medium truncate max-w-[40vw] sm:max-w-48 px-2">{title}</span>
-        </div>
+          </div>
           {/* Sağ taraf: Ses + Tam Ekran */}
           <div className="flex items-center gap-1 justify-end">
             <Button variant="ghost" size="icon" onClick={() => setSoundEnabled(!soundEnabled)} className="text-white hover:bg-white/20 transition-colors p-1" title={soundEnabled ? 'Sesi Kapat' : 'Sesi Aç'}>
-            {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-          </Button>
+              {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            </Button>
             <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="text-white hover:bg-white/20 transition-colors p-1" title={isFullscreen ? 'Tam Ekrandan Çık' : 'Tam Ekran'}>
-            {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-          </Button>
+              {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+            </Button>
           </div>
         </div>
       </div>
@@ -184,37 +223,174 @@ const FlipbookReader: React.FC<FlipbookReaderProps> = ({ pages, title, magazineI
         </div>
       )}
 
+      {/* Dergi üst sınırı belirleyen ince çizgi */}
+      <div className="absolute top-16 sm:top-24 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent z-10"></div>
+
       {/* Flipbook Alanı */}
       <style>{`
         .page-corner {
           width: 64px !important;
           height: 64px !important;
         }
+        
+        /* 850px'den itibaren yan boşluklar başlasın */
+        @media (min-width: 850px) {
+          .flipbook-container {
+            padding-left: 2%;
+            padding-right: 2%;
+          }
+        }
+        
+        @media (min-width: 900px) {
+          .flipbook-container {
+            padding-left: 3%;
+            padding-right: 3%;
+          }
+        }
+        
+        @media (min-width: 950px) {
+          .flipbook-container {
+            padding-left: 4%;
+            padding-right: 4%;
+          }
+        }
+        
+        @media (min-width: 1000px) {
+          .flipbook-container {
+            padding-left: 5%;
+            padding-right: 5%;
+          }
+        }
+        
+        @media (min-width: 1200px) {
+          .flipbook-container {
+            padding-left: 8%;
+            padding-right: 8%;
+          }
+        }
+        
+        @media (min-width: 1400px) {
+          .flipbook-container {
+            padding-left: 12%;
+            padding-right: 12%;
+          }
+        }
+        
+        @media (min-width: 1600px) {
+          .flipbook-container {
+            padding-left: 15%;
+            padding-right: 15%;
+          }
+        }
       `}</style>
-      <div className="flex-1 flex items-center justify-center overflow-hidden relative py-2 sm:py-8 md:py-12">
+      <div className="flex-1 flex items-center justify-center overflow-hidden relative py-10 sm:py-16 md:py-24 flipbook-container">
         {pages.length > 0 && pages.some(page => page !== '/placeholder.svg') ? (
           <HTMLFlipBook
             width={(() => {
-              // Masaüstü için genişlik: ekranın %75'i, max 900px, oranlı
-              const maxW = Math.min(window.innerWidth * 0.75, 900);
-              const maxH = Math.min(window.innerHeight * 0.75, 1200);
+              // Ekran genişliğine göre farklı boyutlar uygula
+              const screenWidth = window.innerWidth;
+              
+              // Ekran boyutuna göre oranlar (ekran büyüdükçe dergi küçülür)
+              let screenRatio = 0.67; // Varsayılan %67 oran
+              
+              // Ekran genişliğine göre oran ayarla
+              if (screenWidth < 768) {
+                screenRatio = 0.8; // Mobil için daha büyük
+              } else if (screenWidth >= 768 && screenWidth < 850) {
+                screenRatio = 0.7; // Tablet için orta
+              } else if (screenWidth >= 850 && screenWidth < 900) {
+                screenRatio = 0.68; // Geçiş başlangıcı
+              } else if (screenWidth >= 900 && screenWidth < 950) {
+                screenRatio = 0.66; // Geçiş ortası
+              } else if (screenWidth >= 950 && screenWidth < 1000) {
+                screenRatio = 0.65; // Geçiş sonu
+              } else if (screenWidth >= 1000 && screenWidth < 1200) {
+                screenRatio = 0.63; // Küçük masaüstü
+              } else if (screenWidth >= 1200 && screenWidth < 1400) {
+                screenRatio = 0.6; // Orta masaüstü
+              } else if (screenWidth >= 1400) {
+                screenRatio = 0.55; // Geniş ekranlar
+              }
+              
+              // Maksimum genişlik kontrolü
+              let maxWidthLimit;
+              if (screenWidth < 768) {
+                maxWidthLimit = 500; // Mobil
+              } else if (screenWidth >= 768 && screenWidth < 1000) {
+                maxWidthLimit = 650; // Tablet
+              } else if (screenWidth >= 1000 && screenWidth < 1200) {
+                maxWidthLimit = 700; // Küçük masaüstü
+              } else if (screenWidth >= 1200 && screenWidth < 1400) {
+                maxWidthLimit = 750; // Orta masaüstü
+              } else {
+                maxWidthLimit = 800; // Geniş ekranlar
+              }
+              
+              const maxW = Math.min(screenWidth * screenRatio, maxWidthLimit);
+              const maxH = Math.min(window.innerHeight * 0.7, 1000);
+              
               const wByH = maxH * aspect;
               if (wByH > maxW) return Math.round(maxW);
               return Math.round(wByH);
             })()}
             height={(() => {
-              // Yükseklik: oranlı, max 1200px, ekranın %75'i (üst bar ve padding dikkate alınarak ayarlandı)
-              const maxW = Math.min(window.innerWidth * 0.75, 900);
-              const maxH = Math.min(window.innerHeight * 0.75, 1200);
+              // Ekran genişliğine göre farklı boyutlar uygula
+              const screenWidth = window.innerWidth;
+              
+              // Ekran boyutuna göre oranlar (ekran büyüdükçe dergi küçülür)
+              let screenRatio = 0.67; // Varsayılan %67 oran
+              
+              // Ekran genişliğine göre oran ayarla
+              if (screenWidth < 768) {
+                screenRatio = 0.8; // Mobil için daha büyük
+              } else if (screenWidth >= 768 && screenWidth < 850) {
+                screenRatio = 0.7; // Tablet için orta
+              } else if (screenWidth >= 850 && screenWidth < 900) {
+                screenRatio = 0.68; // Geçiş başlangıcı
+              } else if (screenWidth >= 900 && screenWidth < 950) {
+                screenRatio = 0.66; // Geçiş ortası
+              } else if (screenWidth >= 950 && screenWidth < 1000) {
+                screenRatio = 0.65; // Geçiş sonu
+              } else if (screenWidth >= 1000 && screenWidth < 1200) {
+                screenRatio = 0.63; // Küçük masaüstü
+              } else if (screenWidth >= 1200 && screenWidth < 1400) {
+                screenRatio = 0.6; // Orta masaüstü
+              } else if (screenWidth >= 1400) {
+                screenRatio = 0.55; // Geniş ekranlar
+              }
+              
+              // Maksimum genişlik kontrolü
+              let maxWidthLimit;
+              let maxHeightLimit;
+              if (screenWidth < 768) {
+                maxWidthLimit = 500; // Mobil
+                maxHeightLimit = 700;
+              } else if (screenWidth >= 768 && screenWidth < 1000) {
+                maxWidthLimit = 650; // Tablet
+                maxHeightLimit = 800;
+              } else if (screenWidth >= 1000 && screenWidth < 1200) {
+                maxWidthLimit = 700; // Küçük masaüstü
+                maxHeightLimit = 850;
+              } else if (screenWidth >= 1200 && screenWidth < 1400) {
+                maxWidthLimit = 750; // Orta masaüstü
+                maxHeightLimit = 900;
+              } else {
+                maxWidthLimit = 800; // Geniş ekranlar
+                maxHeightLimit = 950;
+              }
+              
+              const maxW = Math.min(screenWidth * screenRatio, maxWidthLimit);
+              const maxH = Math.min(window.innerHeight * 0.7, maxHeightLimit);
+              
               const hByW = maxW / aspect;
               if (hByW > maxH) return Math.round(maxH);
               return Math.round(hByW);
             })()}
             size="stretch"
             minWidth={280}
-            maxWidth={900}
+            maxWidth={800}
             minHeight={400}
-            maxHeight={1200}
+            maxHeight={1000}
             maxShadowOpacity={0.5}
             showCover={true}
             mobileScrollSupport={true}
@@ -288,8 +464,10 @@ const FlipbookReader: React.FC<FlipbookReaderProps> = ({ pages, title, magazineI
 
       {/* Alt bilgi ve slider */}
       {pages.length > 0 && (
-        <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 z-20 w-auto px-2">
-          <div className="bg-black/80 backdrop-blur-md rounded-lg px-3 py-2 border border-white/10 flex flex-col items-center text-xs sm:text-sm min-w-[120px] w-full">
+        <div 
+          className={`absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 w-auto px-2 transition-opacity duration-300 ${controlsVisible ? 'opacity-100' : 'opacity-0'}`}
+        >
+          <div className="bg-black/80 backdrop-blur-md rounded-lg px-3 py-3 border border-white/20 flex flex-col items-center text-xs sm:text-sm min-w-[120px] w-full shadow-lg">
             <div className="text-white font-medium mb-1 flex flex-col sm:flex-row items-center gap-1 sm:gap-2">
               <span>
                 Sayfa {currentPage + 1} / {pages.length}
@@ -306,6 +484,9 @@ const FlipbookReader: React.FC<FlipbookReaderProps> = ({ pages, title, magazineI
                   setCurrentPage(pageNum);
                   // flip fonksiyonunu doğru şekilde çağır
                   flipBookRef.current?.pageFlip()?.flip(pageNum);
+                  // Kullanıcı etkileşimi var, kontrolleri göster
+                  setControlsVisible(true);
+                  setUserInteracted(true);
                 }}
                 className="w-40 sm:w-64 h-2 rounded-lg appearance-none bg-gradient-to-r from-cyan-400 to-teal-400 outline-none transition-all duration-200 shadow-md border border-cyan-500 focus:ring-2 focus:ring-cyan-400"
                 style={{ minWidth: 100, maxWidth: 320 }}
@@ -318,6 +499,9 @@ const FlipbookReader: React.FC<FlipbookReaderProps> = ({ pages, title, magazineI
           </div>
         </div>
       )}
+
+      {/* Dergi alt sınırı belirleyen ince çizgi */}
+      <div className="absolute bottom-16 sm:bottom-24 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent z-10"></div>
     </div>
   );
 };
