@@ -16,6 +16,7 @@ import SSS from '@/pages/SSS';
 import Iletisim from '@/pages/Iletisim';
 import AdminLogin from '@/pages/AdminLogin';
 import AdminDashboard from '@/pages/AdminDashboard';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import Urunler from '@/pages/Urunler';
 import GizlilikPolitikasi from '@/pages/GizlilikPolitikasi';
 import SiteHaritasi from '@/pages/SiteHaritasi';
@@ -59,7 +60,13 @@ function AppRoutes() {
           <Route path="/gizlilik-politikasi" element={<GizlilikPolitikasi />} />
           <Route path="/site-haritasi" element={<SiteHaritasi />} />
           <Route path="/admin" element={<AdminLogin />} />
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/reset-password" element={<AdminLogin resetMode={true} />} />
+          <Route path="/admin/dashboard" element={
+            <ProtectedRoute>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
           <Route path="*" element={<NotFound />} />
         </Routes>
   );

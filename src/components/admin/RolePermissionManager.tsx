@@ -36,7 +36,8 @@ const AVAILABLE_PERMISSIONS = [
   { key: 'team', label: 'Ekipler', description: 'Ekip yönetimi' },
   { key: 'documents', label: 'Akademik Belgeler', description: 'Belge yönetimi' },
   { key: 'internships', label: 'Stajlar', description: 'Staj yönetimi' },
-  { key: 'messages', label: 'Mesajlar', description: 'İletişim mesajları' }
+  { key: 'messages', label: 'Mesajlar', description: 'İletişim mesajları' },
+  { key: 'activity_logs', label: 'Aktivite Logları', description: 'Kullanıcı işlem geçmişi (Sadece Başkan)' }
 ];
 
 const ROLES = [

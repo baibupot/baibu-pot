@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hesap Onayı - BAİBÜ Psikoloji Kulübü</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px 20px;
+            text-align: center;
+            color: white;
+        }
+        
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: white;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .content {
+            padding: 40px 30px;
+            text-align: center;
+        }
+        
+        .title {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            color: #666;
+            line-height: 1.5;
+            margin-bottom: 30px;
+        }
+        
+        .button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 35px;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 16px;
+            margin: 20px 0;
+            transition: transform 0.2s;
+        }
+        
+        .button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .footer {
+            background: #f8f9fa;
+            padding: 30px;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🧠</div>
+            <h2>BAİBÜ Psikoloji Kulübü</h2>
+            <p>Admin Paneli Kayıt Onayı</p>
+        </div>
+        
+        <div class="content">
+            <h1 class="title">Hesabınızı Onaylayın</h1>
+            <p class="subtitle">
+                Merhaba! BAİBÜ Psikoloji Kulübü admin paneline kaydolduğunuz için teşekkür ederiz. 
+                Hesabınızı aktifleştirmek için aşağıdaki butona tıklayın.
+            </p>
+            
+            <a href="{{ .ConfirmationURL }}" class="button">
+                ✅ Hesabımı Onayla
+            </a>
+            
+            <div class="warning">
+                <strong>⚠️ Önemli:</strong> Bu link 24 saat geçerlidir. 
+                Hesabınız onaylandıktan sonra yönetici onayı beklemeniz gerekebilir.
+            </div>
+            
+            <p style="margin-top: 30px; color: #999; font-size: 14px;">
+                Eğer butona tıklayamıyorsanız, aşağıdaki linki kopyalayıp tarayıcınıza yapıştırın:<br>
+                <span style="word-break: break-all;">{{ .ConfirmationURL }}</span>
+            </p>
+        </div>
+        
+        <div class="footer">
+            <strong>BAİBÜ Psikoloji Kulübü</strong><br>
+            Bolu Abant İzzet Baysal Üniversitesi<br>
+            Bu e-posta otomatik olarak gönderilmiştir.<br><br>
+            
+            Eğer bu kaydı siz yapmadıysanız, bu e-postayı görmezden gelebilirsiniz.
+        </div>
+    </div>
+</body>
+</html> 

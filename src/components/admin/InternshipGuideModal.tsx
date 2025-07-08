@@ -4,10 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import RichTextEditor from '@/components/ui/RichTextEditor';
 import { toast } from 'sonner';
 import { Loader2, BookOpen } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 import { supabase } from '@/integrations/supabase/client';
+import { uploadFileObjectToGitHub } from '@/utils/githubStorageHelper';
 
 type GuideInsert = Database['public']['Tables']['internship_guides']['Insert'];
 type GuideRow = Database['public']['Tables']['internship_guides']['Row'];
@@ -62,6 +64,23 @@ const InternshipGuideModal = ({ isOpen, onClose, initialData }: InternshipGuideM
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleImageUpload = async (file: File) => {
+    try {
+      // GitHub config'i import ediyoruz
+      const { getGitHubStorageConfig } = await import('@/integrations/github/config');
+      const config = getGitHubStorageConfig();
+      if (!config) {
+        throw new Error('GitHub config bulunamadı');
+      }
+      const result = await uploadFileObjectToGitHub(config, file, `internship-guides/${file.name}`);
+      return result.rawUrl || null;
+    } catch (error) {
+      console.error('Resim yükleme hatası:', error);
+      toast.error('Resim yüklenemedi');
+      return null;
+    }
+  };
+
   return (
     <AdminModal
       isOpen={isOpen}
@@ -84,8 +103,12 @@ const InternshipGuideModal = ({ isOpen, onClose, initialData }: InternshipGuideM
                 <Input id="youtube_video_url" value={formData.youtube_video_url || ''} onChange={e => handleChange('youtube_video_url', e.target.value)} placeholder="https://www.youtube.com/watch?v=..." />
             </div>
             <div>
-                <Label htmlFor="content">İçerik (Açıklama)</Label>
-                <Textarea id="content" value={formData.content || ''} onChange={e => handleChange('content', e.target.value)} rows={5}/>
+                <Label htmlFor="content">İçerik (Açıklama) - Markdown Destekli</Label>
+                <RichTextEditor
+                    content={formData.content || ''}
+                    onChange={(content) => handleChange('content', content)}
+                    onImageUpload={handleImageUpload}
+                />
             </div>
              <div>
                 <Label htmlFor="sort_order">Sıralama</Label>

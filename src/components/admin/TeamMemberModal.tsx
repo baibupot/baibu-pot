@@ -18,6 +18,7 @@ type TeamMemberRow = Database['public']['Tables']['team_members']['Row'];
 
 // Bu roller UserRoleManagement'teki ile aynı olmalı
 const ROLES = [
+    { key: 'akademik_danisman', label: 'Akademik Danışman' },
     { key: 'baskan', label: 'Başkan' },
     { key: 'baskan_yardimcisi', label: 'Başkan Yardımcısı' },
     { key: 'iletisim_koordinator', label: 'İletişim Koordinatörü' },
@@ -45,7 +46,7 @@ const getTeamNamesForRole = (role: string): string[] => {
         const capitalizedTeamName = teamName.charAt(0).toUpperCase() + teamName.slice(1);
         return [capitalizedTeamName];
     }
-    if (role === 'baskan' || role === 'baskan_yardimcisi') {
+    if (role === 'baskan' || role === 'baskan_yardimcisi' || role === 'akademik_danisman') {
         return ['Yönetim Kurulu'];
     }
     return [];

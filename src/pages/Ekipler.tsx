@@ -64,6 +64,7 @@ const MemberCard = ({ member }: { member: TeamMember }) => {
 
 const customSort = (a, b) => {
   const roleOrder = [
+    "Akademik Danışman",
     "Başkan",
     "Başkan Yardımcısı"
   ];
@@ -222,7 +223,7 @@ const Ekipler = () => {
                                     </AccordionTrigger>
                                     <AccordionContent className="pt-4">
                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                            {pastBoard.team_members.sort((a,b) => (a.sort_order || 0) - (b.sort_order || 0)).map(member => (
+                                            {pastBoard.team_members.sort(customSort).map(member => (
                                                 <MemberCard key={member.id} member={member} />
                                             ))}
                                         </div>

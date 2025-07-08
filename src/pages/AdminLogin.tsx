@@ -13,8 +13,14 @@ import { useCreateUserRole } from '@/hooks/useSupabaseData';
 import { useAuthStatus } from '@/hooks/useAuth';
 import PageContainer from '@/components/ui/page-container';
 import { logUserLogin } from '@/utils/activityLogger';
+import PasswordResetModal from '@/components/ui/PasswordResetModal';
 
-const AdminLogin = () => {
+// Props tipi tanımı
+interface AdminLoginProps {
+  resetMode?: boolean;
+}
+
+const AdminLogin = ({ resetMode = false }: AdminLoginProps) => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -22,6 +28,10 @@ const AdminLogin = () => {
   const [selectedRole, setSelectedRole] = useState('teknik_ekip');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordResetModal, setShowPasswordResetModal] = useState(false);
+  const [isPasswordResetMode, setIsPasswordResetMode] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
   
   // 🚨 Enhanced Error & Success State Management
   const [signupSuccess, setSignupSuccess] = useState(false);
@@ -32,12 +42,44 @@ const AdminLogin = () => {
   const { data: authStatus } = useAuthStatus();
 
   useEffect(() => {
-    checkUser();
+    checkUserAndResetMode();
   }, []);
 
-  const checkUser = async () => {
+  const checkUserAndResetMode = async () => {
+    // Props'dan reset mode kontrolü
+    if (resetMode) {
+      // Şifre sıfırlama modunda
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setIsPasswordResetMode(true);
+        return;
+      } else {
+        // Session yoksa normal giriş sayfasına dön
+        navigate('/admin/login');
+        return;
+      }
+    }
+
+    // URL parametrelerini kontrol et (eski uyumluluk için)
+    const urlParams = new URLSearchParams(window.location.search);
+    const isReset = urlParams.get('reset') === 'true';
+    
+    if (isReset) {
+      // Şifre sıfırlama modunda
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setIsPasswordResetMode(true);
+        return;
+      } else {
+        // Session yoksa normal giriş sayfasına dön
+        navigate('/admin/login');
+        return;
+      }
+    }
+
+    // Normal kullanıcı kontrolü
     const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
+    if (user && !isReset && !resetMode) {
       navigate('/admin/dashboard');
     }
   };
@@ -114,11 +156,55 @@ const AdminLogin = () => {
     }
   };
 
+  // 🔄 Şifre Sıfırlama
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setAuthError(null);
+
+    try {
+      if (!newPassword.trim()) {
+        throw new Error('Lütfen yeni şifrenizi girin');
+      }
+
+      if (newPassword.length < 6) {
+        throw new Error('Şifre en az 6 karakter olmalıdır');
+      }
+
+      if (newPassword !== confirmNewPassword) {
+        throw new Error('Şifreler eşleşmiyor');
+      }
+
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success('🎉 Şifreniz başarıyla güncellendi! Giriş yapabilirsiniz.');
+      
+      // Reset mode'dan çık ve normal giriş sayfasına dön
+      setIsPasswordResetMode(false);
+      setNewPassword('');
+      setConfirmNewPassword('');
+      window.history.replaceState({}, '', '/admin/login');
+      
+    } catch (error: any) {
+      const errorMessage = error.message || 'Şifre güncellenirken bir hata oluştu';
+      setAuthError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // 💪 Password Strength Checker
   const getPasswordStrength = (password: string) => {
     let score = 0;
     const checks = {
-      length: password.length >= 8,
+      length: password.length >= 6,
       uppercase: /[A-Z]/.test(password),
       lowercase: /[a-z]/.test(password),
       numbers: /\d/.test(password),
@@ -266,11 +352,135 @@ const AdminLogin = () => {
           <Card className="border-0 shadow-2xl bg-white/90 dark:bg-slate-800/90 backdrop-blur-lg overflow-hidden">
             <CardHeader className="text-center pb-2">
               <CardTitle className="text-2xl font-bold text-slate-900 dark:text-white">
-                🔐 Güvenli Giriş
+                {isPasswordResetMode ? '🔄 Yeni Şifre Belirle' : '🔐 Güvenli Giriş'}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-8">
-              <Tabs defaultValue="login" className="space-y-6">
+              {isPasswordResetMode ? (
+                // Şifre Sıfırlama Formu
+                <div className="space-y-6">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="text-blue-600 dark:text-blue-400 mt-0.5">ℹ️</div>
+                      <div>
+                        <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                          Şifre Sıfırlama
+                        </p>
+                        <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                          E-postanızdaki bağlantıya tıkladığınız için teşekkürler. Şimdi yeni şifrenizi belirleyebilirsiniz.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {authError && (
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="text-red-600 dark:text-red-400 mt-0.5">❌</div>
+                        <div>
+                          <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                            Şifre Güncelleme Hatası
+                          </p>
+                          <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                            {authError}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <form onSubmit={handlePasswordReset} className="space-y-6">
+                    <div className="space-y-3">
+                      <Label htmlFor="new-password" className="text-base font-medium">
+                        🔒 Yeni Şifre
+                      </Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
+                        <Input
+                          id="new-password"
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="Yeni şifreniz (en az 6 karakter)"
+                          value={newPassword}
+                          onChange={(e) => {
+                            setNewPassword(e.target.value);
+                            setAuthError(null);
+                          }}
+                          className="pl-12 pr-12 h-12 text-base bg-white/80 dark:bg-slate-700/80"
+                          required
+                          minLength={6}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label htmlFor="confirm-new-password" className="text-base font-medium">
+                        🔒 Yeni Şifre (Tekrar)
+                      </Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
+                        <Input
+                          id="confirm-new-password"
+                          type="password"
+                          placeholder="Yeni şifrenizi tekrar girin"
+                          value={confirmNewPassword}
+                          onChange={(e) => {
+                            setConfirmNewPassword(e.target.value);
+                            setAuthError(null);
+                          }}
+                          className="pl-12 h-12 text-base bg-white/80 dark:bg-slate-700/80"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <Button 
+                      type="submit" 
+                      className="w-full h-12 text-base font-semibold bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 shadow-lg hover:shadow-xl transition-all duration-300" 
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <div className="flex items-center gap-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                          Şifre güncelleniyor...
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <Lock className="h-5 w-5" />
+                          Şifreyi Güncelle
+                        </div>
+                      )}
+                    </Button>
+
+                    <div className="text-center">
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 p-0 h-auto"
+                        onClick={() => {
+                          setIsPasswordResetMode(false);
+                          window.history.replaceState({}, '', '/admin/login');
+                        }}
+                      >
+                        ← Giriş sayfasına dön
+                      </Button>
+                    </div>
+                  </form>
+                </div>
+              ) : (
+                <Tabs defaultValue="login" className="space-y-6">
                 <TabsList className="grid w-full grid-cols-2 h-12">
                   <TabsTrigger value="login" className="text-base font-medium">
                     Giriş Yap
@@ -376,6 +586,17 @@ const AdminLogin = () => {
                         </div>
                       )}
                     </Button>
+                    
+                    <div className="text-center">
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 p-0 h-auto"
+                        onClick={() => setShowPasswordResetModal(true)}
+                      >
+                        🔑 Şifremi Unuttum
+                      </Button>
+                    </div>
                   </form>
                 </TabsContent>
 
@@ -473,7 +694,7 @@ const AdminLogin = () => {
                             authError ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''
                           }`}
                           required
-                          minLength={8}
+                          minLength={6}
                         />
                         <Button
                           type="button"
@@ -514,7 +735,7 @@ const AdminLogin = () => {
                           <div className="grid grid-cols-2 gap-2 text-xs">
                             <div className={`flex items-center gap-1 ${getPasswordStrength(password).checks.length ? 'text-green-600 dark:text-green-400' : 'text-slate-400'}`}>
                               <span>{getPasswordStrength(password).checks.length ? '✅' : '❌'}</span>
-                              <span>8+ karakter</span>
+                              <span>6+ karakter</span>
                             </div>
                             <div className={`flex items-center gap-1 ${getPasswordStrength(password).checks.uppercase ? 'text-green-600 dark:text-green-400' : 'text-slate-400'}`}>
                               <span>{getPasswordStrength(password).checks.uppercase ? '✅' : '❌'}</span>
@@ -574,14 +795,22 @@ const AdminLogin = () => {
                       )}
                     </Button>
                     
-                    <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-                      <p className="text-sm text-amber-800 dark:text-amber-200 text-center leading-relaxed">
-                        ⚠️ Kayıt olduktan sonra seçtiğiniz rol için admin onayı gereklidir.
-                      </p>
+                    <div className="space-y-3">
+                      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                        <p className="text-sm text-blue-800 dark:text-blue-200 text-center leading-relaxed">
+                          🛡️ <strong>Güvenlik:</strong> Şifreniz otomatik olarak bilinen zayıf şifreler listesiyle kontrol edilir (HaveIBeenPwned.org)
+                        </p>
+                      </div>
+                      <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                        <p className="text-sm text-amber-800 dark:text-amber-200 text-center leading-relaxed">
+                          ⚠️ Kayıt olduktan sonra seçtiğiniz rol için admin onayı gereklidir.
+                        </p>
+                      </div>
                     </div>
                   </form>
                 </TabsContent>
               </Tabs>
+              )}
             </CardContent>
           </Card>
 
@@ -600,6 +829,12 @@ const AdminLogin = () => {
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-red-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse animation-delay-2000"></div>
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-amber-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse animation-delay-4000"></div>
       </div>
+
+      {/* Password Reset Modal */}
+      <PasswordResetModal
+        isOpen={showPasswordResetModal}
+        onClose={() => setShowPasswordResetModal(false)}
+      />
     </PageContainer>
   );
 };

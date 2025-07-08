@@ -37,7 +37,7 @@ const NotFound = () => {
                 Sayfa Bulunamadı
               </h1>
               <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
-                Aradığınız sayfa mevcut değil, taşınmış veya silinmiş olabilir. 
+                Aradığınız sayfa mevcut değil, taşınmış, silinmiş veya üşendiğimden yapmamış olabilir şaka şaka hiç üşenmedim kesin yanlış URL yazmışsındır. 
                 Lütfen URL'yi kontrol edin veya ana sayfaya dönün.
               </p>
               <div className="text-sm text-slate-500 dark:text-slate-500 font-mono bg-slate-100 dark:bg-slate-800 rounded-lg p-3">

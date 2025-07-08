@@ -83,11 +83,12 @@ export const useUserRoles = () => {
         throw new Error('No users permission');
       }
 
+      // 🎯 TÜM user roles'ları getir (onaylı + onaysız) - Column hint ile
       const { data, error } = await supabase
         .from('user_roles')
         .select(`
           *,
-          user:users(*)
+          users!user_id(*)
         `)
         .order('created_at', { ascending: false });
       if (error) throw error;

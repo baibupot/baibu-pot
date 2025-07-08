@@ -189,11 +189,17 @@ export const OverviewPage: React.FC = () => {
     }
 
     if (hasPermission('users')) {
+      // Onaylı kullanıcı sayısı - unique user_id'leri say
+      const approvedUserIds = new Set(
+        userRoles?.filter(r => r.is_approved).map(r => r.user_id) || []
+      );
+      const pendingRoleCount = userRoles?.filter(r => !r.is_approved).length || 0;
+      
       cards.push({
         title: 'Kullanıcılar',
-        count: users?.length || 0,
-        pending: userRoles?.filter(r => !r.is_approved).length || 0,
-      icon: Users,
+        count: approvedUserIds.size, // Onaylı kullanıcı sayısı
+        pending: pendingRoleCount, // Bekleyen rol sayısı
+        icon: Users,
         color: colors.danger.text,
         bgColor: colors.danger['50'],
         tabName: 'users'
@@ -310,8 +316,8 @@ export const OverviewPage: React.FC = () => {
           {hasPermission('users') && (
             <StatsCard
               title="Kullanıcılar"
-              value={users?.length || 0}
-              subtitle={`${userRoles?.filter(r => !r.is_approved).length || 0} beklemede`}
+              value={new Set(userRoles?.filter(r => r.is_approved).map(r => r.user_id) || []).size}
+              subtitle={`${userRoles?.filter(r => !r.is_approved).length || 0} rol beklemede`}
               icon={Users}
               emoji="👥"
               variant="cyan"

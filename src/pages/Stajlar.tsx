@@ -195,7 +195,7 @@ const Stajlar = () => {
                         <div className="text-center">
                             <h2 className="text-3xl font-bold tracking-tight">{guide.title}</h2>
                             <div className="prose dark:prose-invert max-w-3xl mx-auto mt-4 text-lg text-muted-foreground">
-                               <p>{guide.content}</p>
+                               <div dangerouslySetInnerHTML={{ __html: guide.content || '' }} />
                             </div>
                         </div>
                     </div>
