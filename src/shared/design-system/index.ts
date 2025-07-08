@@ -1,6 +1,6 @@
 import { colors } from './colors';
 import { spacing } from './spacing';
-import { buttonStyles, badgeStyles, cardStyles } from './components';
+import { buttonStyles, badgeStyles, cardStyles, pageStyles, heroStyles, sectionStyles } from './components';
 
 export { colors, gradients } from './colors';
 export { spacing, layout, responsive } from './spacing';
@@ -10,7 +10,10 @@ export {
   badgeStyles, 
   inputStyles, 
   modalStyles, 
-  transitionStyles 
+  transitionStyles,
+  pageStyles,
+  heroStyles,
+  sectionStyles
 } from './components';
 
 // Utility function to combine classes

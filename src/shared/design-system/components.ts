@@ -12,7 +12,12 @@ export const cardStyles = {
   listItem: 'group bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:shadow-lg transition-all duration-200',
   
   // Header Cards
-  header: 'bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 border-b border-gray-200 dark:border-gray-700'
+  header: 'bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 border-b border-gray-200 dark:border-gray-700',
+  
+  // Frontend specific cards
+  hero: 'bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-2xl p-6 sm:p-8 shadow-2xl border border-gray-200/50 dark:border-gray-700/50',
+  feature: 'bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-700',
+  news: 'bg-white dark:bg-slate-800 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all duration-200 border border-gray-100 dark:border-gray-700'
 };
 
 export const buttonStyles = {
@@ -100,4 +105,60 @@ export const transitionStyles = {
   
   // Focus Effects
   focus: 'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800'
+}; 
+
+// Frontend Layout Components
+export const pageStyles = {
+  // Page Container
+  container: 'min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 transition-all duration-300',
+  
+  // Section Container
+  section: 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8',
+  
+  // Content Container
+  content: 'py-8 sm:py-12 lg:py-16',
+  
+  // Hero Container
+  hero: 'py-12 sm:py-16 lg:py-20',
+  
+  // Section spacing
+  sectionSpacing: 'py-8 sm:py-12 lg:py-16'
+};
+
+export const heroStyles = {
+  // Hero Background
+  background: 'relative bg-gradient-to-br from-cyan-50 via-white to-teal-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 overflow-hidden',
+  
+  // Hero with image
+  backgroundImage: 'relative bg-cover bg-center bg-no-repeat overflow-hidden',
+  
+  // Hero overlay
+  overlay: 'absolute inset-0 bg-white/80 dark:bg-slate-900/80',
+  
+  // Hero content
+  content: 'relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8',
+  
+  // Hero grid
+  grid: 'grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center',
+  
+  // Hero text
+  title: 'text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight mb-6',
+  subtitle: 'text-lg sm:text-xl text-slate-600 dark:text-slate-400 mb-8 max-w-2xl',
+  
+  // Hero stats
+  stats: 'mt-8 sm:mt-12 grid grid-cols-2 sm:grid-cols-3 gap-6 sm:gap-8'
+};
+
+export const sectionStyles = {
+  // Section Header
+  header: 'text-center mb-8 sm:mb-12 lg:mb-16',
+  headerTitle: 'text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white mb-4',
+  headerSubtitle: 'text-lg sm:text-xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto',
+  
+  // Section Grid
+  grid: 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8',
+  gridWide: 'grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12',
+  
+  // Section background
+  backgroundAlt: 'bg-slate-50 dark:bg-slate-800/50'
 }; 

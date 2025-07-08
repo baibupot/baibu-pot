@@ -23,7 +23,10 @@ export const isGitHubStorageConfigured = (): boolean => {
  */
 export const getGitHubStorageConfig = (): GitHubStorageConfig | null => {
   if (!isGitHubStorageConfigured()) {
-    console.warn('⚠️ GitHub Storage yapılandırılmamış. .env dosyasını kontrol edin.');
+    // Production'da console.warn kaldırıldı (güvenlik)
+    if (import.meta.env.DEV) {
+      console.warn('⚠️ GitHub Storage yapılandırılmamış. .env dosyasını kontrol edin.');
+    }
     return null;
   }
 
