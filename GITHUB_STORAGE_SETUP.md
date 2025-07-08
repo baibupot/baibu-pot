@@ -36,13 +36,7 @@ VITE_GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
 VITE_GITHUB_BRANCH=main
 ```
 
-### 📝 Örnek:
-```env
-VITE_GITHUB_OWNER=johndoe
-VITE_GITHUB_REPO=baibu-pot-storage
-VITE_GITHUB_TOKEN=ghp_1234567890abcdefghijklmnopqrstu
-VITE_GITHUB_BRANCH=main
-```
+
 
 ## 📁 Adım 4: Klasör Yapısı
 
