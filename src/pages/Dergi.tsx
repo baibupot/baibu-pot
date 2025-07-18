@@ -170,15 +170,9 @@ const Dergi = () => {
               </div>
               <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
                 <div className="text-3xl font-bold text-slate-900 dark:text-white">
-                  {new Date().getFullYear() - 2020 + 1}
+                  {new Date().getFullYear() - 2024 + 1}
                 </div>
                 <div className="text-sm text-slate-600 dark:text-slate-300">Yıl</div>
-              </div>
-              <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
-                <div className="text-3xl font-bold text-slate-900 dark:text-white">
-                  1.2k+
-                </div>
-                <div className="text-sm text-slate-600 dark:text-slate-300">Okuyucu</div>
               </div>
             </div>
           )}
@@ -200,7 +194,7 @@ const Dergi = () => {
 
         {/* Statistics */}
         {magazines.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
             <Card>
               <CardContent className="p-4 text-center">
                 <div className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">
@@ -212,17 +206,9 @@ const Dergi = () => {
             <Card>
               <CardContent className="p-4 text-center">
                 <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">
-                  {new Date().getFullYear() - 2020 + 1}
+                  {new Date().getFullYear() - 2024 + 1}
                 </div>
                 <div className="text-sm text-slate-600 dark:text-slate-400">Yıl</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                  1.2k+
-                </div>
-                <div className="text-sm text-slate-600 dark:text-slate-400">Okuyucu</div>
               </CardContent>
             </Card>
           </div>

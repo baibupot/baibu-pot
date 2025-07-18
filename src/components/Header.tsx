@@ -40,7 +40,7 @@ const Header = () => {
               alt="PÖT Logo" 
               className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
             />
-            <div className="hidden xs:block min-w-0">
+            <div className="min-w-0">
               <h1 className="text-sm sm:text-lg font-bold text-slate-900 dark:text-white truncate">BAİBÜ PÖT</h1>
               <p className="text-xs text-slate-600 dark:text-slate-400 hidden sm:block">Bolu Abant İzzet Baysal Psikoloji Öğrencileri Topluluğu</p>
             </div>

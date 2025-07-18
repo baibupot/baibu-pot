@@ -111,7 +111,12 @@ const Haberler = () => {
             </div>
             <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
               <div className="text-3xl font-bold text-slate-900 dark:text-white">
-                {new Date().getMonth() + 1}
+                {news.filter((n) => {
+                  const newsDate = new Date(n.created_at);
+                  const currentDate = new Date();
+                  return newsDate.getMonth() === currentDate.getMonth() && 
+                         newsDate.getFullYear() === currentDate.getFullYear();
+                }).length}
               </div>
               <div className="text-sm text-slate-600 dark:text-slate-300">Bu Ay</div>
             </div>

@@ -567,6 +567,25 @@ BEGIN
 END;
 $$;
 
+-- 🔄 Auth.user email güncellemesini senkronize et
+-- Eğer kullanıcının email adresi değişirse, public.users tablosundaki karşılığı da güncellenir
+CREATE OR REPLACE FUNCTION public.sync_user_email()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  -- Yalnızca email gerçekten değiştiyse güncelle
+  IF NEW.email IS DISTINCT FROM OLD.email THEN
+    UPDATE public.users
+    SET email = NEW.email,
+        updated_at = NOW()
+    WHERE id = NEW.id;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
 -- ====================================================================
 -- 8. GÜVEN FONKSİYONLARI
 -- ====================================================================
@@ -605,6 +624,13 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- 🔄 Auth.user email güncellemesini senkronize et
+-- Eğer kullanıcının email adresi değişirse, public.users tablosundaki karşılığı da güncellenir
+DROP TRIGGER IF EXISTS on_auth_user_updated ON auth.users;
+CREATE TRIGGER on_auth_user_updated
+  AFTER UPDATE OF email ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.sync_user_email();
 
 -- Updated_at otomatik güncellemeler
 CREATE TRIGGER handle_updated_at_users BEFORE UPDATE ON public.users FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
@@ -885,6 +911,11 @@ $$;
 -- ====================================================================
 -- 13. KURULUM TAMAMLANDI
 -- ====================================================================
+
+-- 🚨 GEÇİCİ ÇÖZÜM: Dergi istatistikleri için RLS'yi devre dışı bırak
+-- Bu satırları Supabase SQL Editor'de çalıştırın:
+ ALTER TABLE public.magazine_reads DISABLE ROW LEVEL SECURITY;
+ ALTER TABLE public.magazine_page_reads DISABLE ROW LEVEL SECURITY;
 
 SELECT 'BAİBÜ Psikoloji Kulübü - Database kurulumu başarıyla tamamlandı! 🎉' as message;
 

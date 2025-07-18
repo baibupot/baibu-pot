@@ -84,7 +84,7 @@ const FlipbookReader: React.FC<FlipbookReaderProps> = ({ pages, title, magazineI
       // En az 2 saniye bakılmışsa gerçek okuma sayılır
       if (readingDuration >= 2000) {
         // Gizlice veritabanına kaydet
-        console.log(`📊 Sayfa ${prevPage + 1} için okuma süresi: ${readingDuration}ms`);
+        // console.log(`📊 Sayfa ${prevPage + 1} için okuma süresi: ${readingDuration}ms`);
         trackSimplePageRead(magazineId, prevPage + 1, readingDuration).catch((error) => {
           // Hata olursa sessizce geç ama loglama yap
           console.error(`❌ Sayfa ${prevPage + 1} okuma istatistiği kayıt hatası:`, error);
@@ -131,14 +131,14 @@ const FlipbookReader: React.FC<FlipbookReaderProps> = ({ pages, title, magazineI
       if (pageStartTimes[currentPage]) {
         const readingDuration = Date.now() - pageStartTimes[currentPage];
         if (readingDuration >= 2000) {
-          console.log(`📊 Component kapanırken son sayfa (${currentPage + 1}) okuma süresi: ${readingDuration}ms`);
+          // console.log(`📊 Component kapanırken son sayfa (${currentPage + 1}) okuma süresi: ${readingDuration}ms`);
           trackSimplePageRead(magazineId, currentPage + 1, readingDuration).catch((error) => {
             console.error(`❌ Son sayfa okuma istatistiği kayıt hatası:`, error);
           });
           
           // Oturum özeti istatistiği (toplam) - opsiyonel
           const totalPages = [...viewedPages].length + 1; // Son sayfayı da ekle
-          console.log(`📚 Toplam okunan sayfa: ${totalPages}, toplam süre: ${readingDuration}ms`);
+          // console.log(`📚 Toplam okunan sayfa: ${totalPages}, toplam süre: ${readingDuration}ms`);
         }
       }
     };

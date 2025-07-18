@@ -519,7 +519,7 @@ const AdminLogin = ({ resetMode = false }: AdminLoginProps) => {
                         <Input
                           id="email"
                           type="email"
-                          placeholder="admin@baibu.edu.tr"
+                          placeholder="ornek@gmail.com"
                           value={email}
                           onChange={(e) => {
                             setEmail(e.target.value);
@@ -666,7 +666,7 @@ const AdminLogin = ({ resetMode = false }: AdminLoginProps) => {
                         <Input
                           id="signup-email"
                           type="email"
-                          placeholder="email@baibu.edu.tr"
+                          placeholder="ornek@gmail.com"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           className="pl-12 h-12 text-base bg-white/80 dark:bg-slate-700/80"

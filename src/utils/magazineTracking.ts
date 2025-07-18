@@ -53,7 +53,7 @@ export const trackMagazineRead = async (
       session_id: sessionId,
     };
 
-    console.log('📊 Dergi okuma verisi gönderiliyor:', readData);
+    // console.log('📊 Dergi okuma verisi gönderiliyor:', readData);
 
     const { data, error } = await supabase
       .from('magazine_reads')
@@ -66,7 +66,7 @@ export const trackMagazineRead = async (
       return false;
     }
 
-    console.log('✅ Dergi istatistiği başarıyla kaydedildi:', data);
+    // console.log('✅ Dergi istatistiği başarıyla kaydedildi:', data);
     return true;
   } catch (error) {
     console.error('❌ Dergi tracking hatası:', error);
@@ -125,7 +125,7 @@ export const trackSimplePageRead = async (
       zoom_level: 1.0,
     };
 
-    console.log(`📄 Sayfa ${pageNumber} için okuma verisi gönderiliyor:`, {magazineIssueId, timeSpent});
+    // console.log(`📄 Sayfa ${pageNumber} için okuma verisi gönderiliyor:`, {magazineIssueId, timeSpent});
 
     const { data, error } = await supabase
       .from('magazine_page_reads')
@@ -138,7 +138,7 @@ export const trackSimplePageRead = async (
       return false;
     }
 
-    console.log(`✅ Sayfa ${pageNumber} istatistiği başarıyla kaydedildi:`, data);
+    // console.log(`✅ Sayfa ${pageNumber} istatistiği başarıyla kaydedildi:`, data);
     return true;
   } catch (error) {
     console.error('❌ Sayfa tracking hatası:', error);
@@ -192,5 +192,5 @@ export const generateDemoMagazineReads = async (magazineIssueId: string, count: 
     await new Promise(resolve => setTimeout(resolve, 100));
   }
   
-  console.log(`✅ ${count} adet demo dergi okuma verisi oluşturuldu!`);
+  // console.log(`✅ ${count} adet demo dergi okuma verisi oluşturuldu!`);
 }; 

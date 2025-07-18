@@ -271,9 +271,9 @@ const DergiDetay = () => {
         
         // Metadata'dan sayfa URL'lerini yükle
         const pageUrls = await loadMagazinePageUrls(magazine.issue_number, {
-          owner: 'Nadirmermer',
-          repo: 'baibu-pot-storage', 
-          branch: 'main'
+          owner: import.meta.env.VITE_GITHUB_OWNER,
+          repo: import.meta.env.VITE_GITHUB_REPO, 
+          branch: import.meta.env.VITE_GITHUB_BRANCH
         });
         
         if (pageUrls.length > 0) {

@@ -2,8 +2,13 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowDown } from 'lucide-react';
+import { useMagazineIssues, useEvents } from '@/hooks/useSupabaseData';
 
 const HeroSection = () => {
+  // Gerçek verileri çek
+  const { data: magazines = [] } = useMagazineIssues(true);
+  const { data: events = [] } = useEvents();
+
   return (
     <section className="relative bg-[url('/kampus.jpg')] bg-cover bg-center py-20 lg:py-32 overflow-hidden">
       {/* Background Pattern */}
@@ -53,11 +58,11 @@ const HeroSection = () => {
                 <div className="text-sm text-slate-600 dark:text-slate-400">Aktif Üye</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-slate-900 dark:text-white">50+</div>
+                <div className="text-2xl font-bold text-slate-900 dark:text-white">{events.length}+</div>
                 <div className="text-sm text-slate-600 dark:text-slate-400">Etkinlik</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-slate-900 dark:text-white">12</div>
+                <div className="text-2xl font-bold text-slate-900 dark:text-white">{magazines.length}</div>
                 <div className="text-sm text-slate-600 dark:text-slate-400">Dergi Sayısı</div>
               </div>
             </div>
