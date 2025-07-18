@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useEditor, EditorContent, BubbleMenu, FloatingMenu } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
@@ -19,13 +19,6 @@ const RichTextEditor = ({ content, onChange, onImageUpload, onEditorInstance }) 
             }),
             Youtube.configure({
                 nocookie: true,
-                // YouTube eklentisindeki hatayı önlemek için daha güvenli bir kontrol
-                isValidYoutubeUrl: (url) => {
-                    if (!url || typeof url !== 'string') {
-                        return false;
-                    }
-                    return url.match(/^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/);
-                },
             }),
         ],
         content: content,
@@ -43,6 +36,13 @@ const RichTextEditor = ({ content, onChange, onImageUpload, onEditorInstance }) 
             }
         }
     });
+
+    // Editor içeriğini güncellemek için useEffect kullan
+    useEffect(() => {
+        if (editor && content !== editor.getHTML()) {
+            editor.commands.setContent(content || '');
+        }
+    }, [editor, content]);
 
     const handleImageUpload = async (e) => {
         const file = e.target.files[0];

@@ -2,17 +2,13 @@ import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useInternships, useInternshipGuides, useInternshipExperiences, useAcademics } from '@/hooks/useSupabaseData';
 import PageContainer from '@/components/ui/page-container';
 import PageHero from '@/components/ui/page-hero';
 import LoadingPage from '@/components/ui/loading-page';
-import ErrorState from '@/components/ui/error-state';
 import EmptyState from '@/components/ui/empty-state';
-import { Briefcase, User, MapPin, Building2, Clock, ExternalLink, Send, BookOpen, FileText, Youtube, Search, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { Briefcase, User, MapPin, Building2, Clock, ExternalLink, Send, Search } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import InternshipExperienceModal from '@/components/InternshipExperienceModal';
 
@@ -31,6 +27,21 @@ const Stajlar = () => {
 
     const isLoading = guidesLoading || internshipsLoading || experiencesLoading || academicsLoading;
 
+    // YouTube URL'sinden video ID'sini çıkaran yardımcı fonksiyon
+    const getYouTubeVideoId = (url: string) => {
+        try {
+            const urlObj = new URL(url);
+            if (urlObj.hostname.includes('youtube.com')) {
+                return urlObj.searchParams.get('v');
+            } else if (urlObj.hostname.includes('youtu.be')) {
+                return urlObj.pathname.slice(1);
+            }
+        } catch (error) {
+            console.error('YouTube URL parse hatası:', error);
+        }
+        return null;
+    };
+
     const filteredInternships = useMemo(() => {
         if (!internships) return [];
         return internships.filter(internship => {
@@ -42,20 +53,7 @@ const Stajlar = () => {
         });
     }, [internships, searchTerm, locationFilter, typeFilter]);
 
-    const handleExperienceSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsSubmitting(true);
-        try {
-            const { error } = await supabase.from('internship_experiences').insert({...experienceFormData, is_approved: false});
-            if (error) throw error;
-            toast.success("Deneyiminiz başarıyla gönderildi! Onaylandıktan sonra yayınlanacaktır.");
-            setExperienceFormData({ student_name: '', internship_place: '', internship_year: new Date().getFullYear(), experience_text: '' });
-        } catch (error) {
-            toast.error("Deneyim gönderilirken bir hata oluştu.");
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
+
 
     if (isLoading) {
         return <PageContainer><LoadingPage title="Staj Sayfası Yükleniyor..." icon={Briefcase} /></PageContainer>;
@@ -184,7 +182,7 @@ const Stajlar = () => {
                              <div className="aspect-video w-full max-w-4xl mx-auto rounded-lg overflow-hidden shadow-2xl mb-10 border-4 border-white dark:border-slate-800">
                                 <iframe
                                     className="w-full h-full"
-                                    src={`https://www.youtube.com/embed/${new URL(guide.youtube_video_url).searchParams.get('v')}`}
+                                    src={`https://www.youtube.com/embed/${getYouTubeVideoId(guide.youtube_video_url)}`}
                                     title="YouTube video player"
                                     frameBorder="0"
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -193,8 +191,8 @@ const Stajlar = () => {
                             </div>
                         )}
                         <div className="text-center">
-                            <h2 className="text-3xl font-bold tracking-tight">{guide.title}</h2>
-                            <div className="prose dark:prose-invert max-w-3xl mx-auto mt-4 text-lg text-muted-foreground">
+                            <h2 className="text-3xl font-bold tracking-tight mb-6">{guide.title}</h2>
+                            <div className="prose prose-lg dark:prose-invert max-w-4xl mx-auto prose-headings:text-slate-900 dark:prose-headings:text-white prose-p:text-slate-700 dark:prose-p:text-slate-300 prose-strong:text-slate-900 dark:prose-strong:text-white prose-a:text-primary hover:prose-a:text-primary/80">
                                <div dangerouslySetInnerHTML={{ __html: guide.content || '' }} />
                             </div>
                         </div>
