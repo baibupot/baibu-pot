@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, X, Sun, Moon, Search, Home, FileText, BookOpen, Calendar, ClipboardList, Building2, Users, Package, GraduationCap, Briefcase, Mail } from 'lucide-react';
+import { Menu, X, Sun, Moon, Home, FileText, BookOpen, Calendar, ClipboardList, Building2, Users, Package, GraduationCap, Briefcase, Mail } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
 
   // Ana navigasyon - en popüler sayfalar
@@ -80,38 +78,6 @@ const Header = () => {
 
           {/* Right side controls */}
           <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
-            {/* Search */}
-            <div className="flex items-center">
-              {isSearchOpen ? (
-                <div className="flex items-center space-x-2">
-                  <Input
-                    type="text"
-                    placeholder="Site içinde ara..."
-                    className="w-32 sm:w-48 h-8 sm:h-9 text-sm"
-                    autoFocus
-                    onBlur={() => setIsSearchOpen(false)}
-                  />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsSearchOpen(false)}
-                    className="p-1 sm:p-2"
-                  >
-                    <X className="h-3 w-3 sm:h-4 sm:w-4" />
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsSearchOpen(true)}
-                  className="hidden sm:flex p-2"
-                >
-                  <Search className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-
             {/* Theme toggle */}
             <Button
               variant="ghost"
@@ -158,16 +124,7 @@ const Header = () => {
                 </Link>
               ))}
             </div>
-            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 sm:hidden">
-              <div className="flex items-center space-x-2 px-3">
-                <Search className="h-4 w-4 text-slate-500 flex-shrink-0" />
-                <Input
-                  type="text"
-                  placeholder="Site içinde ara..."
-                  className="flex-1 h-9"
-                />
-              </div>
-            </div>
+
           </div>
         )}
       </div>

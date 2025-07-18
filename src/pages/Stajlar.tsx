@@ -182,11 +182,15 @@ const Stajlar = () => {
                              <div className="aspect-video w-full max-w-4xl mx-auto rounded-lg overflow-hidden shadow-2xl mb-10 border-4 border-white dark:border-slate-800">
                                 <iframe
                                     className="w-full h-full"
-                                    src={`https://www.youtube.com/embed/${getYouTubeVideoId(guide.youtube_video_url)}`}
+                                    src={`https://www.youtube.com/embed/${getYouTubeVideoId(guide.youtube_video_url)}?rel=0&modestbranding=1&disablekb=1`}
                                     title="YouTube video player"
                                     frameBorder="0"
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                     allowFullScreen
+                                    loading="lazy"
+                                    onError={(e) => {
+                                        console.warn('YouTube video yüklenemedi:', e);
+                                    }}
                                 ></iframe>
                             </div>
                         )}
