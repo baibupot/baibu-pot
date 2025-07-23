@@ -252,7 +252,6 @@ const AdminLogin = ({ resetMode = false }: AdminLoginProps) => {
         throw new Error('🔒 Şifreniz çok zayıf. En az 8 karakter, büyük/küçük harf, rakam içermelidir');
       }
 
-      // 🎯 Üniversite e-posta kontrolü kaldırıldı - herhangi bir e-posta kabul edilir
 
       // Önce kullanıcıyı Supabase Auth'a kaydet
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -323,6 +322,8 @@ const AdminLogin = ({ resetMode = false }: AdminLoginProps) => {
       'iletisim_ekip': 'İletişim Ekip',
       'dergi_koordinator': 'Dergi Koordinatör',
       'dergi_ekip': 'Dergi Ekip',
+      'mali_koordinator': 'Mali Koordinatör',
+      'mali_ekip': 'Mali Ekip'
     };
     return roleNames[role] || role;
   };
@@ -773,6 +774,10 @@ const AdminLogin = ({ resetMode = false }: AdminLoginProps) => {
                           <SelectItem value="iletisim_ekip">📞 İletişim Ekip</SelectItem>
                           <SelectItem value="dergi_koordinator">📚 Dergi Koordinatör</SelectItem>
                           <SelectItem value="dergi_ekip">📖 Dergi Ekip</SelectItem>
+                          <SelectItem value="mali_koordinator">💰 Mali Koorinator</SelectItem>
+                          <SelectItem value="mali_ekip">💶 Mali Ekip</SelectItem>
+
+
                         </SelectContent>
                       </Select>
                     </div>
