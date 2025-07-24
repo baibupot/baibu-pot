@@ -62,10 +62,10 @@ const MemberCard = ({ member }: { member: TeamMember }) => {
     );
 };
 
-const customSort = (a, b) => {
+const customSort = (a: TeamMember, b: TeamMember): number => {
   const roleOrder = [
     "Akademik Danışman",
-    "Başkan",
+    "Başkan", 
     "Başkan Yardımcısı"
   ];
   const aIndex = roleOrder.indexOf(a.role);
