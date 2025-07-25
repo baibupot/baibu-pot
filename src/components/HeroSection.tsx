@@ -26,12 +26,10 @@ const HeroSection = () => {
           <div className="text-center lg:text-left">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 dark:text-white mb-6 leading-tight">
               <span className="bg-gradient-to-r from-cyan-600 to-teal-600 bg-clip-text text-transparent">
-                Psikoloji
+                BAİBÜ Psikoloji
               </span>
               <br />
-              Yolculuğumuzda
-              <br />
-              <span className="text-slate-700 dark:text-slate-300">Bize Katılın</span>
+              Öğrenci Topluluğu
             </h1>
             
             <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-400 mb-8 max-w-2xl">
@@ -76,7 +74,7 @@ const HeroSection = () => {
                   <div className="w-21 h-21 flex items-center justify-center mx-auto mb-4">
                     <img 
                       src="/logo.png" 
-                      alt="PÖT Logo" 
+                      alt="BAİBÜ Psikoloji Öğrencileri Topluluğu Logosu" 
                       className="w-full h-full object-contain"
                     />
                   </div>
