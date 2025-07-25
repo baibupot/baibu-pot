@@ -1,0 +1,7 @@
+https://baibupot.com.tr/*      https://baibupot.com/:splat   301!
+https://baibupot.online/*      https://baibupot.com/:splat   301!
+https://baibupot.xyz/*         https://baibupot.com/:splat   301!
+https://baibupot.netlify.app/* https://baibupot.com/:splat   301!
+
+/* /index.html 200
+
