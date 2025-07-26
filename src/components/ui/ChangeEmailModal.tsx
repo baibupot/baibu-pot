@@ -102,9 +102,11 @@ const ChangeEmailModal: React.FC<ChangeEmailModalProps> = ({ isOpen, onClose }) 
     setError(null);
 
     try {
-      // Supabase secure email change
+      // Supabase secure email change with proper redirect
       const { error } = await supabase.auth.updateUser({
         email: newEmail
+      }, {
+        emailRedirectTo: `${window.location.origin}/admin/login?emailChangeSuccess=true`
       });
 
       if (error) {

@@ -13,10 +13,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children, 
   requireRole = true 
 }) => {
-  const { data: authStatus, isLoading } = useAuthStatus();
+  const { data: authStatus, isLoading, isError } = useAuthStatus();
 
-  // Yükleniyor durumu
-  if (isLoading) {
+  // Yükleniyor durumu veya hata durumunda loading göster
+  if (isLoading || isError) {
     return (
       <LoadingPage
         title="Kimlik Doğrulanıyor..."

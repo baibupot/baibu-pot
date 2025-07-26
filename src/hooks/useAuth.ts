@@ -58,7 +58,9 @@ export const useAuthStatus = () => {
       };
     },
     retry: 1,
-    staleTime: 1000 * 60 * 2, // 2 dakika (daha sık kontrol)
+    staleTime: 0, // Her zaman fresh data al
+    refetchOnMount: true,
+    refetchOnWindowFocus: true
   });
 };
 

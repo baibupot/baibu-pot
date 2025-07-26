@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LogIn, UserPlus, Eye, EyeOff, Shield, Lock, Mail, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useCreateUserRole } from '@/hooks/useSupabaseData';
@@ -22,6 +23,7 @@ interface AdminLoginProps {
 
 const AdminLogin = ({ resetMode = false }: AdminLoginProps) => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -43,6 +45,14 @@ const AdminLogin = ({ resetMode = false }: AdminLoginProps) => {
 
   useEffect(() => {
     checkUserAndResetMode();
+    
+    // Check for success messages in URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('emailChangeSuccess') === 'true') {
+      toast.success('✅ E-posta değişikliği başarıyla tamamlandı! Yeni e-posta adresinizle giriş yapabilirsiniz.');
+      // Clean URL
+      window.history.replaceState({}, '', '/admin/login');
+    }
   }, []);
 
   const checkUserAndResetMode = async () => {
@@ -80,7 +90,14 @@ const AdminLogin = ({ resetMode = false }: AdminLoginProps) => {
     // Normal kullanıcı kontrolü
     const { data: { user } } = await supabase.auth.getUser();
     if (user && !isReset && !resetMode) {
-      navigate('/admin/dashboard');
+      // Auth cache'ini temizle
+      queryClient.invalidateQueries({ queryKey: ['auth-status'] });
+      queryClient.invalidateQueries({ queryKey: ['auth-user'] });
+      
+      // Kısa bekleme sonrası yönlendir
+      setTimeout(() => {
+        navigate('/admin/dashboard', { replace: true });
+      }, 50);
     }
   };
 
@@ -145,7 +162,15 @@ const AdminLogin = ({ resetMode = false }: AdminLoginProps) => {
         }
         
         toast.success(`🎉 Hoş geldiniz! (${roleNames})`);
-        navigate('/admin/dashboard');
+        
+        // Auth cache'ini temizle ki eski state kalmasan
+        queryClient.invalidateQueries({ queryKey: ['auth-status'] });
+        queryClient.invalidateQueries({ queryKey: ['auth-user'] });
+        
+        // Auth state'in tamamen güncellendiğinden emin olmak için kısa bir bekleme
+        setTimeout(() => {
+          navigate('/admin/dashboard', { replace: true });
+        }, 100);
       }
     } catch (error: any) {
       const errorMessage = error.message || 'Giriş yapılırken beklenmeyen bir hata oluştu';
