@@ -1,652 +1,468 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { AdminPageContainer, StatsCard } from "@/components/admin/shared";
 import { 
-  FileText, Calendar, BookOpen, MessageSquare, Users, Shield, 
-  Package, Building2, ClipboardList, GraduationCap, Briefcase,
-  Clock, ChevronDown, ChevronUp, ArrowRight, Activity, 
-  Filter, Search, RefreshCw, TrendingUp, BarChart3, 
-  Eye, Download, AlertCircle, CheckCircle, XCircle
-} from 'lucide-react';
-import { AdminPageContainer, StatsCard } from '@/components/admin/shared';
-import { useAdminContext } from '@/contexts/AdminDashboardContext';
-import { useNews, useEvents, useMagazineIssues, useContactMessages, useUsers, useUserRoles, useProducts, useSponsors, useSurveys, useAcademicDocuments, useInternships, useActivityLogs } from '@/hooks/useSupabaseData';
-import { layout, spacing, colors, responsive } from '@/shared/design-system';
-import { cn } from '@/lib/utils';
+  Users, 
+  Calendar, 
+  FileText, 
+  MessageSquare, 
+  TrendingUp, 
+  Activity,
+  Bell,
+  Clock,
+  Eye,
+  EyeOff,
+  ChevronDown,
+  ChevronUp,
+  BarChart3,
+  Heart,
+  Star,
+  AlertCircle
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
-export const OverviewPage: React.FC = () => {
-  const { hasPermission, user } = useAdminContext();
-  const [isActivitiesExpanded, setIsActivitiesExpanded] = useState(false);
-  const [activityFilter, setActivityFilter] = useState('all');
-  const [activitySearch, setActivitySearch] = useState('');
-  const [activityLimit, setActivityLimit] = useState(20);
+interface DashboardStats {
+  totalUsers: number;
+  totalEvents: number;
+  totalNews: number;
+  totalMessages: number;
+  pendingApprovals: number;
+  thisMonthGrowth: {
+    users: number;
+    events: number;
+    news: number;
+  };
+}
+
+interface RecentActivity {
+  id: string;
+  user: string;
+  userRole?: string;
+  action: string;
+  entityType: string;
+  entityTitle: string;
+  description?: string;
+  date: string;
+  time: string;
+  color: string;
+  icon: any;
+}
+
+interface ActivityStats {
+  topUsers: Array<{ name: string; count: number }>;
+  topActions: Array<[string, number]>;
+  dailyActivity: Array<{ date: string; count: number }>;
+}
+
+const OverviewPage = () => {
+  const [stats, setStats] = useState<DashboardStats>({
+    totalUsers: 0,
+    totalEvents: 0,
+    totalNews: 0,
+    totalMessages: 0,
+    pendingApprovals: 0,
+    thisMonthGrowth: { users: 0, events: 0, news: 0 }
+  });
   
-  // Permission'a göre veri çekme - sadece gerekli permission'ı olan kullanıcılar veri çeksin
-  const { data: news } = hasPermission('news') ? useNews(false) : { data: null };
-  const { data: events } = hasPermission('events') ? useEvents() : { data: null };
-  const { data: magazines } = hasPermission('magazine') ? useMagazineIssues(false) : { data: null };
-  const { data: contactMessages } = hasPermission('messages') ? useContactMessages() : { data: null };
-  const { data: users } = hasPermission('users') ? useUsers() : { data: null };
-  const { data: userRoles } = hasPermission('users') ? useUserRoles() : { data: null };
-  const { data: products } = hasPermission('products') ? useProducts() : { data: null };
-  const { data: sponsors } = hasPermission('sponsors') ? useSponsors() : { data: null };
-  const { data: surveys } = hasPermission('surveys') ? useSurveys() : { data: null };
-  const { data: documents } = hasPermission('documents') ? useAcademicDocuments() : { data: null };
-  const { data: internships } = hasPermission('internships') ? useInternships() : { data: null };
-    // Activity logs için genişletilmiş limit
-  const { data: activityLogs, refetch: refetchActivities } = hasPermission('activity_logs') 
-    ? useActivityLogs(100) // 100 aktiviteye çıkarıyoruz
-    : { data: null, refetch: () => {} }; // Sadece izinli kullanıcılar
+  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
+  const [activityStats, setActivityStats] = useState<ActivityStats | null>(null);
+  const [isActivitiesExpanded, setIsActivitiesExpanded] = useState(false);
+  const [activityLimit, setActivityLimit] = useState(10);
+  const [loading, setLoading] = useState(true);
+  
+  const { toast } = useToast();
 
-  // Kişiselleştirilmiş karşılama mesajı
+  // Responsive spacing and layout utilities
+  const spacing = {
+    container: "p-4 lg:p-6",
+    section: "mb-6 lg:mb-8",
+    grid: "gap-4 lg:gap-6",
+    card: "p-4 lg:p-6"
+  };
+
+  const responsive = {
+    grid: {
+      stats: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4",
+      quick: "grid-cols-2 sm:grid-cols-3 lg:grid-cols-6",
+      main: "grid-cols-1 lg:grid-cols-3"
+    },
+    text: {
+      title: "text-xl lg:text-2xl",
+      subtitle: "text-lg lg:text-xl",
+      small: "text-sm lg:text-base"
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+    fetchRecentActivity();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      
+      // Paralel olarak tüm verileri çek
+      const [usersRes, eventsRes, newsRes, messagesRes] = await Promise.all([
+        supabase.from('users').select('id, created_at'),
+        supabase.from('events').select('id, created_at'),
+        supabase.from('news').select('id, created_at'),
+        supabase.from('contact_messages').select('id, status')
+      ]);
+
+      // Bu ay için tarih hesaplama
+      const thisMonth = new Date();
+      thisMonth.setDate(1);
+      
+      const lastMonth = new Date(thisMonth);
+      lastMonth.setMonth(lastMonth.getMonth() - 1);
+
+      // İstatistikleri hesapla
+      const users = usersRes.data || [];
+      const events = eventsRes.data || [];
+      const news = newsRes.data || [];
+      const messages = messagesRes.data || [];
+
+      const thisMonthUsers = users.filter(u => new Date(u.created_at) >= thisMonth).length;
+      const lastMonthUsers = users.filter(u => 
+        new Date(u.created_at) >= lastMonth && new Date(u.created_at) < thisMonth
+      ).length;
+
+      const thisMonthEvents = events.filter(e => new Date(e.created_at) >= thisMonth).length;
+      const lastMonthEvents = events.filter(e => 
+        new Date(e.created_at) >= lastMonth && new Date(e.created_at) < thisMonth
+      ).length;
+
+      const thisMonthNews = news.filter(n => new Date(n.created_at) >= thisMonth).length;
+      const lastMonthNews = news.filter(n => 
+        new Date(n.created_at) >= lastMonth && new Date(n.created_at) < thisMonth
+      ).length;
+
+      setStats({
+        totalUsers: users.length,
+        totalEvents: events.length,
+        totalNews: news.length,
+        totalMessages: messages.length,
+        pendingApprovals: messages.filter(m => m.status === 'unread').length,
+        thisMonthGrowth: {
+          users: thisMonthUsers - lastMonthUsers,
+          events: thisMonthEvents - lastMonthEvents,
+          news: thisMonthNews - lastMonthNews
+        }
+      });
+
+    } catch (error) {
+      console.error('Dashboard verisi alınırken hata:', error);
+      toast({
+        title: "Hata",
+        description: "Dashboard verileri yüklenirken bir hata oluştu.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchRecentActivity = async () => {
+    try {
+      const { data: activities, error } = await supabase
+        .from('activity_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error('Aktivite logları alınırken hata:', error);
+        return;
+      }
+
+      const formattedActivities: RecentActivity[] = (activities || []).map((activity: any) => {
+        const date = new Date(activity.created_at);
+        
+        const actionColors: { [key: string]: string } = {
+          create: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
+          update: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
+          delete: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
+          publish: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
+          approve: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300',
+          login: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300',
+          logout: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+        };
+
+        const actionIcons: { [key: string]: any } = {
+          create: Star,
+          update: Activity,
+          delete: AlertCircle,
+          publish: Eye,
+          approve: Heart,
+          login: Users,
+          logout: Users
+        };
+
+        const actionNames: { [key: string]: string } = {
+          create: 'Oluşturdu',
+          update: 'Güncelledi',
+          delete: 'Sildi',
+          publish: 'Yayınladı',
+          approve: 'Onayladı',
+          login: 'Giriş yaptı',
+          logout: 'Çıkış yaptı'
+        };
+
+        return {
+          id: activity.id,
+          user: activity.user_name || 'Bilinmeyen Kullanıcı',
+          userRole: activity.user_role,
+          action: actionNames[activity.action_type] || activity.action_type,
+          entityType: activity.entity_type,
+          entityTitle: activity.entity_title || 'Başlıksız',
+          description: activity.description,
+          date: date.toLocaleDateString('tr-TR'),
+          time: date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+          color: actionColors[activity.action_type] || 'bg-gray-100 text-gray-700',
+          icon: actionIcons[activity.action_type] || Activity
+        };
+      });
+
+      setRecentActivity(formattedActivities);
+
+      // Aktivite istatistikleri hesapla
+      if (formattedActivities.length > 0) {
+        const userCounts = formattedActivities.reduce((acc: any, activity) => {
+          acc[activity.user] = (acc[activity.user] || 0) + 1;
+          return acc;
+        }, {});
+
+        const actionCounts = formattedActivities.reduce((acc: any, activity) => {
+          acc[activity.action] = (acc[activity.action] || 0) + 1;
+          return acc;
+        }, {});
+
+        setActivityStats({
+          topUsers: Object.entries(userCounts)
+            .sort(([, a]: any, [, b]: any) => b - a)
+            .slice(0, 5)
+            .map(([name, count]: any) => ({ name, count })),
+          topActions: Object.entries(actionCounts)
+            .sort(([, a]: any, [, b]: any) => b - a)
+            .slice(0, 5),
+          dailyActivity: [] // Bu hesaplama için daha karmaşık kod gerekli
+        });
+      }
+
+    } catch (error) {
+      console.error('Aktivite verileri alınırken hata:', error);
+    }
+  };
+
   const getGreeting = () => {
     const hour = new Date().getHours();
-    const timeGreeting = hour < 12 ? 'Günaydın' : hour < 18 ? 'İyi günler' : 'İyi akşamlar';
-    const userName = user?.name || user?.email?.split('@')[0] || 'Değerli Kullanıcı';
-    return `${timeGreeting}, ${userName}! 👋`;
+    if (hour < 12) return "Günaydın! ☀️";
+    if (hour < 18) return "İyi günler! 🌤️";
+    return "İyi akşamlar! 🌙";
   };
 
-  // Hızlı erişim kartlarına tıklama fonksiyonu
+  const quickAccessCards = [
+    { title: "Kullanıcılar", icon: Users, color: "text-blue-600", bgColor: "bg-blue-50 dark:bg-blue-900", tabName: "users" },
+    { title: "Etkinlikler", icon: Calendar, color: "text-green-600", bgColor: "bg-green-50 dark:bg-green-900", tabName: "events" },
+    { title: "Haberler", icon: FileText, color: "text-purple-600", bgColor: "bg-purple-50 dark:bg-purple-900", tabName: "news" },
+    { title: "Mesajlar", icon: MessageSquare, color: "text-orange-600", bgColor: "bg-orange-50 dark:bg-orange-900", tabName: "messages" },
+    { title: "Dergiler", icon: FileText, color: "text-pink-600", bgColor: "bg-pink-50 dark:bg-pink-900", tabName: "magazine" },
+    { title: "Anketler", icon: BarChart3, color: "text-indigo-600", bgColor: "bg-indigo-50 dark:bg-indigo-900", tabName: "surveys" }
+  ];
+
   const handleQuickAccessClick = (tabName: string) => {
-    // URL'yi güncelle
-    const currentUrl = new URL(window.location.href);
-    currentUrl.searchParams.set('tab', tabName);
-    window.history.pushState({}, '', currentUrl.toString());
-    
-    // Custom event ile tab değişimini bildir
-    const event = new CustomEvent('tabChange', { detail: { tab: tabName } });
-    window.dispatchEvent(event);
+    // Bu fonksiyon parent component'ten gelecek prop ile değiştirilecek
+    console.log(`Navigating to ${tabName}`);
   };
 
-  // Son aktiviteler - Aktivite loglarından (filtrelenmiş)
-  const getRecentActivity = () => {
-    if (!activityLogs?.length) return [];
-    
-    let filteredLogs = activityLogs;
-
-    // Aksiyon tipine göre filtrele
-    if (activityFilter !== 'all') {
-      filteredLogs = filteredLogs.filter(log => log.action_type === activityFilter);
-    }
-
-    // Arama terimine göre filtrele
-    if (activitySearch.trim()) {
-      const searchTerm = activitySearch.toLowerCase().trim();
-      filteredLogs = filteredLogs.filter(log => 
-        log.user_name.toLowerCase().includes(searchTerm) ||
-        log.entity_title?.toLowerCase().includes(searchTerm) ||
-        log.description?.toLowerCase().includes(searchTerm) ||
-        log.entity_type.toLowerCase().includes(searchTerm)
-      );
-    }
-
-    return filteredLogs.slice(0, activityLimit).map(log => {
-      // Entity type'a göre icon ve renk belirleme
-      const getEntityIcon = (entityType: string) => {
-        switch (entityType) {
-          case 'news': return FileText;
-          case 'events': return Calendar;
-          case 'magazine': return BookOpen;
-          case 'sponsors': return Building2;
-          case 'users': return Users;
-          case 'team': return Users;
-          case 'documents': return FileText;
-          case 'internships': return GraduationCap;
-          case 'surveys': return ClipboardList;
-          case 'products': return Package;
-          case 'messages': return MessageSquare;
-          case 'comments': return MessageSquare;
-          default: return Clock;
-        }
-      };
-
-      const getActionColor = (actionType: string) => {
-        switch (actionType) {
-          case 'create': return 'text-green-600';
-          case 'update': return 'text-blue-600';
-          case 'delete': return 'text-red-600';
-          case 'publish': return 'text-purple-600';
-          case 'unpublish': return 'text-orange-600';
-          case 'approve': return 'text-emerald-600';
-          case 'reject': return 'text-red-600';
-          case 'login': return 'text-indigo-600';
-          case 'logout': return 'text-gray-600';
-          default: return 'text-gray-600';
-        }
-      };
-
-      const getActionText = (actionType: string) => {
-        switch (actionType) {
-          case 'create': return 'oluşturdu';
-          case 'update': return 'güncelledi';
-          case 'delete': return 'sildi';
-          case 'publish': return 'yayınladı';
-          case 'unpublish': return 'yayından kaldırdı';
-          case 'approve': return 'onayladı';
-          case 'reject': return 'reddetti';
-          case 'login': return 'giriş yaptı';
-          case 'logout': return 'çıkış yaptı';
-          default: return actionType;
-        }
-      };
-
-      const getEntityTypeText = (entityType: string) => {
-        switch (entityType) {
-          case 'news': return 'haber';
-          case 'events': return 'etkinlik';
-          case 'magazine': return 'dergi';
-          case 'sponsors': return 'sponsor';
-          case 'users': return 'kullanıcı';
-          case 'team': return 'ekip';
-          case 'documents': return 'belge';
-          case 'internships': return 'staj';
-          case 'surveys': return 'anket';
-          case 'products': return 'ürün';
-          case 'messages': return 'mesaj';
-          case 'comments': return 'yorum';
-          default: return entityType;
-        }
-      };
-
-      const Icon = getEntityIcon(log.entity_type);
-      const color = getActionColor(log.action_type);
-      const actionText = getActionText(log.action_type);
-      const entityTypeText = getEntityTypeText(log.entity_type);
-      
-      return {
-        id: log.id,
-        user: log.user_name,
-        userRole: log.user_role,
-        action: actionText,
-        entityType: entityTypeText,
-        entityTitle: log.entity_title || 'Bilinmeyen',
-        description: log.description,
-        date: new Date(log.created_at || '').toLocaleDateString('tr-TR'),
-        time: new Date(log.created_at || '').toLocaleTimeString('tr-TR', { 
-          hour: '2-digit', 
-          minute: '2-digit' 
-        }),
-        icon: Icon,
-        color: color,
-        fullDate: log.created_at
-      };
-    });
-  };
-
-  // Activity istatistikleri
-  const getActivityStats = () => {
-    if (!activityLogs?.length) return null;
-
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const lastWeek = new Date(today);
-    lastWeek.setDate(lastWeek.getDate() - 7);
-
-    const todayLogs = activityLogs.filter(log => 
-      new Date(log.created_at).toDateString() === today.toDateString()
+  if (loading) {
+    return (
+      <AdminPageContainer>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="text-muted-foreground">Dashboard yükleniyor...</p>
+          </div>
+        </div>
+      </AdminPageContainer>
     );
-    
-    const yesterdayLogs = activityLogs.filter(log => 
-      new Date(log.created_at).toDateString() === yesterday.toDateString()
-    );
-    
-    const weekLogs = activityLogs.filter(log => 
-      new Date(log.created_at) >= lastWeek
-    );
-
-    // En aktif kullanıcılar (son hafta)
-    const userActivity = weekLogs.reduce((acc: any, log) => {
-      acc[log.user_name] = (acc[log.user_name] || 0) + 1;
-      return acc;
-    }, {});
-
-    const topUsers = Object.entries(userActivity)
-      .sort(([,a]: any, [,b]: any) => b - a)
-      .slice(0, 5)
-      .map(([name, count]) => ({ name, count }));
-
-    // En çok kullanılan aksiyonlar
-    const actionActivity = weekLogs.reduce((acc: any, log) => {
-      acc[log.action_type] = (acc[log.action_type] || 0) + 1;
-      return acc;
-    }, {});
-
-    const topActions = Object.entries(actionActivity)
-      .sort(([,a]: any, [,b]: any) => b - a)
-      .slice(0, 5);
-
-    // En çok etkilenen entity'ler
-    const entityActivity = weekLogs.reduce((acc: any, log) => {
-      acc[log.entity_type] = (acc[log.entity_type] || 0) + 1;
-      return acc;
-    }, {});
-
-    const topEntities = Object.entries(entityActivity)
-      .sort(([,a]: any, [,b]: any) => b - a)
-      .slice(0, 5);
-
-    return {
-      today: todayLogs.length,
-      yesterday: yesterdayLogs.length,
-      week: weekLogs.length,
-      total: activityLogs.length,
-      topUsers,
-      topActions,
-      topEntities,
-      changeFromYesterday: todayLogs.length - yesterdayLogs.length
-    };
-  };
-
-  const activityStats = getActivityStats();
-
-  // Hızlı erişim kartları
-  const getQuickAccessCards = () => {
-    const cards = [];
-    
-    if (hasPermission('news')) {
-      cards.push({
-        title: 'Haberler',
-        count: news?.length || 0,
-        pending: news?.filter(n => !n.published).length || 0,
-      icon: FileText,
-        color: colors.primary.text,
-        bgColor: colors.primary['50'],
-        tabName: 'news'
-      });
-    }
-
-    if (hasPermission('events')) {
-      cards.push({
-        title: 'Etkinlikler',
-        count: events?.length || 0,
-        pending: events?.filter(e => e.status === 'draft').length || 0,
-      icon: Calendar,
-        color: colors.success.text,
-        bgColor: colors.success['50'],
-        tabName: 'events'
-      });
-    }
-
-    if (hasPermission('messages')) {
-      cards.push({
-      title: 'Mesajlar',
-        count: contactMessages?.length || 0,
-        pending: contactMessages?.filter(m => m.status === 'unread').length || 0,
-      icon: MessageSquare,
-        color: colors.warning.text,
-        bgColor: colors.warning['50'],
-        tabName: 'messages'
-      });
-    }
-
-    if (hasPermission('users')) {
-      // Onaylı kullanıcı sayısı - unique user_id'leri say
-      const approvedUserIds = new Set(
-        userRoles?.filter(r => r.is_approved).map(r => r.user_id) || []
-      );
-      const pendingRoleCount = userRoles?.filter(r => !r.is_approved).length || 0;
-      
-      cards.push({
-        title: 'Kullanıcılar',
-        count: approvedUserIds.size, // Onaylı kullanıcı sayısı
-        pending: pendingRoleCount, // Bekleyen rol sayısı
-        icon: Users,
-        color: colors.danger.text,
-        bgColor: colors.danger['50'],
-        tabName: 'users'
-      });
-    }
-
-    return cards;
-  };
-
-  const quickAccessCards = getQuickAccessCards();
-  const recentActivity = getRecentActivity();
+  }
 
   return (
     <AdminPageContainer>
-      {/* Karşılama Bölümü */}
-      <div className={cn(spacing.margin.large)}>
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-6 text-white">
+      <div className={cn(spacing.container)}>
+        {/* Welcome Section */}
+        <div className={cn(spacing.section)}>
           <h1 className={cn(responsive.text.title, "font-bold mb-2")}>
             {getGreeting()}
           </h1>
-          <p className="text-blue-100">
-            Admin panelinize hoş geldiniz. Bugün neler yapmak istiyorsunuz?
-          </p>
+          <p className="text-muted-foreground">BAİBÜ Psikoloji Kulübü Yönetim Paneline hoş geldiniz.</p>
         </div>
-      </div>
 
-      {/* Hızlı Erişim Kartları */}
-      <div className={cn(spacing.margin.large)}>
-        <h2 className={cn(responsive.text.subtitle, "font-semibold mb-4")}>
-          Hızlı Erişim
-        </h2>
-        <div className={layout.grid.cards}>
-          {quickAccessCards.map((card, index) => (
-            <Card 
-              key={index} 
-              className="group hover:shadow-lg transition-all duration-200 cursor-pointer"
-              onClick={() => handleQuickAccessClick(card.tabName)}
-            >
-              <CardHeader className={cn(spacing.padding.cardSmall, "pb-2")}>
-                <div className="flex items-center justify-between">
-                  <div className={cn("p-2 rounded-lg", card.bgColor)}>
-                    <card.icon className={cn("h-5 w-5", card.color)} />
+        {/* Quick Access Cards */}
+        <div className={cn(spacing.section)}>
+          <h2 className={cn(responsive.text.subtitle, "font-semibold mb-4")}>
+            Hızlı Erişim
+          </h2>
+          <div className={cn("grid", responsive.grid.quick, spacing.grid)}>
+            {quickAccessCards.map((card) => (
+              <Card 
+                key={card.title} 
+                className="hover:shadow-md transition-all cursor-pointer border-l-4 border-l-transparent hover:border-l-primary"
+                onClick={() => handleQuickAccessClick(card.tabName)}
+              >
+                <CardHeader className={cn(spacing.card, "pb-2")}>
+                  <div className="flex items-center gap-3">
+                    <div className={cn("p-2 rounded-lg", card.bgColor)}>
+                      <card.icon className={cn("h-5 w-5", card.color)} />
+                    </div>
+                    <div>
+                      <CardTitle className="text-sm font-medium">
+                        {card.title}
+                      </CardTitle>
+                    </div>
                   </div>
-                  <Badge variant={card.pending > 0 ? "destructive" : "secondary"} className="text-xs">
-                    {card.pending} beklemede
-                  </Badge>
-                </div>
-          </CardHeader>
-              <CardContent className={cn(spacing.padding.cardSmall, "pt-0")}>
-                <h3 className="font-semibold text-lg mb-1">{card.title}</h3>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                  {card.count}
-                </p>
-                <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                  <span>Toplam kayıt</span>
-                  <ArrowRight className="h-3 w-3 ml-1 group-hover:translate-x-1 transition-transform" />
-                </div>
-          </CardContent>
-        </Card>
-          ))}
+                </CardHeader>
+                <CardContent className={cn(spacing.card, "pt-0")}>
+                  <Button variant="ghost" size="sm" className="w-full justify-start h-8 px-2">
+                    Yönet
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* İstatistik Kartları - Sadece permission'ı olan kullanıcılar için */}
-      <div className={cn(spacing.margin.large)}>
-        <h2 className={cn(responsive.text.subtitle, "font-semibold mb-4")}>
-          Genel İstatistikler
-        </h2>
-        <div className={layout.grid.stats}>
-          {hasPermission('news') && (
+        {/* Statistics Cards */}
+        <div className={cn(spacing.section)}>
+          <h2 className={cn(responsive.text.subtitle, "font-semibold mb-4")}>
+            İstatistikler
+          </h2>
+          <div className={cn("grid", responsive.grid.stats, spacing.grid)}>
             <StatsCard
-              title="Haberler"
-              value={news?.length || 0}
-              subtitle={`${news?.filter(n => n.published).length || 0} yayında`}
-              icon={FileText}
-              emoji="📰"
-              variant="primary"
-            />
-          )}
-          
-          {hasPermission('events') && (
-            <StatsCard
-              title="Etkinlikler"
-              value={events?.length || 0}
-              subtitle={`${events?.filter(e => e.status === 'upcoming').length || 0} yaklaşan`}
-              icon={Calendar}
-              emoji="📅"
-              variant="success"
-            />
-          )}
-          
-          {hasPermission('magazine') && (
-            <StatsCard
-              title="Dergi"
-              value={magazines?.length || 0}
-              subtitle={`${magazines?.filter(m => m.published).length || 0} yayında`}
-              icon={BookOpen}
-              emoji="📖"
-              variant="warning"
-            />
-          )}
-          
-          {hasPermission('messages') && (
-            <StatsCard
-              title="Mesajlar"
-              value={contactMessages?.length || 0}
-              subtitle={`${contactMessages?.filter(m => m.status === 'unread').length || 0} okunmamış`}
-              icon={MessageSquare}
-              emoji="💬"
-              variant="purple"
-            />
-          )}
-          
-          {hasPermission('users') && (
-            <StatsCard
-              title="Kullanıcılar"
-              value={new Set(userRoles?.filter(r => r.is_approved).map(r => r.user_id) || []).size}
-              subtitle={`${userRoles?.filter(r => !r.is_approved).length || 0} rol beklemede`}
+              title="Toplam Kullanıcı"
+              value={stats.totalUsers}
+              change={stats.thisMonthGrowth.users}
+              changeType={stats.thisMonthGrowth.users >= 0 ? "increase" : "decrease"}
               icon={Users}
-              emoji="👥"
-              variant="cyan"
             />
-          )}
-          
-          {hasPermission('products') && (
             <StatsCard
-              title="Ürünler"
-              value={products?.length || 0}
-              subtitle={`${products?.filter(p => p.available).length || 0} aktif`}
-              icon={Package}
-              emoji="📦"
-              variant="orange"
+              title="Aktif Etkinlik"
+              value={stats.totalEvents}
+              change={stats.thisMonthGrowth.events}
+              changeType={stats.thisMonthGrowth.events >= 0 ? "increase" : "decrease"}
+              icon={Calendar}
             />
-          )}
-          
-          {hasPermission('sponsors') && (
             <StatsCard
-              title="Sponsorlar"
-              value={sponsors?.length || 0}
-              subtitle={`${sponsors?.filter(s => s.active).length || 0} aktif`}
-              icon={Building2}
-              emoji="🏢"
-              variant="indigo"
+              title="Yayınlanan Haber"
+              value={stats.totalNews}
+              change={stats.thisMonthGrowth.news}
+              changeType={stats.thisMonthGrowth.news >= 0 ? "increase" : "decrease"}
+              icon={FileText}
             />
-          )}
-          
-          {hasPermission('surveys') && (
             <StatsCard
-              title="Anketler"
-              value={surveys?.length || 0}
-              subtitle={`${surveys?.filter(s => s.active).length || 0} aktif`}
-              icon={ClipboardList}
-              emoji="📋"
-              variant="pink"
+              title="Bekleyen Mesaj"
+              value={stats.pendingApprovals}
+              change={0}
+              changeType="neutral"
+              icon={Bell}
             />
-          )}
-          
-          {hasPermission('documents') && (
-            <StatsCard
-              title="Belgeler"
-              value={documents?.length || 0}
-              subtitle="Akademik belgeler"
-              icon={GraduationCap}
-              emoji="🎓"
-              variant="emerald"
-            />
-          )}
-          
-          {hasPermission('internships') && (
-            <StatsCard
-              title="Stajlar"
-              value={internships?.length || 0}
-              subtitle={`${internships?.filter(i => i.active).length || 0} aktif`}
-              icon={Briefcase}
-              emoji="💼"
-              variant="violet"
-            />
-          )}
+          </div>
         </div>
-      </div>
 
-      {/* Son Aktiviteler - Genişletilmiş Dashboard */}
-      {hasPermission('activity_logs') && recentActivity.length > 0 && (
-        <div className={cn(spacing.margin.large)}>
+        {/* Recent Activity Section */}
+        <div className={cn(spacing.section)}>
           <Card>
             <CardHeader>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Activity className="h-5 w-5 text-blue-600" />
-                    Son Aktiviteler
-                    {activityStats && (
-                      <Badge variant="secondary">
-                        {activityStats.total} toplam
-                      </Badge>
-                    )}
-                  </CardTitle>
-                  {activityStats && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      Bugün {activityStats.today} aktivite 
-                      {activityStats.changeFromYesterday !== 0 && (
-                        <span className={cn(
-                          "ml-2 font-medium",
-                          activityStats.changeFromYesterday > 0 
-                            ? "text-green-600" 
-                            : "text-red-600"
-                        )}>
-                          ({activityStats.changeFromYesterday > 0 ? '+' : ''}{activityStats.changeFromYesterday})
-                        </span>
-                      )}
-                    </p>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5" />
+                  Son Aktiviteler
+                  <Badge variant="secondary" className="ml-2">
+                    {recentActivity.length}
+                  </Badge>
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  {isActivitiesExpanded && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <span>Göster:</span>
+                      <select
+                        value={activityLimit}
+                        onChange={(e) => setActivityLimit(Number(e.target.value))}
+                        className="border rounded px-2 py-1 text-xs"
+                      >
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                      </select>
+                    </div>
                   )}
-                </div>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => refetchActivities()}
-                    className="flex items-center gap-2"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                    Yenile
-                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setIsActivitiesExpanded(!isActivitiesExpanded)}
-                    className="flex items-center gap-2"
                   >
                     {isActivitiesExpanded ? (
                       <>
-                        <ChevronUp className="h-4 w-4" />
-                        Gizle
+                        <EyeOff className="h-4 w-4 mr-2" />
+                        Daralt
+                        <ChevronUp className="h-4 w-4 ml-2" />
                       </>
                     ) : (
                       <>
-                        <ChevronDown className="h-4 w-4" />
-                        Detayları Göster
+                        <Eye className="h-4 w-4 mr-2" />
+                        Genişlet
+                        <ChevronDown className="h-4 w-4 ml-2" />
                       </>
                     )}
                   </Button>
                 </div>
               </div>
-
-              {/* Activity Stats Cards */}
-              {activityStats && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-center">
-                    <div className="text-2xl font-bold text-blue-600">{activityStats.today}</div>
-                    <div className="text-sm text-blue-700 dark:text-blue-300">Bugün</div>
-                  </div>
-                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 text-center">
-                    <div className="text-2xl font-bold text-green-600">{activityStats.week}</div>
-                    <div className="text-sm text-green-700 dark:text-green-300">Bu Hafta</div>
-                  </div>
-                  <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3 text-center">
-                    <div className="text-2xl font-bold text-purple-600">{activityStats.topUsers.length}</div>
-                    <div className="text-sm text-purple-700 dark:text-purple-300">Aktif Kullanıcı</div>
-                  </div>
-                  <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 text-center">
-                    <div className="text-2xl font-bold text-orange-600">{activityStats.topEntities.length}</div>
-                    <div className="text-sm text-orange-700 dark:text-orange-300">Etkilenen Alan</div>
-                  </div>
-                </div>
-              )}
-
-              {/* Filters */}
-              {isActivitiesExpanded && (
-                <div className="flex flex-col sm:flex-row gap-4 mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <div className="flex-1">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <Input
-                        placeholder="Kullanıcı, başlık veya açıklama ara..."
-                        value={activitySearch}
-                        onChange={(e) => setActivitySearch(e.target.value)}
-                        className="pl-10"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Select value={activityFilter} onValueChange={setActivityFilter}>
-                      <SelectTrigger className="w-40">
-                        <SelectValue placeholder="Filtrele" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Tüm Aksiyonlar</SelectItem>
-                        <SelectItem value="create">Oluşturma</SelectItem>
-                        <SelectItem value="update">Güncelleme</SelectItem>
-                        <SelectItem value="delete">Silme</SelectItem>
-                        <SelectItem value="publish">Yayınlama</SelectItem>
-                        <SelectItem value="approve">Onaylama</SelectItem>
-                        <SelectItem value="login">Giriş</SelectItem>
-                        <SelectItem value="logout">Çıkış</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Select value={activityLimit.toString()} onValueChange={(v) => setActivityLimit(parseInt(v))}>
-                      <SelectTrigger className="w-24">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="10">10</SelectItem>
-                        <SelectItem value="20">20</SelectItem>
-                        <SelectItem value="50">50</SelectItem>
-                        <SelectItem value="100">100</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              )}
             </CardHeader>
 
-            {/* Activity List */}
             <CardContent className="pt-0">
               <div className="space-y-2">
                 {recentActivity.slice(0, isActivitiesExpanded ? activityLimit : 5).map((activity, index) => (
-                    <div key={activity.id || index} className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                      <div className={cn("p-2 rounded-lg bg-gray-100 dark:bg-gray-700", activity.color)}>
-                        <activity.icon className="h-4 w-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="font-medium text-sm text-gray-900 dark:text-white">
-                            {activity.user}
-                          </p>
-                          {activity.userRole && (
-                            <Badge variant="outline" className="text-xs px-1 py-0">
-                              {activity.userRole}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-700 dark:text-gray-300 mb-1">
-                          <span className="font-medium">{activity.action}</span> {activity.entityType}:{' '}
-                          <span className="font-semibold">{activity.entityTitle}</span>
+                  <div key={activity.id || index} className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                    <div className={cn("p-2 rounded-lg", activity.color)}>
+                      <activity.icon className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="font-medium text-sm text-gray-900 dark:text-white">
+                          {activity.user}
                         </p>
-                        {activity.description && (
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                            {activity.description}
-                          </p>
+                        {activity.userRole && (
+                          <Badge variant="outline" className="text-xs px-1 py-0">
+                            {activity.userRole}
+                          </Badge>
                         )}
-                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                          <span>{activity.date}</span>
-                          <span>•</span>
-                          <span>{activity.time}</span>
-                        </div>
+                      </div>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 mb-1">
+                        <span className="font-medium">{activity.action}</span> {activity.entityType}:{' '}
+                        <span className="font-semibold">{activity.entityTitle}</span>
+                      </p>
+                      {activity.description && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                          {activity.description}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                        <span>{activity.date}</span>
+                        <span>•</span>
+                        <span>{activity.time}</span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Analytics Section - Expanded View */}
           {isActivitiesExpanded && activityStats && (
@@ -656,12 +472,12 @@ export const OverviewPage: React.FC = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <TrendingUp className="h-5 w-5 text-green-600" />
-                    En Aktif Kullanıcılar (Son 7 Gün)
+                    En Aktif Kullanıcılar (Son 50 Aktivite)
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {activityStats.topUsers.map((user: any, index) => (
+                    {activityStats.topUsers.map((user, index) => (
                       <div key={user.name} className="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-gray-800">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-sm font-medium text-blue-700 dark:text-blue-300">
@@ -686,25 +502,15 @@ export const OverviewPage: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {activityStats.topActions.map(([action, count]: any, index) => {
-                      const actionNames: any = {
-                        create: 'Oluşturma',
-                        update: 'Güncelleme', 
-                        delete: 'Silme',
-                        publish: 'Yayınlama',
-                        approve: 'Onaylama',
-                        login: 'Giriş',
-                        logout: 'Çıkış'
-                      };
-                      
-                      const actionColors: any = {
-                        create: 'text-green-600',
-                        update: 'text-blue-600',
-                        delete: 'text-red-600',
-                        publish: 'text-purple-600',
-                        approve: 'text-emerald-600',
-                        login: 'text-indigo-600',
-                        logout: 'text-gray-600'
+                    {activityStats.topActions.map(([action, count], index) => {
+                      const actionColors: { [key: string]: string } = {
+                        'Oluşturdu': 'text-green-600',
+                        'Güncelledi': 'text-blue-600', 
+                        'Sildi': 'text-red-600',
+                        'Yayınladı': 'text-purple-600',
+                        'Onayladı': 'text-emerald-600',
+                        'Giriş yaptı': 'text-indigo-600',
+                        'Çıkış yaptı': 'text-gray-600'
                       };
 
                       return (
@@ -713,7 +519,7 @@ export const OverviewPage: React.FC = () => {
                             <div className={cn("w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center text-sm font-medium", actionColors[action] || 'text-gray-600')}>
                               {index + 1}
                             </div>
-                            <span className="font-medium">{actionNames[action] || action}</span>
+                            <span className="font-medium">{action}</span>
                           </div>
                           <Badge variant="secondary">{count} kez</Badge>
                         </div>
@@ -725,7 +531,9 @@ export const OverviewPage: React.FC = () => {
             </div>
           )}
         </div>
-      )}
+      </div>
     </AdminPageContainer>
   );
 };
+
+export { OverviewPage };
