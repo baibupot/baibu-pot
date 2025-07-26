@@ -25,6 +25,7 @@ import HaberDetay from '@/pages/HaberDetay';
 import EtkinlikDetay from '@/pages/EtkinlikDetay';
 import AnketDetay from '@/pages/AnketDetay';
 import NotFound from '@/pages/NotFound';
+import CookieBanner from '@/components/CookieBanner';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -74,19 +75,22 @@ function AppRoutes() {
 
 function App() {
   return (
-    <ThemeProvider>
-      <QueryClientProvider client={queryClient}>
-        <Router>
-          <AppRoutes />
-        </Router>
-        <Toaster 
-          position="top-right"
-          expand={true}
-          richColors
-          closeButton
-        />
-      </QueryClientProvider>
-    </ThemeProvider>
+    <>
+      <CookieBanner />
+      <ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <Router>
+            <AppRoutes />
+          </Router>
+          <Toaster 
+            position="top-right"
+            expand={true}
+            richColors
+            closeButton
+          />
+        </QueryClientProvider>
+      </ThemeProvider>
+    </>
   );
 }
 
