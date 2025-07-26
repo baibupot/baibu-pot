@@ -37,6 +37,12 @@ export const trackMagazineRead = async (
   completedReading?: boolean
 ) => {
   try {
+    // Check if analytics consent given
+    const consentRaw = localStorage.getItem('cookieConsent');
+    const analyticsAllowed = consentRaw ? JSON.parse(consentRaw).analytics : false;
+    if (!analyticsAllowed) {
+      return false;
+    }
     const sessionId = generateSessionId();
     const location = await getUserLocation();
     
