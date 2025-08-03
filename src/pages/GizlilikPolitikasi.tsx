@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, Eye, Lock, UserCheck, FileText, Calendar } from 'lucide-react';
+import { Shield, Eye, Lock, UserCheck, FileText, Calendar, Settings } from 'lucide-react';
 import PageContainer from '@/components/ui/page-container';
 import PageHero from '@/components/ui/page-hero';
 
@@ -86,6 +86,8 @@ const GizlilikPolitikasi = () => {
                   <li>Tarayıcı bilgileri</li>
                   <li>Ziyaret edilen sayfalar</li>
                   <li>Çerezler (cookies)</li>
+                  <li>Kullanıcı etkileşim verileri (Microsoft Clarity)</li>
+                  <li>Sayfa yükleme süreleri ve performans metrikleri</li>
                 </ul>
               </div>
             </CardContent>
@@ -111,7 +113,7 @@ const GizlilikPolitikasi = () => {
                 </li>
                 <li className="flex items-start">
                   <span className="inline-block w-3 h-3 bg-purple-500 rounded-full mt-2 mr-4 flex-shrink-0"></span>
-                  <span className="leading-relaxed">Web sitesi performansını iyileştirmek</span>
+                  <span className="leading-relaxed">Web sitesi performansını iyileştirmek ve kullanıcı deneyimini optimize etmek</span>
                 </li>
                 <li className="flex items-start">
                   <span className="inline-block w-3 h-3 bg-purple-500 rounded-full mt-2 mr-4 flex-shrink-0"></span>
@@ -122,6 +124,47 @@ const GizlilikPolitikasi = () => {
                   <span className="leading-relaxed">Topluluk faaliyetleri hakkında bilgilendirme (onay verilen durumlarda)</span>
                 </li>
               </ul>
+            </CardContent>
+          </Card>
+
+          {/* Analytics Services */}
+          <Card className="card-hover overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-3 text-xl">
+                <Settings className="h-6 w-6 text-purple-500" />
+                Analitik Hizmetleri
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <h4 className="font-semibold text-slate-900 dark:text-white mb-3 text-lg">
+                  📊 Google Analytics:
+                </h4>
+                <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-3">
+                  Web sitesi trafiğini ve kullanıcı davranışlarını analiz etmek için Google Analytics kullanmaktayız. 
+                  Bu hizmet, anonim kullanım verilerini toplar ve site performansını iyileştirmemize yardımcı olur.
+                </p>
+              </div>
+              
+              <div>
+                <h4 className="font-semibold text-slate-900 dark:text-white mb-3 text-lg">
+                  🔍 Microsoft Clarity:
+                </h4>
+                <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-3">
+                  Kullanıcı deneyimini geliştirmek amacıyla Microsoft Clarity analitik hizmetini kullanmaktayız. 
+                  Bu hizmet şunları içerir:
+                </p>
+                <ul className="list-disc list-inside text-slate-600 dark:text-slate-400 space-y-2 ml-4">
+                  <li>Kullanıcı etkileşim kayıtları (session recordings)</li>
+                  <li>Sayfa tıklama ve kaydırma analizleri (heatmaps)</li>
+                  <li>Site performans metrikleri</li>
+                  <li>Kullanıcı davranış analizleri</li>
+                </ul>
+                <p className="text-slate-600 dark:text-slate-400 leading-relaxed mt-3 text-sm">
+                  <strong>Önemli:</strong> Microsoft Clarity, kişisel tanımlayıcı bilgileri (ad, e-posta, telefon vb.) toplamaz. 
+                  Sadece anonim kullanım verileri ve etkileşim analizleri yapılır.
+                </p>
+              </div>
             </CardContent>
           </Card>
 

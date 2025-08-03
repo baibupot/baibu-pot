@@ -4,6 +4,7 @@ import { Cookie, Check, X, Shield, Settings } from 'lucide-react';
 declare global {
   interface Window {
     dataLayer: any[];
+    clarity: any;
   }
 }
 
@@ -29,12 +30,26 @@ const CookieBanner = () => {
 
     localStorage.setItem('cookieConsent', JSON.stringify(consentData));
     
+    // Google Tag Manager consent
     window.dataLayer = window.dataLayer || [];
     window.dataLayer.push({
       event: 'cookieConsent',
       analytics: consentData.analytics,
       marketing: consentData.marketing,
     });
+
+    // Microsoft Clarity consent and loading
+    if (consentData.analytics) {
+      // Load Microsoft Clarity if not already loaded
+      if (!window.clarity) {
+        const script = document.createElement('script');
+        script.async = true;
+        script.src = 'https://www.clarity.ms/tag/sp5g0oh86d';
+        document.head.appendChild(script);
+      } else {
+        window.clarity('consent');
+      }
+    }
     
     setIsVisible(false);
   };
@@ -76,7 +91,11 @@ const CookieBanner = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       <Settings className="h-3 w-3 text-blue-500" />
-                      <span><strong>Analitik Çerezler:</strong> Site kullanımını anlamamızı sağlar</span>
+                      <span><strong>Analitik Çerezler:</strong> Google Analytics ve Microsoft Clarity ile site kullanımını anlamamızı sağlar</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Settings className="h-3 w-3 text-purple-500" />
+                      <span><strong>Microsoft Clarity:</strong> Kullanıcı davranışlarını analiz etmek için kullanılır</span>
                     </div>
                   </div>
                 )}
@@ -95,7 +114,7 @@ const CookieBanner = () => {
                 onClick={() => setShowDetails(!showDetails)}
                 className="px-4 py-2 text-sm font-medium text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 bg-cyan-50 dark:bg-cyan-900/20 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 rounded-lg transition-all duration-200 border border-cyan-200 dark:border-cyan-800"
               >
-                {showDetails ? 'Detayları Gizle' : 'Ayarlar'}
+                {showDetails ? 'Detayları Gizle' : 'Detayları Görüntüle'}
               </button>
               <button
                 onClick={() => handleAccept('all')}
