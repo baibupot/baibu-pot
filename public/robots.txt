@@ -4,9 +4,15 @@
 User-agent: *
 Allow: /
 
+# Yandex specific rules
+User-agent: Yandex
+Allow: /
+Crawl-delay: 1
+
 # To disallow all robots from crawling your site, use the following:
 # User-agent: *
 # Disallow: /
 
 # To specify a sitemap, use the following:
 Sitemap: https://baibupot.com/sitemap.xml
+Sitemap: https://baibupot.com/yandex.xml
