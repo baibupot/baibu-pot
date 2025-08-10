@@ -160,7 +160,7 @@ const Footer = () => {
               href="http://instagram.com/nadir.mermer/" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors duration-200 font-medium ml-1"
+              className="text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors duration-200 font-medium ml-1 whitespace-nowrap"
             >
               Nadir Mermer
             </a>
