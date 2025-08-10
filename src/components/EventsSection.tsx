@@ -64,70 +64,66 @@ const EventsSection = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
           {upcomingEvents.map((event) => (
-            <Card key={event.id} className="group hover:shadow-lg transition-all duration-300 border-0 shadow-md bg-white dark:bg-slate-800">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <Badge className={getEventTypeColor(event.event_type as EventType)}>
-                    {getEventTypeLabel(event.event_type as EventType)}
-                  </Badge>
-                  <Badge className={`${event.price && event.price > 0 ? 'bg-green-600' : 'bg-blue-600'} text-white`}>
-                    {formatPrice(event.price, event.currency)}
-                  </Badge>
-                </div>
-                
-                <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-4 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors duration-200">
-                  {event.title}
-                </h3>
-                
-                <div className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
-                  <div className="flex items-center">
-                    <span className="font-medium w-16">Tarih:</span>
-                    <span>{formatDate(event.event_date)}</span>
+            <Link key={event.id} to={`/etkinlikler/${event.slug}`} className="block">
+              <Card className="group hover:shadow-xl hover:scale-[1.02] transition-all duration-300 border-0 shadow-md bg-white dark:bg-slate-800 cursor-pointer">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <Badge className={getEventTypeColor(event.event_type as EventType)}>
+                      {getEventTypeLabel(event.event_type as EventType)}
+                    </Badge>
+                    <Badge className={`${event.price && event.price > 0 ? 'bg-green-600' : 'bg-blue-600'} text-white`}>
+                      {formatPrice(event.price, event.currency)}
+                    </Badge>
                   </div>
-                  <div className="flex items-center">
-                    <span className="font-medium w-16">Saat:</span>
-                    <span>{formatTime(event.event_date)}</span>
-                  </div>
-                  {event.location && (
-                    <div className="flex items-start">
-                      <span className="font-medium w-16 mt-0.5">Yer:</span>
-                      <span className="flex-1">{event.location}</span>
-                    </div>
-                  )}
-                  {event.max_participants && (
+                  
+                  <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-4 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors duration-200">
+                    {event.title}
+                  </h3>
+                  
+                  <div className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
                     <div className="flex items-center">
-                      <span className="font-medium w-16">Kontenjan:</span>
-                      <span>{event.max_participants} kişi</span>
+                      <span className="font-medium w-16">Tarih:</span>
+                      <span>{formatDate(event.event_date)}</span>
                     </div>
-                  )}
-                </div>
-              </CardContent>
-              
-              <CardFooter className="px-6 pb-6">
-                {event.registration_required ? (
-                  <Button 
-                    size="sm" 
-                    className="w-full bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 text-white"
-                    asChild
-                  >
-                    <Link to={`/etkinlikler/${event.slug}`}>
+                    <div className="flex items-center">
+                      <span className="font-medium w-16">Saat:</span>
+                      <span>{formatTime(event.event_date)}</span>
+                    </div>
+                    {event.location && (
+                      <div className="flex items-start">
+                        <span className="font-medium w-16 mt-0.5">Yer:</span>
+                        <span className="flex-1">{event.location}</span>
+                      </div>
+                    )}
+                    {event.max_participants && (
+                      <div className="flex items-center">
+                        <span className="font-medium w-16">Kontenjan:</span>
+                        <span>{event.max_participants} kişi</span>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+                
+                <CardFooter className="px-6 pb-6">
+                  {event.registration_required ? (
+                    <Button 
+                      size="sm" 
+                      className="w-full bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 text-white"
+                    >
                       Kayıt Ol
-                    </Link>
-                  </Button>
-                ) : (
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    className="w-full"
-                    asChild
-                  >
-                    <Link to={`/etkinlikler/${event.slug}`}>
+                    </Button>
+                  ) : (
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      className="w-full"
+                    >
                       Detayları Gör
-                    </Link>
-                  </Button>
-                )}
-              </CardFooter>
-            </Card>
+                    </Button>
+                  )}
+                </CardFooter>
+              </Card>
+            </Link>
           ))}
         </div>
 

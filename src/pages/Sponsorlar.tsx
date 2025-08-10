@@ -33,6 +33,12 @@ const Sponsorlar = () => {
     return labels[type] || type;
   };
 
+  const handleSponsorClick = (website: string | null) => {
+    if (website) {
+      window.open(website, '_blank');
+    }
+  };
+
   const sponsorsByType = {
     ana: sponsors.filter(s => s.sponsor_type === 'ana'),
     destekci: sponsors.filter(s => s.sponsor_type === 'destekci'),
@@ -128,9 +134,10 @@ const Sponsorlar = () => {
                 {typeSponsors.map((sponsor) => (
                   <Card 
                     key={sponsor.id} 
-                    className={`card-hover group overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm ${
+                    className={`card-hover group overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-105 ${
                       type === 'ana' ? 'border-l-4 border-l-yellow-500' : ''
                     }`}
+                    onClick={() => handleSponsorClick(sponsor.website)}
                   >
                     <CardHeader>
                       <div className="flex items-start justify-between mb-4">
@@ -139,7 +146,7 @@ const Sponsorlar = () => {
                         </Badge>
                       </div>
                       
-                      <div className={`${type === 'ana' ? 'h-40' : 'h-32'} bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 rounded-lg flex items-center justify-center mb-4 p-4 relative overflow-hidden`}>
+                      <div className={`${type === 'ana' ? 'h-40' : 'h-32'} bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 rounded-lg flex items-center justify-center mb-4 p-4 relative overflow-hidden group-hover:from-slate-200 group-hover:to-slate-300 dark:group-hover:from-slate-600 dark:group-hover:to-slate-700 transition-all duration-300`}>
                         {sponsor.logo ? (
                           <img 
                             src={sponsor.logo} 
@@ -147,14 +154,24 @@ const Sponsorlar = () => {
                             className="max-h-full max-w-full object-contain group-hover:scale-110 transition-transform duration-300" 
                           />
                         ) : (
-                          <Building2 className={`${type === 'ana' ? 'h-20 w-20' : 'h-16 w-16'} text-slate-400 group-hover:scale-110 transition-transform duration-300`} />
+                          <Building2 className={`${type === 'ana' ? 'h-20 w-20' : 'h-16 w-16'} text-slate-400 group-hover:scale-110 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-all duration-300`} />
                         )}
                         {/* Shine effect */}
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 group-hover:animate-shimmer"></div>
+                        
+                        {/* Click indicator */}
+                        {sponsor.website && (
+                          <div className="absolute top-2 right-2 bg-pink-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <ExternalLink className="h-3 w-3" />
+                          </div>
+                        )}
                       </div>
                       
-                      <CardTitle className={`${type === 'ana' ? 'text-2xl' : 'text-xl'} text-slate-900 dark:text-white group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors duration-200`}>
+                      <CardTitle className={`${type === 'ana' ? 'text-2xl' : 'text-xl'} text-slate-900 dark:text-white group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors duration-200 flex items-center gap-2`}>
                         {sponsor.name}
+                        {sponsor.website && (
+                          <ExternalLink className="h-4 w-4 text-slate-400 group-hover:text-pink-500 transition-colors duration-200" />
+                        )}
                       </CardTitle>
                     </CardHeader>
                     
@@ -168,13 +185,24 @@ const Sponsorlar = () => {
                       {sponsor.website && (
                         <Button 
                           variant="outline" 
-                          className="w-full group-hover:shadow-lg transition-all duration-200"
-                          onClick={() => window.open(sponsor.website, '_blank')}
+                          className="w-full group-hover:shadow-lg group-hover:bg-pink-50 group-hover:border-pink-300 dark:group-hover:bg-pink-950 dark:group-hover:border-pink-700 transition-all duration-200"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(sponsor.website, '_blank');
+                          }}
                         >
                           <Building2 className="h-4 w-4 mr-2" />
                           Web Sitesini Ziyaret Et
                           <ExternalLink className="h-4 w-4 ml-2" />
                         </Button>
+                      )}
+                      
+                      {!sponsor.website && (
+                        <div className="text-center py-4">
+                          <p className="text-slate-400 dark:text-slate-500 text-sm">
+                            Web sitesi bilgisi bulunmuyor
+                          </p>
+                        </div>
                       )}
                     </CardContent>
                   </Card>

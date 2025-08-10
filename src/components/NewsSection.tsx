@@ -67,56 +67,55 @@ const NewsSection = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
           {displayNews.map((item) => (
-            <Card key={item.id} className="group hover:shadow-lg transition-all duration-300 border-0 shadow-md bg-white dark:bg-slate-900">
-              <div className="aspect-video bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 rounded-t-lg overflow-hidden">
-                {item.featured_image ? (
-                  <img 
-                    src={item.featured_image} 
-                    alt={item.title}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-slate-500 dark:text-slate-400">
-                    <div className="text-center">
-                      <div className="w-16 h-16 bg-slate-300 dark:bg-slate-600 rounded-lg mx-auto mb-2"></div>
-                      <span className="text-sm">Görsel</span>
+            <Link key={item.id} to={`/haberler/${item.slug}`} className="block">
+              <Card className="group hover:shadow-xl hover:scale-[1.02] transition-all duration-300 border-0 shadow-md bg-white dark:bg-slate-900 cursor-pointer">
+                <div className="aspect-video bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 rounded-t-lg overflow-hidden">
+                  {item.featured_image ? (
+                    <img 
+                      src={item.featured_image} 
+                      alt={item.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-500 dark:text-slate-400">
+                      <div className="text-center">
+                        <div className="w-16 h-16 bg-slate-300 dark:bg-slate-600 rounded-lg mx-auto mb-2"></div>
+                        <span className="text-sm">Görsel</span>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-              
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-3">
-                  <Badge className={getCategoryColor(item.category)}>
-                    {getCategoryLabel(item.category)}
-                  </Badge>
-                  <span className="text-sm text-slate-500 dark:text-slate-400">
-                    {formatDate(item.created_at)}
-                  </span>
+                  )}
                 </div>
                 
-                <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-3 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors duration-200">
-                  {item.title}
-                </h3>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <Badge className={getCategoryColor(item.category)}>
+                      {getCategoryLabel(item.category)}
+                    </Badge>
+                    <span className="text-sm text-slate-500 dark:text-slate-400">
+                      {formatDate(item.created_at)}
+                    </span>
+                  </div>
+                  
+                  <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-3 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors duration-200">
+                    {item.title}
+                  </h3>
+                  
+                  <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+                    {item.excerpt}
+                  </p>
+                </CardContent>
                 
-                <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
-                  {item.excerpt}
-                </p>
-              </CardContent>
-              
-              <CardFooter className="px-6 pb-6">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full group-hover:bg-cyan-50 dark:group-hover:bg-cyan-900/20 group-hover:border-cyan-200 dark:group-hover:border-cyan-800"
-                  asChild
-                >
-                  <Link to={`/haberler/${item.slug}`}>
+                <CardFooter className="px-6 pb-6">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full group-hover:bg-cyan-50 dark:group-hover:bg-cyan-900/20 group-hover:border-cyan-200 dark:group-hover:border-cyan-800"
+                  >
                     Devamını Oku
-                  </Link>
-                </Button>
-              </CardFooter>
-            </Card>
+                  </Button>
+                </CardFooter>
+              </Card>
+            </Link>
           ))}
         </div>
 

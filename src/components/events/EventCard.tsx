@@ -82,7 +82,8 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
   };
 
   return (
-    <Card className="group hover:shadow-xl hover:scale-[1.02] transition-all duration-300 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg">
+    <Link to={`/etkinlikler/${event.slug}`} className="block">
+      <Card className="group hover:shadow-xl hover:scale-[1.02] transition-all duration-300 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg cursor-pointer">
       {/* Mobile-First Header with Image */}
           {event.featured_image && (
         <div className="relative h-48 sm:h-56 md:h-40 w-full overflow-hidden rounded-t-xl">
@@ -300,6 +301,7 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
         </Dialog>
       </CardContent>
     </Card>
+    </Link>
   );
 };
 

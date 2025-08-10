@@ -221,68 +221,63 @@ const Dergi = () => {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredIssues.map((issue) => (
-              <Card key={issue.id} className="card-hover group overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-                <CardHeader>
-                  <div className="h-48 bg-slate-200 dark:bg-slate-700 rounded-lg flex items-center justify-center mb-4 overflow-hidden">
-                    {issue.cover_image ? (
-                      <LazyImage
-                        src={issue.cover_image}
-                        alt={issue.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        fallback={
-                          <Book className="h-12 w-12 text-slate-400" />
-                        }
-                      />
-                    ) : (
-                      <Book className="h-12 w-12 text-slate-400 group-hover:scale-110 transition-transform duration-300" />
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Badge className="bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">
-                      Sayı {issue.issue_number}
-                    </Badge>
-                  </div>
-                  <CardTitle className="text-lg line-clamp-2">{issue.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 mb-3">
-                    <Calendar className="h-4 w-4" />
-                    <span>{formatDate(issue.publication_date)}</span>
-                  </div>
-                  {issue.theme && (
-                    <div className="mb-3">
-                      <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700">
-                        🎯 {issue.theme}
+              <Link key={issue.id} to={`/dergi/${issue.slug}`} className="block">
+                <Card className="card-hover group overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-[1.02]">
+                  <CardHeader>
+                    <div className="h-48 bg-slate-200 dark:bg-slate-700 rounded-lg flex items-center justify-center mb-4 overflow-hidden">
+                      {issue.cover_image ? (
+                        <LazyImage
+                          src={issue.cover_image}
+                          alt={issue.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          fallback={
+                            <Book className="h-12 w-12 text-slate-400" />
+                          }
+                        />
+                      ) : (
+                        <Book className="h-12 w-12 text-slate-400 group-hover:scale-110 transition-transform duration-300" />
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge className="bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">
+                        Sayı {issue.issue_number}
                       </Badge>
                     </div>
-                  )}
-                  {issue.description && (
-                    <p className="text-slate-600 dark:text-slate-400 mb-4 line-clamp-3 text-sm">
-                      {issue.description}
-                    </p>
-                  )}
-                  <div className="flex flex-col gap-2">
-                    <Button 
-                      asChild
-                      variant="outline" 
-                      className="w-full flex items-center gap-2"
-                    >
-                      <Link to={`/dergi/${issue.slug}`}>
-                        <Eye className="h-4 w-4" />
-                        Detayları Gör
-                      </Link>
-                    </Button>
-                    {issue.pdf_file && (
-                      <Button variant="outline" className="w-full flex items-center gap-2" asChild>
-                        <a href={issue.pdf_file} target="_blank" rel="noopener noreferrer">
-                          <Download className="h-4 w-4" />
-                          PDF İndir
-                        </a>
-                      </Button>
+                    <CardTitle className="text-lg line-clamp-2">{issue.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 mb-3">
+                      <Calendar className="h-4 w-4" />
+                      <span>{formatDate(issue.publication_date)}</span>
+                    </div>
+                    {issue.theme && (
+                      <div className="mb-3">
+                        <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700">
+                          🎯 {issue.theme}
+                        </Badge>
+                      </div>
                     )}
-                  </div>
-                </CardContent>
-              </Card>
+                    {issue.description && (
+                      <p className="text-slate-600 dark:text-slate-400 mb-4 line-clamp-3 text-sm">
+                        {issue.description}
+                      </p>
+                    )}
+                    <div className="flex flex-col gap-2">
+                      <Button 
+                        asChild
+                        variant="outline" 
+                        className="w-full flex items-center gap-2"
+                      >
+                        <span>
+                          <Eye className="h-4 w-4" />
+                          Detayları Gör
+                        </span>
+                      </Button>
+
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
         </div>
@@ -488,7 +483,6 @@ const Dergi = () => {
                 <li>• Gönderdiğiniz makaleler editöryel incelemeden geçecektir</li>
                 <li>• İnceleme süreci 1-2 hafta sürebilir</li>
                 <li>• Makale kabul edilirse dergi sayısına dahil edilecektir</li>
-                <li>• Telif hakları size aittir</li>
                 <li>• Anonim gönderimler de kabul edilmektedir</li>
               </ul>
             </div>

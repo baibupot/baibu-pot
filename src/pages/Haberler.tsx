@@ -162,44 +162,46 @@ const Haberler = () => {
           {/* News Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredNews.map((article) => (
-              <Card key={article.id} className="card-hover group overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-                <CardHeader>
-                  {article.featured_image && (
-                    <div className="h-48 bg-slate-200 dark:bg-slate-700 rounded-lg mb-4 overflow-hidden">
-                      <img 
-                        src={article.featured_image} 
-                        alt={article.title}
-                        className="w-full h-full object-cover"
-                      />
+              <Link key={article.id} to={`/haberler/${article.slug}`} className="block">
+                <Card className="card-hover group overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-[1.02]">
+                  <CardHeader>
+                    {article.featured_image && (
+                      <div className="h-48 bg-slate-200 dark:bg-slate-700 rounded-lg mb-4 overflow-hidden">
+                        <img 
+                          src={article.featured_image} 
+                          alt={article.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge className={getCategoryColor(article.category)}>
+                        {getCategoryLabel(article.category)}
+                      </Badge>
                     </div>
-                  )}
-                  <div className="flex items-center gap-2 mb-2">
-                    <Badge className={getCategoryColor(article.category)}>
-                      {getCategoryLabel(article.category)}
-                    </Badge>
+                    <CardTitle className="text-lg line-clamp-2">{article.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 mb-3">
+                      <Calendar className="h-4 w-4" />
+                      <span>{formatDate(article.created_at)}</span>
                   </div>
-                  <CardTitle className="text-lg line-clamp-2">{article.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 mb-3">
-                    <Calendar className="h-4 w-4" />
-                    <span>{formatDate(article.created_at)}</span>
-                  </div>
-                  
-                  {article.excerpt && (
-                    <p className="text-slate-600 dark:text-slate-400 mb-4 line-clamp-3">
-                      {article.excerpt}
-                    </p>
-                  )}
-                  
-                  <Button asChild variant="outline" className="w-full">
-                    <Link to={`/haberler/${article.slug}`} className="flex items-center gap-2">
-                      <Eye className="h-4 w-4" />
-                      Devamını Oku
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
+                    
+                    {article.excerpt && (
+                      <p className="text-slate-600 dark:text-slate-400 mb-4 line-clamp-3">
+                        {article.excerpt}
+                      </p>
+                    )}
+                    
+                    <Button variant="outline" className="w-full">
+                      <span className="flex items-center gap-2">
+                        <Eye className="h-4 w-4" />
+                        Devamını Oku
+                      </span>
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
 
