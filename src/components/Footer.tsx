@@ -152,21 +152,20 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="mt-8 pt-8 border-t border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-center">
-          <p className="text-slate-600 dark:text-slate-400 text-sm flex items-center gap-1">
-            © 2025 BAİBÜ Psikoloji Öğrencileri Topluluğu. Tüm hakları saklıdır. <span className="text-red-500 text-lg">♥</span> ile yapıldı.
-          </p>
-          <div className="mt-4 sm:mt-0 flex items-center space-x-4">
-            <span className="text-sm text-slate-600 dark:text-slate-400">Tema:</span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={toggleTheme}
-              className="text-xs"
+        {/* Telif Hakkı ve Geliştirici Bilgisi */}
+        <div className="mt-8 pt-8 border-t border-slate-200 dark:border-slate-700 text-center">
+          <p className="text-sm text-slate-600 dark:text-slate-400 py-2">
+            © 2025 Tüm hakları saklıdır. | Geliştirici: 
+            <a 
+              href="http://instagram.com/nadir.mermer/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors duration-200 font-medium ml-1"
             >
-              {theme === 'light' ? 'Karanlık' : 'Aydınlık'}
-            </Button>
-          </div>
+              Nadir Mermer
+            </a>
+            <span className="ml-2 text-red-500">♥</span> ile yapıldı
+          </p>
         </div>
       </div>
     </footer>
