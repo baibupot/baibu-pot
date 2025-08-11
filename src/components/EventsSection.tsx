@@ -53,19 +53,23 @@ const EventsSection = () => {
   return (
     <section className="py-16 bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
+        <div className="text-center mb-12 animate-fade-in-up">
           <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-4">
-            Gelecek Etkinlik Takvimimiz
+            🎉 Gelecek Etkinlik Takvimimiz
           </h2>
           <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-            Psikoloji alanında düzenlediğimiz atölyeler, konferanslar ve sosyal etkinliklere katılın.
+            🧠 Psikoloji alanında düzenlediğimiz atölyeler, konferanslar ve sosyal etkinliklere katılın.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-          {upcomingEvents.map((event) => (
+          {upcomingEvents.map((event, index) => (
             <Link key={event.id} to={`/etkinlikler/${event.slug}`} className="block">
-              <Card variant="modern" className="group hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer">
+              <Card 
+                variant="modern" 
+                className="group hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer animate-fade-in-up interactive-scale"
+                style={{ animationDelay: `${index * 150}ms` }}
+              >
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-4">
                     <Badge className={getEventTypeColor(event.event_type as EventType)}>
@@ -108,17 +112,17 @@ const EventsSection = () => {
                   {event.registration_required ? (
                     <Button 
                       size="sm" 
-                      className="w-full bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 text-white"
+                      className="w-full bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 text-white interactive-scale group"
                     >
-                      Kayıt Ol
+                      🎯 Kayıt Ol
                     </Button>
                   ) : (
                     <Button 
                       size="sm" 
                       variant="outline"
-                      className="w-full"
+                      className="w-full interactive-scale group"
                     >
-                      Detayları Gör
+                      👀 Detayları Gör
                     </Button>
                   )}
                 </CardFooter>
@@ -135,10 +139,10 @@ const EventsSection = () => {
           </div>
         )}
 
-        <div className="text-center">
-          <Button asChild size="lg" variant="outline">
-            <Link to="/etkinlikler">
-              Tüm Etkinlikler
+        <div className="text-center animate-fade-in-up animation-delay-500">
+          <Button asChild size="lg" variant="outline" className="interactive-scale group">
+            <Link to="/etkinlikler" className="flex items-center gap-2">
+              🎪 Tüm Etkinlikler
             </Link>
           </Button>
         </div>

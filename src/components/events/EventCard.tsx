@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -44,6 +44,7 @@ interface EventCardProps {
 
 const EventCard: React.FC<EventCardProps> = ({ event }) => {
   const [showGallery, setShowGallery] = useState(false);
+  const navigate = useNavigate();
 
   // Event type ve status helper functions artık constants'tan geliyor
 
@@ -82,8 +83,7 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
   };
 
   return (
-    <Link to={`/etkinlikler/${event.slug}`} className="block">
-      <Card className="group hover:shadow-xl hover:scale-[1.02] transition-all duration-300 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg cursor-pointer">
+      <Card className="group hover:shadow-xl hover:scale-[1.02] transition-all duration-300 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg">
       {/* Mobile-First Header with Image */}
           {event.featured_image && (
         <div className="relative h-48 sm:h-56 md:h-40 w-full overflow-hidden rounded-t-xl">
@@ -200,7 +200,10 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
 
             {event.gallery_images && event.gallery_images.length > 0 && (
               <button 
-                onClick={() => setShowGallery(true)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowGallery(true);
+                }}
                 className="flex items-center gap-2 px-3 py-2 bg-purple-50 dark:bg-purple-900/20 rounded-full border border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
               >
                 <Image className="h-4 w-4 text-purple-600 dark:text-purple-400" />
@@ -224,7 +227,7 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
                   window.open(event.registration_link, '_blank');
                 } else if (event.has_custom_form) {
                   // Internal custom form - Navigate to detail page, let detail page handle form
-                  window.location.href = `/etkinlikler/${event.slug}`;
+                  navigate(`/etkinlikler/${event.slug}`);
                 } else {
                   // No registration method set up
                   alert('Kayıt sistemi henüz hazırlanmıştır. Lütfen etkinlik detaylarından organizatörlerle iletişime geçin.');
@@ -301,7 +304,6 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
         </Dialog>
       </CardContent>
     </Card>
-    </Link>
   );
 };
 

@@ -360,22 +360,22 @@ const AdminLogin = ({ resetMode = false }: AdminLoginProps) => {
         <div className="w-full max-w-md">
           
           {/* Header */}
-          <div className="text-center mb-8">
+          <div className="text-center mb-8 animate-fade-in-up">
             <div className="flex items-center justify-center mb-6">
-              <div className="p-4 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-2xl">
-                <Shield className="h-12 w-12 text-orange-500" />
+              <div className="p-4 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-2xl group hover:scale-110 transition-all duration-300 interactive-scale">
+                <Shield className="h-12 w-12 text-orange-500 group-hover:rotate-12 transition-transform duration-300" />
               </div>
             </div>
-            <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">
-              Admin Paneli
+            <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-4 animate-fade-in-up animation-delay-100">
+               Admin Paneli
             </h1>
-            <p className="text-lg text-slate-600 dark:text-slate-400">
-              Yönetim paneline erişim için giriş yapın
+            <p className="text-lg text-slate-600 dark:text-slate-400 animate-fade-in-up animation-delay-200">
+               Yönetim paneline güvenli erişim için giriş yapın
             </p>
           </div>
 
           {/* Login Card */}
-          <Card className="border-0 shadow-2xl bg-white/90 dark:bg-slate-800/90 backdrop-blur-lg overflow-hidden">
+          <Card variant="modern" className="border-0 shadow-2xl bg-white/90 dark:bg-slate-800/90 backdrop-blur-lg overflow-hidden animate-fade-in-up animation-delay-200 interactive-scale">
             <CardHeader className="text-center pb-2">
               <CardTitle className="text-2xl font-bold text-slate-900 dark:text-white">
                 {isPasswordResetMode ? '🔄 Yeni Şifre Belirle' : '🔐 Güvenli Giriş'}
@@ -474,7 +474,7 @@ const AdminLogin = ({ resetMode = false }: AdminLoginProps) => {
 
                     <Button 
                       type="submit" 
-                      className="w-full h-12 text-base font-semibold bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 shadow-lg hover:shadow-xl transition-all duration-300" 
+                      className="w-full h-12 text-base font-semibold bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 shadow-lg hover:shadow-xl transition-all duration-300 interactive-scale group" 
                       disabled={loading}
                     >
                       {loading ? (
@@ -597,7 +597,7 @@ const AdminLogin = ({ resetMode = false }: AdminLoginProps) => {
                     
                     <Button 
                       type="submit" 
-                      className="w-full h-12 text-base font-semibold bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 shadow-lg hover:shadow-xl transition-all duration-300" 
+                      className="w-full h-12 text-base font-semibold bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 shadow-lg hover:shadow-xl transition-all duration-300 interactive-scale group" 
                       disabled={loading}
                     >
                       {loading ? (
@@ -809,7 +809,7 @@ const AdminLogin = ({ resetMode = false }: AdminLoginProps) => {
                     
                     <Button 
                       type="submit" 
-                      className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg hover:shadow-xl transition-all duration-300" 
+                      className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg hover:shadow-xl transition-all duration-300 interactive-scale group" 
                       disabled={loading}
                     >
                       {loading ? (
@@ -845,7 +845,7 @@ const AdminLogin = ({ resetMode = false }: AdminLoginProps) => {
           </Card>
 
           {/* Info Footer */}
-          <div className="mt-8 text-center">
+          <div className="mt-8 text-center animate-fade-in-up animation-delay-400">
             <p className="text-sm text-slate-500 dark:text-slate-400">
               🔒 Güvenli bağlantı ile korunmaktadır
             </p>

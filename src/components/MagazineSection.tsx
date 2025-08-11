@@ -36,7 +36,7 @@ const MagazineSection = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Sol taraf - Dergi görseli */}
-          <div className="relative">
+          <div className="relative animate-fade-in-up animation-delay-200">
             <div className="relative z-10 bg-gradient-to-br from-cyan-50 to-teal-50 dark:from-slate-700 dark:to-slate-800 rounded-2xl p-8 shadow-xl">
               <div className="aspect-[3/4] bg-white dark:bg-slate-900 rounded-lg shadow-lg overflow-hidden">
                 {latestMagazine ? (
@@ -94,9 +94,9 @@ const MagazineSection = () => {
           </div>
 
           {/* Sağ taraf - İçerik */}
-          <div>
+          <div className="animate-fade-in-up animation-delay-300">
             <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-6">
-              Dergimiz: <span className="bg-gradient-to-r from-cyan-600 to-teal-600 bg-clip-text text-transparent">Psikolojiİbu</span>
+              📖 Dergimiz: <span className="bg-gradient-to-r from-cyan-600 to-teal-600 bg-clip-text text-transparent">Psikolojiİbu</span>
             </h2>
             
             <p className="text-lg text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
@@ -105,10 +105,6 @@ const MagazineSection = () => {
             </p>
 
             <div className="space-y-4 mb-8">
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-cyan-500 rounded-full"></div>
-                <span className="text-slate-700 dark:text-slate-300">Akademik makaleler ve araştırmalar</span>
-              </div>
               <div className="flex items-center space-x-3">
                 <div className="w-2 h-2 bg-teal-500 rounded-full"></div>
                 <span className="text-slate-700 dark:text-slate-300">Öğrenci çalışmaları ve deneyimleri</span>
@@ -124,14 +120,14 @@ const MagazineSection = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button asChild size="lg" className="bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 text-white">
-                <Link to="/dergi">
-                  {latestMagazine ? 'Son Sayıyı Keşfet' : 'Dergi Arşivini İncele'}
+              <Button asChild size="lg" className="bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 text-white interactive-scale group">
+                <Link to="/dergi" className="flex items-center gap-2">
+                  📖 {latestMagazine ? 'Son Sayıyı Keşfet' : 'Dergi Arşivini İncele'}
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="lg">
-                <Link to="/dergi">
-                  Arşivi İncele
+              <Button asChild variant="outline" size="lg" className="interactive-scale group">
+                <Link to="/dergi" className="flex items-center gap-2">
+                  📚 Arşivi İncele
                 </Link>
               </Button>
             </div>

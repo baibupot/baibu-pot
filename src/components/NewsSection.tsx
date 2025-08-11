@@ -56,19 +56,23 @@ const NewsSection = () => {
   return (
     <section className="py-16 bg-white dark:bg-slate-800 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
+        <div className="text-center mb-12 animate-fade-in-up">
           <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-4">
-            Son Haberler ve Duyurular
+            📰 Son Haberler ve Duyurular
           </h2>
           <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-            Topluluk faaliyetleri, akademik gelişmeler ve önemli duyurulardan haberdar olun.
+            📢 Topluluk faaliyetleri, akademik gelişmeler ve önemli duyurulardan haberdar olun.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-          {displayNews.map((item) => (
+          {displayNews.map((item, index) => (
             <Link key={item.id} to={`/haberler/${item.slug}`} className="block">
-              <Card variant="modern" className="group hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer">
+              <Card 
+                variant="modern" 
+                className="group hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer animate-fade-in-up interactive-scale"
+                style={{ animationDelay: `${index * 150}ms` }}
+              >
                 <div className="aspect-video bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 rounded-t-lg overflow-hidden">
                   {item.featured_image ? (
                     <img 
@@ -119,10 +123,10 @@ const NewsSection = () => {
           ))}
         </div>
 
-        <div className="text-center">
-          <Button asChild size="lg" variant="outline">
-            <Link to="/haberler">
-              Tüm Haberler ve Duyurular
+        <div className="text-center animate-fade-in-up animation-delay-500">
+          <Button asChild size="lg" variant="outline" className="interactive-scale group">
+            <Link to="/haberler" className="flex items-center gap-2">
+               Tüm Haberler ve Duyurular
             </Link>
           </Button>
         </div>

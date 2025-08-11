@@ -53,23 +53,24 @@ const SponsorsSection = () => {
   return (
     <section className="py-16 bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
+        <div className="text-center mb-12 animate-fade-in-up">
           <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-4 flex items-center justify-center gap-3">
             <Heart className="h-8 w-8 text-pink-500" />
-            Değerli Destekçilerimiz
+            💝 Değerli Destekçilerimiz
           </h2>
           <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-            Topluluk faaliyetlerimizi destekleyen kurum ve kuruluşlara teşekkür ederiz.
+            🤝 Topluluk faaliyetlerimizi destekleyen kurum ve kuruluşlara teşekkür ederiz.
           </p>
         </div>
 
         {/* Sponsor kartları */}
         {activeSponsors.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-            {activeSponsors.map((sponsor) => (
+            {activeSponsors.map((sponsor, index) => (
               <div
                 key={sponsor.id}
-                className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 group cursor-pointer border border-slate-200 dark:border-slate-700"
+                className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 group cursor-pointer border border-slate-200 dark:border-slate-700 animate-fade-in-up interactive-scale"
+                style={{ animationDelay: `${index * 100}ms` }}
                 onClick={() => sponsor.website && window.open(sponsor.website, '_blank')}
               >
                 {/* Sponsor türü badge */}
@@ -130,14 +131,14 @@ const SponsorsSection = () => {
             yetişmesine destek olabilirsiniz.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" variant="secondary">
-              <Link to="/sponsorlar">
-                Sponsorluk Bilgileri
+            <Button asChild size="lg" variant="secondary" className="interactive-scale group">
+              <Link to="/sponsorlar" className="flex items-center gap-2">
+                🤝 Sponsorluk Bilgileri
               </Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
-              <Link to="/iletisim">
-                İletişime Geç
+            <Button asChild size="lg" variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20 interactive-scale group">
+              <Link to="/iletisim" className="flex items-center gap-2">
+                📞 İletişime Geç
               </Link>
             </Button>
           </div>
