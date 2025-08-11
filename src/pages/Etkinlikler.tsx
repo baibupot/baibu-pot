@@ -183,28 +183,36 @@ const Etkinlikler = () => {
             </div>
           </div>
 
-          {/* Search and Filters - Mobile Optimized */}
-          <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-xl p-4 sm:p-6 shadow-lg border border-white/20 dark:border-slate-700/20">
-            {/* Mobile: Search First */}
-            <div className="space-y-4">
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
-                <Input
-                  placeholder="🔍 Etkinlik ara..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-12 h-12 text-base bg-white/90 dark:bg-slate-700/90 border-2 border-transparent focus:border-blue-500 dark:focus:border-blue-400 rounded-xl"
-                />
-              </div>
+          {/* Search and Filters */}
+          <Card variant="modern" className="animate-fade-in-up animation-delay-100">
+            <CardContent className="p-4 sm:p-6">
+              <div className="space-y-4 sm:space-y-6">
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400 h-5 w-5" />
+                  <Input
+                    placeholder="Etkinlik ara..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-12 h-12 text-base bg-white/90 dark:bg-slate-700/90 border-blue-200 focus:border-blue-400 dark:border-blue-800 dark:focus:border-blue-600 rounded-xl"
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
               
               {/* Mobile: Stacked Filters */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="h-12 bg-white/90 dark:bg-slate-700/90 border-2 border-transparent rounded-xl text-base">
-                    <SelectValue placeholder="📊 Durum Seç" />
+                  <SelectTrigger className="h-12 bg-white/90 dark:bg-slate-700/90 border-blue-200 dark:border-blue-800 rounded-xl text-base focus:border-blue-400 dark:focus:border-blue-600">
+                    <SelectValue placeholder="Durum Seç" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">🌐 Tüm Durumlar</SelectItem>
+                    <SelectItem value="all">Tüm Durumlar</SelectItem>
                     {Object.entries(EVENT_STATUSES).map(([key, label]) => (
                       <SelectItem key={key} value={key}>{label}</SelectItem>
                     ))}
@@ -212,11 +220,11 @@ const Etkinlikler = () => {
                 </Select>
 
                 <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger className="h-12 bg-white/90 dark:bg-slate-700/90 border-2 border-transparent rounded-xl text-base">
-                    <SelectValue placeholder="🎯 Tür Seç" />
+                  <SelectTrigger className="h-12 bg-white/90 dark:bg-slate-700/90 border-blue-200 dark:border-blue-800 rounded-xl text-base focus:border-blue-400 dark:focus:border-blue-600">
+                    <SelectValue placeholder="Tür Seç" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">🌈 Tüm Türler</SelectItem>
+                    <SelectItem value="all">Tüm Türler</SelectItem>
                     {Object.entries(EVENT_TYPES).map(([key, label]) => (
                       <SelectItem key={key} value={key}>{label}</SelectItem>
                     ))}
@@ -225,14 +233,14 @@ const Etkinlikler = () => {
 
                 <Button 
                   variant="outline" 
-                  className="h-12 flex items-center justify-center gap-2 bg-white/90 dark:bg-slate-700/90 hover:bg-red-50 dark:hover:bg-red-900/20 border-2 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-xl font-medium" 
+                  className="h-12 flex items-center justify-center gap-2 bg-white/90 dark:bg-slate-700/90 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-xl font-medium transition-all duration-200 group" 
                   onClick={() => {
                     setSearchTerm('');
                     setStatusFilter('all');
                     setTypeFilter('all');
                   }}
                 >
-                  <Filter className="h-5 w-5" />
+                  <Filter className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
                   <span className="hidden sm:inline">Filtreleri Temizle</span>
                   <span className="sm:hidden">Temizle</span>
                 </Button>
@@ -260,7 +268,8 @@ const Etkinlikler = () => {
                 </div>
               )}
             </div>
-          </div>
+          </CardContent>
+        </Card>
         </div>
       </section>
 
@@ -270,34 +279,38 @@ const Etkinlikler = () => {
           <div className="space-y-6 sm:space-y-8">
             {/* Events Per Page Selector - Mobile Friendly */}
             {filteredEvents.length > 0 && (
-              <div className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-white/20 dark:border-slate-700/20">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">📊</span>
-                    <div>
-                      <div className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">
-                        {filteredEvents.length} etkinlik bulundu
+              <Card variant="modern" className="animate-fade-in-up animation-delay-200">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/50 dark:to-indigo-900/50 rounded-xl">
+                        <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                       </div>
-                      <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
-                        {currentPage}/{totalPages} sayfa • Toplam {events.length} etkinlik
+                      <div>
+                        <div className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">
+                          {filteredEvents.length} etkinlik bulundu
+                        </div>
+                        <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+                          {currentPage}/{totalPages} sayfa • Toplam {events.length} etkinlik
+                        </div>
                       </div>
                     </div>
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <span className="text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">Sayfa başına:</span>
+                      <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number(value))}>
+                        <SelectTrigger className="w-full sm:w-24 h-10 bg-white/90 dark:bg-slate-700/90 border-blue-200 dark:border-blue-800 rounded-lg focus:border-blue-400 dark:focus:border-blue-600">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {EVENTS_PER_PAGE_OPTIONS.map((option) => (
+                            <SelectItem key={option} value={option.toString()}>{option}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 w-full sm:w-auto">
-                    <span className="text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">📄 Sayfa başına:</span>
-                    <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number(value))}>
-                      <SelectTrigger className="w-full sm:w-24 h-10 bg-white/90 dark:bg-slate-700/90 rounded-lg">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {EVENTS_PER_PAGE_OPTIONS.map((option) => (
-                          <SelectItem key={option} value={option.toString()}>{option}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             )}
 
             {/* Events List - Mobile Optimized Grid */}
@@ -318,10 +331,10 @@ const Etkinlikler = () => {
                 <div className="min-h-[60vh] flex items-center justify-center">
                   <EmptyState
                     icon={Calendar}
-                    title="🔍 Etkinlik Bulunamadı"
+                    title="Etkinlik Bulunamadı"
                     description="Aradığınız kriterlere uygun etkinlik bulunmuyor. Lütfen farklı filtreler deneyin veya arama teriminizi değiştirin."
                     variant="search"
-                    actionLabel="🧹 Filtreleri Temizle"
+                    actionLabel="Filtreleri Temizle"
                     onAction={() => {
                       setSearchTerm('');
                       setStatusFilter('all');
@@ -441,36 +454,47 @@ const Etkinlikler = () => {
         )}
       </section>
 
-      {/* Call to Action - Mobile Optimized */}
+      {/* Call to Action */}
       {events.length > 0 && (
         <section className="py-12 sm:py-16">
-          <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-2xl p-6 sm:p-8 text-center border border-blue-200/30 dark:border-blue-700/30 shadow-lg backdrop-blur-sm">
-            <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6">
-              <div className="text-4xl sm:text-5xl mb-4">💡</div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
-                Etkinlik Önerisi Var mı?
-              </h2>
-              <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
-                Aklınızda harika bir etkinlik fikri mi var? 🚀<br className="sm:hidden" />
-                <span className="font-medium text-blue-700 dark:text-blue-300">Bizimle paylaşın, birlikte gerçekleştirelim!</span>
-              </p>
-              <div className="pt-4">
-                <Button 
-                  size="lg" 
-                  onClick={() => setIsEventSuggestionModalOpen(true)}
-                  className="group h-12 px-8 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
-                >
-                  <Users className="h-5 w-5 mr-2 group-hover:rotate-12 transition-transform duration-200" />
-                  🎯 Etkinlik Öner
-                </Button>
+          <Card variant="modern" className="bg-gradient-to-br from-blue-50/80 to-purple-50/80 dark:from-blue-950/50 dark:to-purple-950/50 border-blue-200/50 dark:border-blue-800/50 animate-fade-in-up animation-delay-600">
+            <CardContent className="p-6 sm:p-8 text-center relative overflow-hidden">
+              {/* Background decoration */}
+              <div className="absolute inset-0 opacity-10">
+                <div className="absolute top-0 left-1/4 w-48 sm:w-72 h-48 sm:h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl animate-pulse"></div>
+                <div className="absolute bottom-0 right-1/4 w-48 sm:w-72 h-48 sm:h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl animate-pulse animation-delay-2000"></div>
               </div>
-              <div className="pt-2">
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                  📧 Önerilerinizi bize iletebilir, topluluk olarak değerlendirebiliriz
+              
+              <div className="relative z-10 max-w-2xl mx-auto space-y-4 sm:space-y-6">
+                <div className="p-4 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/50 dark:to-purple-900/50 rounded-full w-fit mx-auto">
+                  <Users className="h-12 w-12 sm:h-16 sm:w-16 text-blue-600 dark:text-blue-400" />
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+                  Etkinlik Önerisi Var mı?
+                </h2>
+                <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
+                  Aklınızda harika bir etkinlik fikri mi var?<br className="sm:hidden" />
+                  <span className="font-medium text-blue-700 dark:text-blue-300">Bizimle paylaşın, birlikte gerçekleştirelim!</span>
                 </p>
+                <div className="pt-4">
+                  <Button 
+                    size="lg" 
+                    onClick={() => setIsEventSuggestionModalOpen(true)}
+                    className="group h-12 px-8 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+                  >
+                    <Users className="h-5 w-5 mr-2 group-hover:rotate-12 transition-transform duration-200" />
+                    Etkinlik Öner
+                    <span className="ml-2 group-hover:translate-x-1 transition-transform duration-200">→</span>
+                  </Button>
+                </div>
+                <div className="pt-2">
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                    Önerilerinizi bize iletebilir, topluluk olarak değerlendirebiliriz
+                  </p>
+                </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </section>
       )}
 

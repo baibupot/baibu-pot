@@ -65,7 +65,7 @@ const EventsSection = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
           {upcomingEvents.map((event) => (
             <Link key={event.id} to={`/etkinlikler/${event.slug}`} className="block">
-              <Card className="group hover:shadow-xl hover:scale-[1.02] transition-all duration-300 border-0 shadow-md bg-white dark:bg-slate-800 cursor-pointer">
+              <Card variant="modern" className="group hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-4">
                     <Badge className={getEventTypeColor(event.event_type as EventType)}>

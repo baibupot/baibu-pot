@@ -23,7 +23,7 @@ const MemberCard = ({ member }: { member: TeamMember }) => {
     const socialLinks = member.social_links as { email?: string; linkedin?: string } | null;
 
     return (
-        <Card className="text-center transition-all duration-300 hover:shadow-xl hover:scale-105 border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+        <Card variant="modern" className="text-center transition-all duration-300 hover:shadow-xl hover:scale-105">
             <CardHeader>
                 <div className="w-24 h-24 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 rounded-full mx-auto mb-4 flex items-center justify-center overflow-hidden">
                     {member.profile_image ? (
@@ -167,8 +167,10 @@ const Ekipler = () => {
 ♥</p>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-                    {board.team_members.sort(customSort).map(member => (
-  <MemberCard key={member.id} member={member} />
+                    {board.team_members.sort(customSort).map((member, index) => (
+  <div key={member.id} className={`animate-fade-in-up animation-delay-${100 + index * 100}`}>
+    <MemberCard member={member} />
+  </div>
 ))}
               </div>
             </section>
@@ -190,8 +192,10 @@ const Ekipler = () => {
                                     </h3>
                                     {team.description && <p className="text-slate-600 dark:text-slate-400 mb-6 text-center max-w-3xl mx-auto">{team.description}</p>}
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {team.team_members.sort((a,b) => (a.sort_order || 0) - (b.sort_order || 0)).map(member => (
-                                            <MemberCard key={member.id} member={member} />
+                                        {team.team_members.sort((a,b) => (a.sort_order || 0) - (b.sort_order || 0)).map((member, index) => (
+                                            <div key={member.id} className={`animate-fade-in-up animation-delay-${200 + index * 100}`}>
+                                                <MemberCard member={member} />
+                                            </div>
                                         ))}
                                     </div>
                                 </div>
@@ -223,8 +227,10 @@ const Ekipler = () => {
                                     </AccordionTrigger>
                                     <AccordionContent className="pt-4">
                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                            {pastBoard.team_members.sort(customSort).map(member => (
-                                                <MemberCard key={member.id} member={member} />
+                                            {pastBoard.team_members.sort(customSort).map((member, index) => (
+                                                <div key={member.id} className={`animate-fade-in-up animation-delay-${300 + index * 100}`}>
+                                                    <MemberCard member={member} />
+                                                </div>
                                             ))}
                                         </div>
                                     </AccordionContent>

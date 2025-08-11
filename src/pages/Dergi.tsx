@@ -179,36 +179,54 @@ const Dergi = () => {
         </PageHero>
 
         {/* Search Section */}
-        <div className="mb-8">
-          <div className="relative max-w-md mx-auto">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
-            <Input
-              type="text"
-              placeholder="Dergi sayılarında ara..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+        <div className="mb-6 sm:mb-8">
+          <Card variant="modern" className="animate-fade-in-up animation-delay-100">
+            <CardContent className="p-4 sm:p-6">
+              <div className="relative max-w-lg mx-auto">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-indigo-400 h-4 w-4" />
+                <Input
+                  type="text"
+                  placeholder="Dergi sayılarında ara..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 h-12 bg-white/90 dark:bg-slate-700/90 border-indigo-200 focus:border-indigo-400 dark:border-indigo-800 dark:focus:border-indigo-600"
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-indigo-600 transition-colors"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Statistics */}
         {magazines.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
+            <Card variant="modern" className="animate-fade-in-up animation-delay-200 group">
+              <CardContent className="p-4 sm:p-6 text-center">
+                <div className="p-3 bg-gradient-to-br from-indigo-100 to-cyan-100 dark:from-indigo-900/50 dark:to-cyan-900/50 rounded-xl w-fit mx-auto mb-3 group-hover:scale-110 transition-transform duration-300">
+                  <Book className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+                </div>
+                <div className="text-2xl sm:text-3xl font-bold text-indigo-600 dark:text-indigo-400 mb-1">
                   {magazines.length}
                 </div>
                 <div className="text-sm text-slate-600 dark:text-slate-400">Toplam Sayı</div>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">
+            <Card variant="modern" className="animate-fade-in-up animation-delay-300 group">
+              <CardContent className="p-4 sm:p-6 text-center">
+                <div className="p-3 bg-gradient-to-br from-cyan-100 to-teal-100 dark:from-cyan-900/50 dark:to-teal-900/50 rounded-xl w-fit mx-auto mb-3 group-hover:scale-110 transition-transform duration-300">
+                  <Calendar className="h-6 w-6 text-cyan-600 dark:text-cyan-400" />
+                </div>
+                <div className="text-2xl sm:text-3xl font-bold text-cyan-600 dark:text-cyan-400 mb-1">
                   {new Date().getFullYear() - 2024 + 1}
                 </div>
-                <div className="text-sm text-slate-600 dark:text-slate-400">Yıl</div>
+                <div className="text-sm text-slate-600 dark:text-slate-400">Yayın Yılı</div>
               </CardContent>
             </Card>
           </div>
@@ -219,10 +237,10 @@ const Dergi = () => {
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">
             Tüm Sayılar ({filteredIssues.length})
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredIssues.map((issue) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {filteredIssues.map((issue, index) => (
               <Link key={issue.id} to={`/dergi/${issue.slug}`} className="block">
-                <Card className="card-hover group overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-[1.02]">
+                <Card variant="modern" className={`group overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-[1.02] animate-fade-in-up animation-delay-${400 + index * 100}`}>
                   <CardHeader>
                     <div className="h-48 bg-slate-200 dark:bg-slate-700 rounded-lg flex items-center justify-center mb-4 overflow-hidden">
                       {issue.cover_image ? (
@@ -239,7 +257,7 @@ const Dergi = () => {
                       )}
                     </div>
                     <div className="flex items-center gap-2 mb-2">
-                      <Badge className="bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">
+                      <Badge className="bg-gradient-to-r from-indigo-100 to-cyan-100 text-indigo-800 dark:from-indigo-900/50 dark:to-cyan-900/50 dark:text-indigo-300 border-0">
                         Sayı {issue.issue_number}
                       </Badge>
                     </div>
@@ -253,7 +271,7 @@ const Dergi = () => {
                     {issue.theme && (
                       <div className="mb-3">
                         <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700">
-                          🎯 {issue.theme}
+                          {issue.theme}
                         </Badge>
                       </div>
                     )}
@@ -293,38 +311,42 @@ const Dergi = () => {
           />
         )}
 
-        {/* Bize Yazı Göndermek İster Misiniz? Section - YENİ TASARIM */}
-        <section className="py-16">
-          <div className="bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 dark:from-purple-950 dark:via-blue-950 dark:to-indigo-950 rounded-2xl p-12 text-center relative overflow-hidden">
-            {/* Background decoration */}
-            <div className="absolute inset-0 opacity-20">
-              <div className="absolute top-0 left-1/4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl animate-pulse"></div>
-              <div className="absolute bottom-0 right-1/4 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl animate-pulse animation-delay-2000"></div>
-            </div>
-            
-            <div className="relative z-10 max-w-2xl mx-auto space-y-8">
-              <div className="text-6xl mb-6">✍️</div>
-              <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white">
-                Bize Yazı Göndermek İster Misiniz?
-              </h2>
-              <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
-                Akademik makalenizi, araştırmanızı veya yazınızı bizimle paylaşın. 
-                Dergimizde yayınlanması için editöryel incelemeden geçirecek ve 
-                kabul edilenler topluluğumuzla buluşacak.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button 
-                  size="lg" 
-                  className="group bg-purple-600 hover:bg-purple-700"
-                  onClick={() => setArticleModalOpen(true)}
-                >
-                  <PenTool className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform duration-200" />
-                  📝 Yazı Gönder
-                </Button>
-                
+        {/* CTA Section */}
+        <section className="py-12 sm:py-16">
+          <Card variant="modern" className="bg-gradient-to-br from-purple-50/80 via-blue-50/80 to-indigo-50/80 dark:from-purple-950/50 dark:via-blue-950/50 dark:to-indigo-950/50 border-purple-200/50 dark:border-purple-800/50 overflow-hidden animate-fade-in-up animation-delay-600">
+            <CardContent className="p-8 sm:p-12 text-center relative">
+              {/* Background decoration */}
+              <div className="absolute inset-0 opacity-10">
+                <div className="absolute top-0 left-1/4 w-48 sm:w-72 h-48 sm:h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl animate-pulse"></div>
+                <div className="absolute bottom-0 right-1/4 w-48 sm:w-72 h-48 sm:h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl animate-pulse animation-delay-2000"></div>
               </div>
-            </div>
-          </div>
+              
+              <div className="relative z-10 max-w-2xl mx-auto space-y-6 sm:space-y-8">
+                <div className="p-4 bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/50 dark:to-indigo-900/50 rounded-full w-fit mx-auto">
+                  <PenTool className="h-12 w-12 sm:h-16 sm:w-16 text-purple-600 dark:text-purple-400" />
+                </div>
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-white">
+                  Bize Yazı Göndermek İster Misiniz?
+                </h2>
+                <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
+                  Akademik makalenizi, araştırmanızı veya yazınızı bizimle paylaşın. 
+                  Dergimizde yayınlanması için editöryel incelemeden geçirecek ve 
+                  kabul edilenler topluluğumuzla buluşacak.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
+                  <Button 
+                    size="lg" 
+                    className="group bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-300"
+                    onClick={() => setArticleModalOpen(true)}
+                  >
+                    <PenTool className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform duration-200" />
+                    Yazı Gönder
+                    <span className="ml-2 group-hover:translate-x-1 transition-transform duration-200">→</span>
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </section>
       </PageContainer>
 
@@ -334,7 +356,7 @@ const Dergi = () => {
           <DialogHeader>
             <DialogTitle className="text-2xl text-purple-900 dark:text-purple-100 flex items-center gap-2">
               <PenTool className="w-6 h-6" />
-              📝 Bize Yazınızı Gönderin
+              Bize Yazınızı Gönderin
             </DialogTitle>
             <DialogDescription className="text-purple-700 dark:text-purple-300">
               Akademik makalenizi, araştırmanızı veya yazınızı bizimle paylaşın. 
@@ -342,7 +364,9 @@ const Dergi = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <form onSubmit={handleSubmitArticle} className="space-y-6 mt-6">
+          <Card variant="modern" className="mt-6">
+            <CardContent className="p-6">
+              <form onSubmit={handleSubmitArticle} className="space-y-6">
             
             {/* Başlık */}
             <div>
@@ -516,6 +540,8 @@ const Dergi = () => {
               </Button>
             </div>
           </form>
+          </CardContent>
+        </Card>
         </DialogContent>
       </Dialog>
     </>

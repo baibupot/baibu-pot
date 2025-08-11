@@ -151,21 +151,29 @@ const AkademikBelgeler = () => {
 
       {/* Search and Filters */}
       <section className="py-6 sm:py-8">
-        <Card variant="modern" className="animate-fade-in-up">
+        <Card variant="modern" className="animate-fade-in-up animation-delay-100">
           <CardContent className="p-4 sm:p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
-              <Input
-                placeholder="Belge ara..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-white/80 dark:bg-slate-700/80"
-              />
-            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-emerald-400 h-4 w-4" />
+                <Input
+                  placeholder="Belge ara..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 h-12 bg-white/90 dark:bg-slate-700/90 border-emerald-200 focus:border-emerald-400 dark:border-emerald-800 dark:focus:border-emerald-600"
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-emerald-600 transition-colors"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
             
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="bg-white/80 dark:bg-slate-700/80">
+              <SelectTrigger className="h-12 bg-white/90 dark:bg-slate-700/90 border-emerald-200 dark:border-emerald-800 focus:border-emerald-400 dark:focus:border-emerald-600">
                 <SelectValue placeholder="Kategori" />
               </SelectTrigger>
               <SelectContent>
@@ -184,26 +192,29 @@ const AkademikBelgeler = () => {
 
             <Button 
               variant="outline" 
-              className="bg-white/80 dark:bg-slate-700/80 hover:bg-white dark:hover:bg-slate-600"
+              className="h-12 bg-white/90 dark:bg-slate-700/90 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 transition-all duration-200 group"
               onClick={() => {
                 setSearchTerm('');
                 setCategoryFilter('all');
               }}
             >
+              <Search className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform duration-200" />
               Filtreleri Temizle
             </Button>
           </div>
-        </div>
+          </CardContent>
+        </Card>
       </section>
 
       {/* Documents Grid */}
       <section className="pb-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
           {filteredDocuments.length > 0 ? (
-            filteredDocuments.map((document) => (
+            filteredDocuments.map((document, index) => (
               <Card 
                 key={document.id} 
-                className="card-hover group overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm"
+                variant="modern" 
+                className={`group overflow-hidden animate-fade-in-up animation-delay-${200 + index * 100}`}
               >
                 <CardHeader>
                   <div className="h-40 bg-gradient-to-br from-teal-100 to-emerald-100 dark:from-teal-900 dark:to-emerald-900 rounded-lg flex items-center justify-center mb-4 relative overflow-hidden">
@@ -219,8 +230,8 @@ const AkademikBelgeler = () => {
                   </div>
                   
                   <div className="flex items-center gap-2 mb-3">
-                    <Badge className={getCategoryColor(document.category)}>
-                      {getCategoryLabel(document.category)}
+                    <Badge className="bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-800 dark:from-emerald-900/50 dark:to-teal-900/50 dark:text-emerald-300 border-0">
+                      {getCategoryLabel(document.category).replace(/^.+?\s/, '')}
                     </Badge>
                   </div>
                   

@@ -68,7 +68,7 @@ const NewsSection = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
           {displayNews.map((item) => (
             <Link key={item.id} to={`/haberler/${item.slug}`} className="block">
-              <Card className="group hover:shadow-xl hover:scale-[1.02] transition-all duration-300 border-0 shadow-md bg-white dark:bg-slate-900 cursor-pointer">
+              <Card variant="modern" className="group hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer">
                 <div className="aspect-video bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 rounded-t-lg overflow-hidden">
                   {item.featured_image ? (
                     <img 
