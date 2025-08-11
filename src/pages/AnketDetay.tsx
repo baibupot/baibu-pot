@@ -15,7 +15,7 @@ import { useFormFields, useCreateFormResponse, useSurveyBySlug } from '@/hooks/u
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { CheckCircle, Clock, Loader2 } from 'lucide-react';
+import { CheckCircle, Clock, Loader2, ArrowLeft, FileText, Calendar, AlertCircle } from 'lucide-react';
 
 const AnketDetay = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -173,11 +173,28 @@ const AnketDetay = () => {
   };
 
   if (surveyLoading || fieldsLoading) {
-    return <LoadingPage title="Anket Yükleniyor..." />;
+    return (
+      <PageContainer background="gradient">
+        <LoadingPage 
+          title="Anket Detayı Yükleniyor"
+          message="Anket formu hazırlanıyor..."
+          icon={FileText}
+        />
+      </PageContainer>
+    );
   }
 
   if (surveyError || !survey) {
-    return <ErrorState title="Anket Bulunamadı" message="Aradığınız anket mevcut değil veya kaldırılmış olabilir." />;
+    return (
+      <PageContainer background="gradient">
+        <ErrorState 
+          title="Anket Bulunamadı"
+          message="Aradığınız anket bulunamadı veya kaldırılmış olabilir."
+          onRetry={() => navigate('/anketler')}
+          variant="notfound"
+        />
+      </PageContainer>
+    );
   }
 
   const isSurveyActive = () => {
@@ -189,77 +206,145 @@ const AnketDetay = () => {
   };
 
   return (
-    <PageContainer>
-      <div className="py-12 md:py-20">
-          <Card className="max-w-3xl mx-auto shadow-lg border">
-              <CardHeader className="text-center p-6 md:p-8">
-              <CardTitle className="text-2xl md:text-3xl font-bold">{survey.title}</CardTitle>
-              {survey.description && <CardDescription className="pt-2 text-base md:text-lg">{survey.description}</CardDescription>}
-              <div className="text-sm text-muted-foreground pt-4">
-                  <span>Son Katılım Tarihi: {format(new Date(survey.end_date), 'dd MMMM yyyy', { locale: tr })}</span>
+    <PageContainer background="gradient">
+      {/* Mobile-First Header */}
+      <div className="mb-6 sm:mb-8">
+        {/* Back Button */}
+        <Button 
+          variant="ghost" 
+          onClick={() => navigate('/anketler')}
+          className="mb-4 h-12 px-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-xl border border-white/20 dark:border-slate-700/20 hover:bg-white/80 dark:hover:bg-slate-800/80 interactive-scale"
+        >
+          <ArrowLeft className="h-5 w-5 mr-2" />
+          <span className="font-medium">Anketlere Dön</span>
+        </Button>
+      </div>
+
+      <div className="max-w-4xl mx-auto">
+        <Card variant="modern" className="overflow-hidden animate-fade-in-up">
+          <CardHeader className="text-center p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-950/30 dark:to-purple-950/30">
+            <div className="flex justify-center mb-4">
+              <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl shadow-lg">
+                <FileText className="h-8 w-8 text-white" />
               </div>
-              </CardHeader>
-              <CardContent className="p-6 md:p-8">
-              {isSurveyActive() ? (
-                isSubmitted ? (
-                  // Başarılı gönderim ekranı
-                  <div className="text-center py-12 space-y-6">
-                    <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto">
-                      <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
-                    </div>
-                    <div>
-                      <h3 className="text-2xl font-bold text-green-600 dark:text-green-400 mb-2">
-                        Anketiniz Başarıyla Gönderildi!
-                      </h3>
-                      <p className="text-gray-600 dark:text-gray-400 text-lg">
-                        Değerli yanıtınız için teşekkür ederiz.
-                      </p>
-                    </div>
-                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                      <p className="text-sm text-blue-700 dark:text-blue-300">
-                        <Clock className="h-4 w-4 inline mr-2" />
-                        Anketler sayfasına yönlendiriliyorsunuz...
-                      </p>
-                    </div>
+            </div>
+            <CardTitle className="text-2xl sm:text-3xl lg:text-4xl font-bold gradient-text-primary mb-4">
+              {survey.title}
+            </CardTitle>
+            {survey.description && (
+              <CardDescription className="text-base sm:text-lg text-slate-600 dark:text-slate-400 leading-relaxed max-w-2xl mx-auto">
+                {survey.description}
+              </CardDescription>
+            )}
+            <div className="flex items-center justify-center gap-2 mt-6 text-sm sm:text-base">
+              <div className="p-2 bg-orange-100 dark:bg-orange-900/50 rounded-lg">
+                <Calendar className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+              </div>
+              <span className="text-slate-600 dark:text-slate-400 font-medium">
+                📅 Son Katılım: {format(new Date(survey.end_date), 'dd MMMM yyyy', { locale: tr })}
+              </span>
+            </div>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6 lg:p-8">
+            {isSurveyActive() ? (
+              isSubmitted ? (
+                // Success Screen - Modern Design
+                <div className="text-center py-12 sm:py-16 space-y-6 animate-fade-in-up">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-emerald-400 to-green-500 rounded-full flex items-center justify-center mx-auto shadow-lg animate-fade-in-scale">
+                    <CheckCircle className="h-10 w-10 sm:h-12 sm:w-12 text-white" />
                   </div>
-                ) : (
-                  // Normal form
-                  <form onSubmit={handleSubmit} className="space-y-8">
-                    {formFields?.sort((a,b) => (a.sort_order || 0) - (b.sort_order || 0)).map(field => (
-                      <div key={field.id} className="space-y-3 p-5 border rounded-lg bg-gray-50/50 dark:bg-gray-800/20">
-                        <Label htmlFor={field.field_name} className="text-base font-semibold">
-                          {field.field_label}
-                          {field.required && <span className="text-red-500 ml-1">*</span>}
-                        </Label>
-                        {renderField(field)}
+                  <div className="space-y-3">
+                    <h3 className="text-2xl sm:text-3xl font-bold gradient-text-primary">
+                      ✅ Anketiniz Başarıyla Gönderildi!
+                    </h3>
+                    <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 leading-relaxed max-w-md mx-auto">
+                      Değerli yanıtınız için teşekkür ederiz. Katkınız bizim için çok önemli.
+                    </p>
+                  </div>
+                  <Card variant="modern" className="bg-gradient-to-br from-blue-50/80 to-cyan-50/80 dark:from-blue-950/50 dark:to-cyan-950/50 border-blue-200/50 dark:border-blue-800/50 max-w-md mx-auto">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-center gap-2 text-blue-700 dark:text-blue-300">
+                        <Clock className="h-4 w-4 animate-pulse" />
+                        <span className="text-sm font-medium">
+                          🔄 Anketler sayfasına yönlendiriliyorsunuz...
+                        </span>
                       </div>
-                    ))}
-                    {formError && <p className="text-red-500 text-sm text-center">{formError}</p>}
+                    </CardContent>
+                  </Card>
+                </div>
+              ) : (
+                // Modern Form Design
+                <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
+                  {formFields?.sort((a,b) => (a.sort_order || 0) - (b.sort_order || 0)).map((field, index) => (
+                    <Card key={field.id} variant="modern" className="animate-fade-in-up" style={{ animationDelay: `${index * 100}ms` }}>
+                      <CardContent className="p-4 sm:p-6">
+                        <Label htmlFor={field.field_name} className="text-base sm:text-lg font-bold text-slate-900 dark:text-white mb-3 block">
+                          {field.field_label}
+                          {field.required && <span className="text-red-500 ml-1 text-lg">*</span>}
+                        </Label>
+                        <div className="space-y-2">
+                          {renderField(field)}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  
+                  {formError && (
+                    <Card variant="modern" className="bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/50">
+                      <CardContent className="p-4 flex items-center gap-3">
+                        <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0" />
+                        <p className="text-red-700 dark:text-red-300 font-medium">{formError}</p>
+                      </CardContent>
+                    </Card>
+                  )}
+                  
+                  <div className="pt-4">
                     <Button 
                       type="submit" 
                       disabled={isSubmitting} 
-                      size="lg" 
-                      className="w-full text-lg"
+                      size="touch"
+                      variant="gradient"
+                      className="w-full font-bold shadow-xl hover:shadow-2xl"
                     >
                       {isSubmitting ? (
                         <>
                           <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                          Yanıtlar Gönderiliyor...
+                          📤 Yanıtlar Gönderiliyor...
                         </>
                       ) : (
-                        'Anketi Tamamla ve Gönder'
+                        <>
+                          <CheckCircle className="h-5 w-5 mr-2" />
+                          ✅ Anketi Tamamla ve Gönder
+                        </>
                       )}
                     </Button>
-                  </form>
-                )
-              ) : (
-                <div className="text-center py-12">
-                  <h3 className="text-xl font-semibold">Bu anket şu anda aktif değil.</h3>
-                  <p className="text-muted-foreground mt-2">İlginiz için teşekkür ederiz.</p>
+                  </div>
+                </form>
+              )
+            ) : (
+              // Inactive Survey State
+              <div className="text-center py-12 sm:py-16 animate-fade-in-up">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center mx-auto shadow-lg mb-6">
+                  <Clock className="h-10 w-10 sm:h-12 sm:w-12 text-white" />
                 </div>
-              )}
-              </CardContent>
-          </Card>
+                <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-3">
+                  ⏰ Bu Anket Şu Anda Aktif Değil
+                </h3>
+                <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 leading-relaxed max-w-md mx-auto mb-6">
+                  Anket süresi dolmuş olabilir veya henüz başlamamış olabilir. İlginiz için teşekkür ederiz.
+                </p>
+                <Button 
+                  variant="outline" 
+                  onClick={() => navigate('/anketler')}
+                  className="interactive-scale"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  🔙 Diğer Anketleri Görüntüle
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </PageContainer>
   );
