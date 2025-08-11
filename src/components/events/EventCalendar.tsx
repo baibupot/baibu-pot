@@ -31,7 +31,6 @@ interface EventCalendarProps {
 const EventCalendar: React.FC<EventCalendarProps> = ({ events }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -103,43 +102,19 @@ const EventCalendar: React.FC<EventCalendarProps> = ({ events }) => {
               </Button>
             </div>
           </div>
-
-          {/* Mobile View Mode Toggle */}
-          <div className="flex sm:hidden">
-            <div className="inline-flex rounded-lg border bg-white/50 dark:bg-slate-700/50 p-1 w-full">
-              <Button
-                variant={viewMode === 'month' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('month')}
-                className="flex-1 text-xs"
-              >
-                📅 Aylık
-              </Button>
-              <Button
-                variant={viewMode === 'week' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('week')}
-                className="flex-1 text-xs"
-              >
-                📊 Haftalık
-              </Button>
-            </div>
-          </div>
         </div>
       </div>
 
       {/* Calendar Content */}
-      <div className={`grid ${viewMode === 'month' || window.innerWidth >= 1024 ? 'grid-cols-1 lg:grid-cols-3' : 'grid-cols-1'} gap-4 sm:gap-6`}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Calendar Grid */}
-        <div className={viewMode === 'month' || window.innerWidth >= 1024 ? 'lg:col-span-2' : 'col-span-1'}>
+        <div className="lg:col-span-2">
           <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg">
             <CardHeader className="pb-3 sm:pb-4">
               <CardTitle className="text-base sm:text-lg">Etkinlik Takvimi</CardTitle>
             </CardHeader>
             <CardContent className="p-3 sm:p-6">
-              {/* Mobile: Show only if month view or desktop */}
-              {(viewMode === 'month' || window.innerWidth >= 640) && (
-                <div className="grid grid-cols-7 gap-1">
+              <div className="grid grid-cols-7 gap-1">
                   {/* Week day headers */}
                   {weekDays.map(day => (
                     <div key={day} className="p-1 sm:p-2 text-center text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300">
@@ -190,47 +165,12 @@ const EventCalendar: React.FC<EventCalendarProps> = ({ events }) => {
                     );
                   })}
                 </div>
-              )}
-
-              {/* Mobile: Week/List View for Mobile */}
-              {viewMode === 'week' && window.innerWidth < 640 && (
-                <div className="space-y-2">
-                  {events
-                    .filter(event => {
-                      const eventDate = new Date(event.event_date);
-                      return eventDate.getMonth() === currentMonth.getMonth() && 
-                             eventDate.getFullYear() === currentMonth.getFullYear();
-                    })
-                    .sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime())
-                    .map(event => (
-                      <div 
-                        key={event.id} 
-                        className="p-3 bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 shadow-sm"
-                        onClick={() => setSelectedDate(new Date(event.event_date))}
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <h4 className="font-medium text-sm text-slate-900 dark:text-white line-clamp-1">
-                            {event.title}
-                          </h4>
-                          <Badge className={`${getEventCalendarColor(event.event_type as EventType)} text-white text-xs ml-2 flex-shrink-0`}>
-                            {event.event_type}
-                          </Badge>
-                        </div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400">
-                          📅 {format(new Date(event.event_date), 'dd MMM, HH:mm', { locale: tr })}
-                          {event.location && ` • 📍 ${event.location}`}
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              )}
             </CardContent>
           </Card>
         </div>
 
         {/* Selected Date Events - Desktop Sidebar / Mobile Bottom */}
-        {(viewMode === 'month' || window.innerWidth >= 1024) && (
-          <div className="order-2 lg:order-1">
+        <div className="order-2 lg:order-1">
             <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg sticky top-4">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base sm:text-lg">
@@ -294,8 +234,7 @@ const EventCalendar: React.FC<EventCalendarProps> = ({ events }) => {
                 )}
               </CardContent>
             </Card>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

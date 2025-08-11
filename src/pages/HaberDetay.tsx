@@ -134,7 +134,7 @@ const HaberDetay = () => {
                   <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 </div>
                 <span className="text-sm sm:text-base font-medium">
-                  📅 {new Date(news.created_at).toLocaleDateString('tr-TR', { 
+                   {new Date(news.created_at).toLocaleDateString('tr-TR', { 
                     year: 'numeric', 
                     month: 'long', 
                     day: 'numeric' 
@@ -147,7 +147,7 @@ const HaberDetay = () => {
                     <User className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                   </div>
                   <span className="text-sm sm:text-base font-medium">
-                    ✍️ {news.author.name}
+                    {news.author.name}
                   </span>
                 </div>
               )}
@@ -172,7 +172,7 @@ const HaberDetay = () => {
               <div className="p-2 bg-green-100 dark:bg-green-900/50 rounded-xl">
                 <Share className="h-5 w-5 text-green-600 dark:text-green-400" />
               </div>
-              🚀 Bu Haberi Paylaş
+                Bu Haberi Paylaş
             </CardTitle>
           </CardHeader>
           <CardContent>

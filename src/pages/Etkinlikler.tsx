@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, List, Search, Filter, MapPin, Clock, Users, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, List, Search, Filter, MapPin, Clock, Users, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import EventCard from '@/components/events/EventCard';
 import EventCalendar from '@/components/events/EventCalendar';
 import EventSuggestionModal from '@/components/EventSuggestionModal';
@@ -35,6 +35,7 @@ const Etkinlikler = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(EVENTS_PER_PAGE);
   const [isEventSuggestionModalOpen, setIsEventSuggestionModalOpen] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   
   const { data: events = [], isLoading, error } = useEvents();
 
@@ -183,76 +184,46 @@ const Etkinlikler = () => {
             </div>
           </div>
 
-          {/* Search and Filters */}
+          {/* Search and Filters - Collapsible */}
           <Card variant="modern" className="animate-fade-in-up animation-delay-100">
-            <CardContent className="p-4 sm:p-6">
-              <div className="space-y-4 sm:space-y-6">
-                <div className="relative">
-                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400 h-5 w-5" />
-                  <Input
-                    placeholder="Etkinlik ara..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-12 h-12 text-base bg-white/90 dark:bg-slate-700/90 border-blue-200 focus:border-blue-400 dark:border-blue-800 dark:focus:border-blue-600 rounded-xl"
-                  />
-                  {searchTerm && (
-                    <button
-                      onClick={() => setSearchTerm('')}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
-                    >
-                      ×
-                    </button>
-                  )}
+            <CardHeader 
+              className="pb-2 cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-t-xl"
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/50 dark:to-indigo-900/50 rounded-xl">
+                    <Filter className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg text-slate-900 dark:text-white">
+                      Arama ve Filtreler
+                    </CardTitle>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                      Etkinlikleri filtrelemek için tıklayın
+                    </p>
+                  </div>
                 </div>
-              
-              {/* Mobile: Stacked Filters */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="h-12 bg-white/90 dark:bg-slate-700/90 border-blue-200 dark:border-blue-800 rounded-xl text-base focus:border-blue-400 dark:focus:border-blue-600">
-                    <SelectValue placeholder="Durum Seç" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tüm Durumlar</SelectItem>
-                    {Object.entries(EVENT_STATUSES).map(([key, label]) => (
-                      <SelectItem key={key} value={key}>{label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger className="h-12 bg-white/90 dark:bg-slate-700/90 border-blue-200 dark:border-blue-800 rounded-xl text-base focus:border-blue-400 dark:focus:border-blue-600">
-                    <SelectValue placeholder="Tür Seç" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tüm Türler</SelectItem>
-                    {Object.entries(EVENT_TYPES).map(([key, label]) => (
-                      <SelectItem key={key} value={key}>{label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Button 
-                  variant="outline" 
-                  className="h-12 flex items-center justify-center gap-2 bg-white/90 dark:bg-slate-700/90 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-xl font-medium transition-all duration-200 group" 
-                  onClick={() => {
-                    setSearchTerm('');
-                    setStatusFilter('all');
-                    setTypeFilter('all');
-                  }}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-10 w-10 p-0 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-all duration-200"
                 >
-                  <Filter className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
-                  <span className="hidden sm:inline">Filtreleri Temizle</span>
-                  <span className="sm:hidden">Temizle</span>
+                  {isFilterOpen ? (
+                    <ChevronUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  ) : (
+                    <ChevronDown className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  )}
                 </Button>
               </div>
-
-              {/* Active Filters Display - Mobile Friendly */}
-              {(searchTerm || statusFilter !== 'all' || typeFilter !== 'all') && (
-                <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
-                  <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-medium">Aktif filtreler:</span>
+              
+              {/* Active Filters Indicator */}
+              {!isFilterOpen && (searchTerm || statusFilter !== 'all' || typeFilter !== 'all') && (
+                <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                  <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">Aktif filtreler:</span>
                   {searchTerm && (
                     <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full text-xs">
-                      🔍 "{searchTerm}"
+                      🔍 "{searchTerm.length > 15 ? searchTerm.substring(0, 15) + '...' : searchTerm}"
                     </span>
                   )}
                   {statusFilter !== 'all' && (
@@ -267,9 +238,100 @@ const Etkinlikler = () => {
                   )}
                 </div>
               )}
+            </CardHeader>
+            
+            {/* Collapsible Content */}
+            <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
+              isFilterOpen ? 'opacity-100' : 'opacity-0 max-h-0'
+            }`}>
+              {isFilterOpen && (
+                <CardContent className="p-4 sm:p-6 pt-0">
+                  <div className="space-y-4 sm:space-y-6">
+                    <div className="relative">
+                      <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400 h-5 w-5" />
+                      <Input
+                        placeholder="Etkinlik ara..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-12 h-12 text-base bg-white/90 dark:bg-slate-700/90 border-blue-200 focus:border-blue-400 dark:border-blue-800 dark:focus:border-blue-600 rounded-xl"
+                      />
+                      {searchTerm && (
+                        <button
+                          onClick={() => setSearchTerm('')}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  
+                  {/* Mobile: Stacked Filters */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger className="h-12 bg-white/90 dark:bg-slate-700/90 border-blue-200 dark:border-blue-800 rounded-xl text-base focus:border-blue-400 dark:focus:border-blue-600">
+                        <SelectValue placeholder="Durum Seç" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tüm Durumlar</SelectItem>
+                        {Object.entries(EVENT_STATUSES).map(([key, label]) => (
+                          <SelectItem key={key} value={key}>{label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Select value={typeFilter} onValueChange={setTypeFilter}>
+                      <SelectTrigger className="h-12 bg-white/90 dark:bg-slate-700/90 border-blue-200 dark:border-blue-800 rounded-xl text-base focus:border-blue-400 dark:focus:border-blue-600">
+                        <SelectValue placeholder="Tür Seç" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tüm Türler</SelectItem>
+                        {Object.entries(EVENT_TYPES).map(([key, label]) => (
+                          <SelectItem key={key} value={key}>{label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Button 
+                      variant="outline" 
+                      className="h-12 flex items-center justify-center gap-2 bg-white/90 dark:bg-slate-700/90 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-xl font-medium transition-all duration-200 group" 
+                      onClick={() => {
+                        setSearchTerm('');
+                        setStatusFilter('all');
+                        setTypeFilter('all');
+                      }}
+                    >
+                      <Filter className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
+                      <span className="hidden sm:inline">Filtreleri Temizle</span>
+                      <span className="sm:hidden">Temizle</span>
+                    </Button>
+                  </div>
+
+                  {/* Active Filters Display - Mobile Friendly */}
+                  {(searchTerm || statusFilter !== 'all' || typeFilter !== 'all') && (
+                    <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                      <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-medium">Aktif filtreler:</span>
+                      {searchTerm && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full text-xs">
+                          🔍 "{searchTerm}"
+                        </span>
+                      )}
+                      {statusFilter !== 'all' && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-full text-xs">
+                          📊 {EVENT_STATUSES[statusFilter as keyof typeof EVENT_STATUSES]}
+                        </span>
+                      )}
+                      {typeFilter !== 'all' && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-full text-xs">
+                          🎯 {EVENT_TYPES[typeFilter as keyof typeof EVENT_TYPES]}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  </div>
+                </CardContent>
+              )}
             </div>
-          </CardContent>
-        </Card>
+          </Card>
         </div>
       </section>
 
