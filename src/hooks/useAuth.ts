@@ -16,6 +16,8 @@ export const useAuth = () => {
     },
     retry: 1,
     staleTime: 1000 * 60 * 5, // 5 dakika
+    refetchOnMount: false, // Mount'ta otomatik refetch yapma
+    refetchOnWindowFocus: false, // Window focus'ta refetch yapma
   });
 };
 
@@ -58,9 +60,9 @@ export const useAuthStatus = () => {
       };
     },
     retry: 1,
-    staleTime: 0, // Her zaman fresh data al
-    refetchOnMount: true,
-    refetchOnWindowFocus: true
+    staleTime: 1000 * 30, // 30 saniye - daha kısa ama infinite loop yapmayacak
+    refetchOnMount: false, // Mount'ta otomatik refetch yapma
+    refetchOnWindowFocus: false, // Window focus'ta refetch yapma
   });
 };
 

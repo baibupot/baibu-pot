@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,14 +39,80 @@ const AdminLogin = ({ resetMode = false }: AdminLoginProps) => {
   const [signupSuccess, setSignupSuccess] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState(false);
+  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
 
   const createUserRole = useCreateUserRole();
   const { data: authStatus } = useAuthStatus();
 
-  useEffect(() => {
-    checkUserAndResetMode();
+  // 🔒 Optimized authentication check with useCallback
+  const checkUserAndResetMode = useCallback(async () => {
+    // Eğer zaten kontrol edildiyse tekrar çalıştırma
+    if (hasCheckedAuth) return;
     
-    // Check for success messages in URL parameters
+    try {
+      // Props'dan reset mode kontrolü
+      if (resetMode) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          setIsPasswordResetMode(true);
+          setHasCheckedAuth(true);
+          return;
+        } else {
+          navigate('/admin/login', { replace: true });
+          setHasCheckedAuth(true);
+          return;
+        }
+      }
+
+      // URL parametrelerini kontrol et (eski uyumluluk için)
+      const urlParams = new URLSearchParams(window.location.search);
+      const isReset = urlParams.get('reset') === 'true';
+      
+      if (isReset) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          setIsPasswordResetMode(true);
+          setHasCheckedAuth(true);
+          return;
+        } else {
+          navigate('/admin/login', { replace: true });
+          setHasCheckedAuth(true);
+          return;
+        }
+      }
+
+      // Normal kullanıcı kontrolü - sadece bir kez
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && !isReset && !resetMode) {
+        // Auth cache'ini temizle
+        queryClient.invalidateQueries({ queryKey: ['auth-status'] });
+        queryClient.invalidateQueries({ queryKey: ['auth-user'] });
+        
+        // Yönlendirme öncesi state'i güncelle
+        setHasCheckedAuth(true);
+        
+        // Kısa bekleme sonrası yönlendir
+        setTimeout(() => {
+          navigate('/admin/dashboard', { replace: true });
+        }, 100);
+      } else {
+        setHasCheckedAuth(true);
+      }
+    } catch (error) {
+      console.error('Auth check error:', error);
+      setHasCheckedAuth(true);
+    }
+  }, [resetMode, navigate, queryClient, hasCheckedAuth]);
+
+  useEffect(() => {
+    // Sadece bir kez çalıştır
+    if (!hasCheckedAuth) {
+      checkUserAndResetMode();
+    }
+  }, [checkUserAndResetMode, hasCheckedAuth]);
+
+  // URL parametrelerini ayrı useEffect'te kontrol et
+  useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('emailChangeSuccess') === 'true') {
       toast.success('✅ E-posta değişikliği başarıyla tamamlandı! Yeni e-posta adresinizle giriş yapabilirsiniz.');
@@ -54,52 +120,6 @@ const AdminLogin = ({ resetMode = false }: AdminLoginProps) => {
       window.history.replaceState({}, '', '/admin/login');
     }
   }, []);
-
-  const checkUserAndResetMode = async () => {
-    // Props'dan reset mode kontrolü
-    if (resetMode) {
-      // Şifre sıfırlama modunda
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setIsPasswordResetMode(true);
-        return;
-      } else {
-        // Session yoksa normal giriş sayfasına dön
-        navigate('/admin/login');
-        return;
-      }
-    }
-
-    // URL parametrelerini kontrol et (eski uyumluluk için)
-    const urlParams = new URLSearchParams(window.location.search);
-    const isReset = urlParams.get('reset') === 'true';
-    
-    if (isReset) {
-      // Şifre sıfırlama modunda
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setIsPasswordResetMode(true);
-        return;
-      } else {
-        // Session yoksa normal giriş sayfasına dön
-        navigate('/admin/login');
-        return;
-      }
-    }
-
-    // Normal kullanıcı kontrolü
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user && !isReset && !resetMode) {
-      // Auth cache'ini temizle
-      queryClient.invalidateQueries({ queryKey: ['auth-status'] });
-      queryClient.invalidateQueries({ queryKey: ['auth-user'] });
-      
-      // Kısa bekleme sonrası yönlendir
-      setTimeout(() => {
-        navigate('/admin/dashboard', { replace: true });
-      }, 50);
-    }
-  };
 
   // 🔒 Enhanced Login with Email & Role Validation
   const handleLogin = async (e: React.FormEvent) => {
@@ -163,14 +183,15 @@ const AdminLogin = ({ resetMode = false }: AdminLoginProps) => {
         
         toast.success(`🎉 Hoş geldiniz! (${roleNames})`);
         
-        // Auth cache'ini temizle ki eski state kalmasan
-        queryClient.invalidateQueries({ queryKey: ['auth-status'] });
-        queryClient.invalidateQueries({ queryKey: ['auth-user'] });
+        // State'i güncelle ve yönlendir
+        setHasCheckedAuth(true);
         
-        // Auth state'in tamamen güncellendiğinden emin olmak için kısa bir bekleme
-        setTimeout(() => {
-          navigate('/admin/dashboard', { replace: true });
-        }, 100);
+        // Auth cache'ini temizle ve yönlendir
+        await queryClient.invalidateQueries({ queryKey: ['auth-status'] });
+        await queryClient.invalidateQueries({ queryKey: ['auth-user'] });
+        
+        // Hemen yönlendir, timeout kullanma
+        navigate('/admin/dashboard', { replace: true });
       }
     } catch (error: any) {
       const errorMessage = error.message || 'Giriş yapılırken beklenmeyen bir hata oluştu';

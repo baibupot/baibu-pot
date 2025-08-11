@@ -1,5 +1,5 @@
-import React from 'react';
-import { Navigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStatus } from '@/hooks/useAuth';
 import LoadingPage from '@/components/ui/loading-page';
 import { Shield } from 'lucide-react';
@@ -13,7 +13,21 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children, 
   requireRole = true 
 }) => {
+  const location = useLocation();
   const { data: authStatus, isLoading, isError } = useAuthStatus();
+  const [redirectAttempts, setRedirectAttempts] = useState(0);
+  const maxRedirects = 3; // Maksimum redirect sayısı
+
+  // Redirect loop koruması
+  useEffect(() => {
+    if (redirectAttempts >= maxRedirects) {
+      console.error('Maximum redirect attempts reached. Redirecting to login.');
+      // Local storage'ı temizle ve login'e yönlendir
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = '/admin/login';
+    }
+  }, [redirectAttempts, maxRedirects]);
 
   // Yükleniyor durumu veya hata durumunda loading göster
   if (isLoading || isError) {
@@ -28,7 +42,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Giriş yapmamış
   if (!authStatus?.isAuthenticated) {
-    return <Navigate to="/admin" replace />;
+    setRedirectAttempts(prev => prev + 1);
+    return <Navigate to="/admin" replace state={{ from: location }} />;
   }
 
   // Email doğrulanmamış

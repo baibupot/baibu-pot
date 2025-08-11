@@ -64,7 +64,7 @@ function AppRoutes() {
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin/reset-password" element={<AdminLogin resetMode={true} />} />
           <Route path="/admin/dashboard" element={
-            <ProtectedRoute>
+            <ProtectedRoute requireRole={true}>
               <AdminDashboard />
             </ProtectedRoute>
           } />
