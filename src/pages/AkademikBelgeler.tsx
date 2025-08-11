@@ -150,9 +150,10 @@ const AkademikBelgeler = () => {
       />
 
       {/* Search and Filters */}
-      <section className="py-8">
-        <div className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <section className="py-6 sm:py-8">
+        <Card variant="modern" className="animate-fade-in-up">
+          <CardContent className="p-4 sm:p-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
               <Input

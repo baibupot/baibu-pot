@@ -26,37 +26,41 @@ const GizlilikPolitikasi = () => {
 
       {/* Content */}
       <section className="pb-12">
-        <div className="space-y-8">
+        <div className="space-y-6 sm:space-y-8">
           {/* Introduction */}
-          <Card className="card-hover overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+          <Card variant="modern" className="animate-fade-in-up">
             <CardHeader>
-              <CardTitle className="flex items-center gap-3 text-xl">
-                <FileText className="h-6 w-6 text-purple-500" />
+              <CardTitle className="flex items-center gap-3 text-lg sm:text-xl">
+                <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-xl">
+                  <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
+                </div>
                 Giriş
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-base">
+              <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-sm sm:text-base">
                 Bolu Abant İzzet Baysal Üniversitesi Psikoloji Öğrencileri Topluluğu (BAİBÜ PÖT) 
                 olarak, kişisel verilerinizin korunması konusunda hassasiyetle davranmakta ve 
                 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) ile Avrupa Birliği Genel 
-                Veri Koruma Tüzüğü (GDPR) hükümlerine uygun olarak hareket etmekteyiz.
+                Veri Koruma Tüzüğü (GDPR) hükümlerine uygun olarak hareket etmekteyiz. 🔒
               </p>
             </CardContent>
           </Card>
 
           {/* Data Collection */}
-          <Card className="card-hover overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+          <Card variant="modern" className="animate-fade-in-up animation-delay-100">
             <CardHeader>
-              <CardTitle className="flex items-center gap-3 text-xl">
-                <Eye className="h-6 w-6 text-purple-500" />
+              <CardTitle className="flex items-center gap-3 text-lg sm:text-xl">
+                <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-xl">
+                  <Eye className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
+                </div>
                 Toplanan Veriler
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
                 <h4 className="font-semibold text-slate-900 dark:text-white mb-3 text-lg">
-                  📋 İletişim Formu Verileri:
+                  İletişim Formu Verileri:
                 </h4>
                 <ul className="list-disc list-inside text-slate-600 dark:text-slate-400 space-y-2 ml-4">
                   <li>Ad Soyad (zorunlu)</li>
@@ -67,7 +71,7 @@ const GizlilikPolitikasi = () => {
               
               <div>
                 <h4 className="font-semibold text-slate-900 dark:text-white mb-3 text-lg">
-                  🎉 Etkinlik Kayıt Verileri:
+                  Etkinlik Kayıt Verileri:
                 </h4>
                 <ul className="list-disc list-inside text-slate-600 dark:text-slate-400 space-y-2 ml-4">
                   <li>Ad Soyad</li>
@@ -79,7 +83,7 @@ const GizlilikPolitikasi = () => {
 
               <div>
                 <h4 className="font-semibold text-slate-900 dark:text-white mb-3 text-lg">
-                  💻 Teknik Veriler:
+                  Teknik Veriler:
                 </h4>
                 <ul className="list-disc list-inside text-slate-600 dark:text-slate-400 space-y-2 ml-4">
                   <li>IP adresi</li>
@@ -94,10 +98,12 @@ const GizlilikPolitikasi = () => {
           </Card>
 
           {/* Data Usage */}
-          <Card className="card-hover overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+          <Card variant="modern" className="animate-fade-in-up animation-delay-200">
             <CardHeader>
-              <CardTitle className="flex items-center gap-3 text-xl">
-                <UserCheck className="h-6 w-6 text-purple-500" />
+              <CardTitle className="flex items-center gap-3 text-lg sm:text-xl">
+                <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-xl">
+                  <UserCheck className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
+                </div>
                 Verilerin Kullanım Amaçları
               </CardTitle>
             </CardHeader>
@@ -128,17 +134,19 @@ const GizlilikPolitikasi = () => {
           </Card>
 
           {/* Analytics Services */}
-          <Card className="card-hover overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+          <Card variant="modern" className="animate-fade-in-up animation-delay-300">
             <CardHeader>
-              <CardTitle className="flex items-center gap-3 text-xl">
-                <Settings className="h-6 w-6 text-purple-500" />
+              <CardTitle className="flex items-center gap-3 text-lg sm:text-xl">
+                <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-xl">
+                  <Settings className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
+                </div>
                 Analitik Hizmetleri
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
                 <h4 className="font-semibold text-slate-900 dark:text-white mb-3 text-lg">
-                  📊 Google Analytics:
+                  Google Analytics:
                 </h4>
                 <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-3">
                   Web sitesi trafiğini ve kullanıcı davranışlarını analiz etmek için Google Analytics kullanmaktayız. 
@@ -148,7 +156,7 @@ const GizlilikPolitikasi = () => {
               
               <div>
                 <h4 className="font-semibold text-slate-900 dark:text-white mb-3 text-lg">
-                  🔍 Microsoft Clarity:
+                  Microsoft Clarity:
                 </h4>
                 <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-3">
                   Kullanıcı deneyimini geliştirmek amacıyla Microsoft Clarity analitik hizmetini kullanmaktayız. 
@@ -169,10 +177,12 @@ const GizlilikPolitikasi = () => {
           </Card>
 
           {/* Data Security */}
-          <Card className="card-hover overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+          <Card variant="modern" className="animate-fade-in-up animation-delay-400">
             <CardHeader>
-              <CardTitle className="flex items-center gap-3 text-xl">
-                <Lock className="h-6 w-6 text-purple-500" />
+              <CardTitle className="flex items-center gap-3 text-lg sm:text-xl">
+                <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-xl">
+                  <Lock className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
+                </div>
                 Veri Güvenliği
               </CardTitle>
             </CardHeader>
@@ -204,10 +214,12 @@ const GizlilikPolitikasi = () => {
           </Card>
 
           {/* User Rights */}
-          <Card className="card-hover overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+          <Card variant="modern" className="animate-fade-in-up animation-delay-500">
             <CardHeader>
-              <CardTitle className="flex items-center gap-3 text-xl">
-                <UserCheck className="h-6 w-6 text-purple-500" />
+              <CardTitle className="flex items-center gap-3 text-lg sm:text-xl">
+                <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-xl">
+                  <UserCheck className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
+                </div>
                 Haklarınız
               </CardTitle>
             </CardHeader>
@@ -217,7 +229,7 @@ const GizlilikPolitikasi = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-3">
                     <h4 className="font-semibold text-slate-900 dark:text-white text-lg">
-                      📊 Bilgi Alma Hakkı
+                      Bilgi Alma Hakkı
                     </h4>
                     <p className="leading-relaxed">
                       Verilerinizin işlenip işlenmediğini öğrenebilirsiniz.
@@ -225,7 +237,7 @@ const GizlilikPolitikasi = () => {
                   </div>
                   <div className="space-y-3">
                     <h4 className="font-semibold text-slate-900 dark:text-white text-lg">
-                      👁️ Erişim Hakkı
+                      Erişim Hakkı
                     </h4>
                     <p className="leading-relaxed">
                       İşlenen verilerinize erişim talep edebilirsiniz.
@@ -233,7 +245,7 @@ const GizlilikPolitikasi = () => {
                   </div>
                   <div className="space-y-3">
                     <h4 className="font-semibold text-slate-900 dark:text-white text-lg">
-                      ✏️ Düzeltme Hakkı
+                      Düzeltme Hakkı
                     </h4>
                     <p className="leading-relaxed">
                       Yanlış verilerin düzeltilmesini isteyebilirsiniz.
@@ -241,7 +253,7 @@ const GizlilikPolitikasi = () => {
                   </div>
                   <div className="space-y-3">
                     <h4 className="font-semibold text-slate-900 dark:text-white text-lg">
-                      🗑️ Silme Hakkı
+                      Silme Hakkı
                     </h4>
                     <p className="leading-relaxed">
                       Verilerinizin silinmesini talep edebilirsiniz.
@@ -253,10 +265,12 @@ const GizlilikPolitikasi = () => {
           </Card>
 
           {/* Contact */}
-          <Card className="card-hover overflow-hidden border-0 shadow-lg bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 backdrop-blur-sm">
+          <Card variant="modern" className="bg-gradient-to-br from-purple-50/80 to-pink-50/80 dark:from-purple-950/50 dark:to-pink-950/50 border-purple-200/50 dark:border-purple-800/50 animate-fade-in-up animation-delay-600">
             <CardHeader>
-              <CardTitle className="flex items-center gap-3 text-xl">
-                <Shield className="h-6 w-6 text-purple-500" />
+              <CardTitle className="flex items-center gap-3 text-lg sm:text-xl">
+                <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-xl">
+                  <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
+                </div>
                 İletişim ve Başvuru
               </CardTitle>
             </CardHeader>
@@ -268,7 +282,7 @@ const GizlilikPolitikasi = () => {
                 </p>
                 <div className="bg-white/60 dark:bg-slate-800/60 rounded-xl p-6 border border-purple-200 dark:border-purple-800">
                   <p className="font-semibold text-slate-900 dark:text-white mb-4 text-lg">
-                    📧 BAİBÜ Psikoloji Öğrencileri Topluluğu
+                    BAİBÜ Psikoloji Öğrencileri Topluluğu
                   </p>
                   <div className="space-y-2">
                     <p><span className="font-medium">İletişim Formu:</span> <a href="/iletisim" className="text-purple-600 dark:text-purple-400 hover:underline font-medium">İletişim Sayfası</a></p>
