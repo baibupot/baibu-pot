@@ -78,51 +78,72 @@ const Sponsorlar = () => {
       {/* Hero Section */}
       <PageHero
         title="Destekçilerimiz ve İş Ortaklarımız"
-        description="BAİBÜ Psikoloji Öğrencileri Topluluğu olarak, faaliyetlerimize destek veren değerli sponsor ve iş ortaklarımıza teşekkür ederiz. Onların desteği sayesinde daha kaliteli etkinlikler düzenleyebiliyoruz."
-        icon={Heart}
         gradient="pink"
-      >
-        {sponsors.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 mt-8">
-            <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
-              <div className="text-3xl font-bold text-slate-900 dark:text-white">
+      />
+
+      {/* Stats Cards - Modern Mobile First */}
+      {sponsors.length > 0 && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8 sm:mb-12">
+          <Card variant="modern" className="text-center p-4 sm:p-6 animate-fade-in-up">
+            <div className="space-y-1 sm:space-y-2">
+              <div className="text-2xl sm:text-3xl font-bold text-yellow-600 dark:text-yellow-400">
                 {sponsorsByType.ana.length}
               </div>
-              <div className="text-sm text-slate-600 dark:text-slate-300">Ana Sponsor</div>
+              <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium">
+                🥇 Ana Sponsor
+              </div>
             </div>
-            <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
-              <div className="text-3xl font-bold text-slate-900 dark:text-white">
+          </Card>
+          
+          <Card variant="modern" className="text-center p-4 sm:p-6 animate-fade-in-up animation-delay-100">
+            <div className="space-y-1 sm:space-y-2">
+              <div className="text-2xl sm:text-3xl font-bold text-emerald-600 dark:text-emerald-400">
                 {sponsorsByType.destekci.length}
               </div>
-              <div className="text-sm text-slate-600 dark:text-slate-300">Destekçi</div>
+              <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium">
+                🤝 Destekçi
+              </div>
             </div>
-            <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
-              <div className="text-3xl font-bold text-slate-900 dark:text-white">
+          </Card>
+          
+          <Card variant="modern" className="text-center p-4 sm:p-6 animate-fade-in-up animation-delay-200">
+            <div className="space-y-1 sm:space-y-2">
+              <div className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">
                 {sponsorsByType.medya.length + sponsorsByType.akademik.length}
               </div>
-              <div className="text-sm text-slate-600 dark:text-slate-300">Partner</div>
+              <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium">
+                📱 Partner
+              </div>
             </div>
-            <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
-              <div className="text-3xl font-bold text-slate-900 dark:text-white">
+          </Card>
+          
+          <Card variant="modern" className="text-center p-4 sm:p-6 animate-fade-in-up animation-delay-300">
+            <div className="space-y-1 sm:space-y-2">
+              <div className="text-2xl sm:text-3xl font-bold gradient-text-primary">
                 {sponsors.length}
               </div>
-              <div className="text-sm text-slate-600 dark:text-slate-300">Toplam</div>
+              <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium">
+                ✨ Toplam
+              </div>
             </div>
-          </div>
-        )}
-      </PageHero>
+          </Card>
+        </div>
+      )}
 
       {/* Sponsors by Category */}
-      <div className="space-y-16 py-12">
+      <div className="space-y-8 sm:space-y-12">
         {Object.entries(sponsorsByType).map(([type, typeSponsors]) => 
           typeSponsors.length > 0 && (
-            <section key={type}>
-              <div className="mb-8">
-                <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-3">
-                  <Heart className="h-8 w-8 text-pink-500" />
-                  {getSponsorTypeLabel(type)}
-                </h2>
-                <p className="text-slate-600 dark:text-slate-400">
+            <section key={type} className="animate-fade-in-up">
+              {/* Category Header */}
+              <div className="mb-6 sm:mb-8">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="h-1 w-12 sm:w-16 gradient-primary rounded-full"></div>
+                  <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">
+                    {getSponsorTypeLabel(type)}
+                  </h2>
+                </div>
+                <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed max-w-3xl">
                   {type === 'ana' && 'Ana sponsorlarımız, etkinliklerimizin gerçekleşmesinde kritik rol oynayan değerli ortaklarımızdır.'}
                   {type === 'destekci' && 'Destekçi kurumlarımız, topluluğumuzun büyümesine katkı sağlayan değerli iş ortaklarımızdır.'}
                   {type === 'medya' && 'Medya partnerlerimiz, etkinliklerimizin daha geniş kitlelere ulaşmasını sağlar.'}
@@ -130,80 +151,62 @@ const Sponsorlar = () => {
                 </p>
               </div>
               
-              <div className={`grid gap-8 ${type === 'ana' ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
-                {typeSponsors.map((sponsor) => (
+              {/* Sponsors Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+                {typeSponsors.map((sponsor, index) => (
                   <Card 
                     key={sponsor.id} 
-                    className={`card-hover group overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-105 ${
-                      type === 'ana' ? 'border-l-4 border-l-yellow-500' : ''
-                    }`}
+                    variant="interactive"
+                    className="group overflow-hidden"
                     onClick={() => handleSponsorClick(sponsor.website)}
+                    style={{ animationDelay: `${index * 100}ms` }}
                   >
-                    <CardHeader>
-                      <div className="flex items-start justify-between mb-4">
-                        <Badge className={getSponsorTypeColor(sponsor.sponsor_type)}>
+                    {/* Sponsor Logo */}
+                    <div className="aspect-video bg-gradient-to-br from-slate-50/50 to-slate-100/50 dark:from-slate-800/50 dark:to-slate-700/50 p-4 sm:p-6 flex items-center justify-center relative overflow-hidden">
+                      {sponsor.logo ? (
+                        <img
+                          src={sponsor.logo}
+                          alt={`${sponsor.name} Logo`}
+                          className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300 filter group-hover:brightness-110"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 sm:w-16 sm:h-16 bg-slate-200/50 dark:bg-slate-600/50 rounded-full flex items-center justify-center backdrop-blur-sm">
+                          <Building2 className="h-6 w-6 sm:h-8 sm:w-8 text-slate-400 dark:text-slate-500" />
+                        </div>
+                      )}
+                      
+                      {/* Website Indicator */}
+                      {sponsor.website && (
+                        <div className="absolute top-2 right-2 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-lg p-1.5 shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-1 group-hover:translate-y-0">
+                          <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4 text-slate-600 dark:text-slate-300" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Sponsor Info */}
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="flex items-center justify-between mb-3">
+                        <Badge 
+                          className={`${getSponsorTypeColor(sponsor.sponsor_type)} text-xs font-medium`}
+                          variant="secondary"
+                        >
                           {getSponsorTypeLabel(sponsor.sponsor_type)}
                         </Badge>
                       </div>
                       
-                      <div className={`${type === 'ana' ? 'h-40' : 'h-32'} bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 rounded-lg flex items-center justify-center mb-4 p-4 relative overflow-hidden group-hover:from-slate-200 group-hover:to-slate-300 dark:group-hover:from-slate-600 dark:group-hover:to-slate-700 transition-all duration-300`}>
-                        {sponsor.logo ? (
-                          <img 
-                            src={sponsor.logo} 
-                            alt={sponsor.name} 
-                            className="max-h-full max-w-full object-contain group-hover:scale-110 transition-transform duration-300" 
-                          />
-                        ) : (
-                          <Building2 className={`${type === 'ana' ? 'h-20 w-20' : 'h-16 w-16'} text-slate-400 group-hover:scale-110 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-all duration-300`} />
-                        )}
-                        {/* Shine effect */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 group-hover:animate-shimmer"></div>
-                        
-                        {/* Click indicator */}
-                        {sponsor.website && (
-                          <div className="absolute top-2 right-2 bg-pink-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <ExternalLink className="h-3 w-3" />
-                          </div>
-                        )}
-                      </div>
-                      
-                      <CardTitle className={`${type === 'ana' ? 'text-2xl' : 'text-xl'} text-slate-900 dark:text-white group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors duration-200 flex items-center gap-2`}>
+                      <h3 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors duration-200 mb-2 line-clamp-2">
                         {sponsor.name}
-                        {sponsor.website && (
-                          <ExternalLink className="h-4 w-4 text-slate-400 group-hover:text-pink-500 transition-colors duration-200" />
-                        )}
-                      </CardTitle>
-                    </CardHeader>
+                      </h3>
                     
-                    <CardContent>
+                      
                       {sponsor.description && (
-                        <p className="text-slate-600 dark:text-slate-400 mb-6 line-clamp-3 leading-relaxed">
+                        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 line-clamp-3 leading-relaxed">
                           {sponsor.description}
                         </p>
                       )}
-                      
-                      {sponsor.website && (
-                        <Button 
-                          variant="outline" 
-                          className="w-full group-hover:shadow-lg group-hover:bg-pink-50 group-hover:border-pink-300 dark:group-hover:bg-pink-950 dark:group-hover:border-pink-700 transition-all duration-200"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.open(sponsor.website, '_blank');
-                          }}
-                        >
-                          <Building2 className="h-4 w-4 mr-2" />
-                          Web Sitesini Ziyaret Et
-                          <ExternalLink className="h-4 w-4 ml-2" />
-                        </Button>
-                      )}
-                      
-                      {!sponsor.website && (
-                        <div className="text-center py-4">
-                          <p className="text-slate-400 dark:text-slate-500 text-sm">
-                            Web sitesi bilgisi bulunmuyor
-                          </p>
-                        </div>
-                      )}
+
+
                     </CardContent>
                   </Card>
                 ))}

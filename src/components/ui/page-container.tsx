@@ -32,20 +32,20 @@ const PageContainer: React.FC<PageContainerProps> = ({
   const getBackgroundClass = () => {
     switch (background) {
       case 'slate':
-        return 'bg-slate-50 dark:bg-slate-900';
+        return 'bg-gradient-to-br from-slate-50/50 via-white to-slate-100/50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950';
       case 'gradient':
-        return 'bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900';
+        return 'bg-gradient-to-br from-cyan-50/30 via-white to-teal-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950';
       default:
-        return 'bg-white dark:bg-slate-900';
+        return 'bg-gradient-to-br from-white via-slate-50/20 to-white dark:from-slate-950 dark:via-slate-900 dark:to-slate-950';
     }
   };
 
   return (
     <ThemeProvider>
-      <div className={`min-h-screen ${getBackgroundClass()} transition-all duration-300 ${className}`}>
+      <div className={`min-h-screen ${getBackgroundClass()} transition-all duration-500 ${className}`}>
         <Header />
         
-        <main className={`${getMaxWidthClass()} mx-auto px-4 sm:px-6 lg:px-8 py-8`}>
+        <main className={`${getMaxWidthClass()} mx-auto container-mobile py-6 sm:py-8 lg:py-12 spacing-mobile`}>
           {children}
         </main>
         

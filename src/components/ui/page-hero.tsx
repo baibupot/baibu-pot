@@ -12,7 +12,6 @@ interface PageHeroProps {
 const PageHero: React.FC<PageHeroProps> = ({ 
   title, 
   gradient = 'cyan'
-  // description, icon, children artık kullanılmıyor - minimal tasarım için
 }) => {
   const gradientClasses = {
     cyan: 'from-cyan-500 to-teal-600',
@@ -33,24 +32,22 @@ const PageHero: React.FC<PageHeroProps> = ({
   };
 
   return (
-    <section className={`relative bg-gradient-to-r ${backgroundClasses[gradient]} py-8 md:py-12 overflow-hidden`}>
-      {/* Minimal background accent */}
-      <div className="absolute inset-0 opacity-20">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-white dark:bg-slate-800 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-xl"></div>
+    <section className={`relative bg-gradient-to-r ${backgroundClasses[gradient]} py-12 md:py-20 overflow-hidden rounded-3xl mx-4 md:mx-8 shadow-xl`}>
+      {/* Dekoratif Blur Daireler */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-[-40px] left-[-40px] w-72 h-72 bg-white dark:bg-slate-800 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl opacity-20"></div>
+        <div className="absolute bottom-[-40px] right-[-40px] w-64 h-64 bg-white dark:bg-slate-800 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-2xl opacity-20"></div>
       </div>
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center">
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold leading-tight">
-            {/* İki renkli başlık efekti */}
-            <span className={`bg-gradient-to-r ${gradientClasses[gradient]} bg-clip-text text-transparent drop-shadow-sm`}>
-              {title}
-            </span>
-          </h1>
-        </div>
+      <div className="relative max-w-4xl mx-auto px-6 text-center">
+        <h1 className="text-3xl md:text-5xl font-extrabold leading-tight tracking-tight">
+          <span className={`bg-gradient-to-r ${gradientClasses[gradient]} bg-clip-text text-transparent drop-shadow-md`}>
+            {title}
+          </span>
+        </h1>
       </div>
     </section>
   );
 };
 
-export default PageHero; 
+export default PageHero;

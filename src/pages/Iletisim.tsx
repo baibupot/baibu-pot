@@ -70,232 +70,254 @@ const Iletisim = () => {
       {/* Hero Section */}
       <PageHero
         title="Bize Ulaşın"
-        description="Sorularınız, önerileriniz veya görüşleriniz için bizimle iletişime geçin. Size en kısa sürede geri dönüş yapmaya çalışacağız."
-        icon={MessageCircle}
         gradient="cyan"
-      >
-        <div className="flex justify-center mt-8">
-          <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-6 text-center">
-            <div className="text-4xl font-bold text-slate-900 dark:text-white mb-2">
+      />
+
+      {/* Quick Contact Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-8 sm:mb-12">
+        <Card variant="modern" className="text-center p-4 sm:p-6 animate-fade-in-up">
+          <div className="space-y-1 sm:space-y-2">
+            <div className="text-2xl sm:text-3xl font-bold text-cyan-600 dark:text-cyan-400">
               ⚡
             </div>
-            <div className="text-lg font-semibold text-slate-900 dark:text-white">
+            <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium">
               Hızlı Yanıt
             </div>
-            <div className="text-sm text-slate-600 dark:text-slate-300">
-              Oranı
+          </div>
+        </Card>
+        
+        <Card variant="modern" className="text-center p-4 sm:p-6 animate-fade-in-up animation-delay-100">
+          <div className="space-y-1 sm:space-y-2">
+            <div className="text-2xl sm:text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+              📧
+            </div>
+            <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium">
+              7/24 Mesaj
             </div>
           </div>
-        </div>
-      </PageHero>
+        </Card>
+        
+        <Card variant="modern" className="col-span-2 lg:col-span-1 text-center p-4 sm:p-6 animate-fade-in-up animation-delay-200">
+          <div className="space-y-1 sm:space-y-2">
+            <div className="text-2xl sm:text-3xl font-bold gradient-text-primary">
+              🤝
+            </div>
+            <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium">
+              Açık İletişim
+            </div>
+          </div>
+        </Card>
+      </div>
 
-      <section className="py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Contact Information */}
-          <div className="space-y-8">
-            <Card className="card-hover group overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-3 text-xl">
-                  <Mail className="h-6 w-6 text-cyan-500" />
-                  İletişim Bilgileri
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg flex items-center justify-center">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+        {/* Contact Information */}
+        <div className="space-y-6 animate-fade-in-up">
+          {/* Contact Info Card */}
+          <Card variant="modern">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="h-1 w-8 bg-gradient-to-r from-cyan-500 to-teal-500 rounded-full"></div>
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+                  📞 İletişim Bilgileri
+                </h3>
+              </div>
+              
+              <div className="space-y-6">
+                <div className="flex items-start gap-4 group cursor-pointer" onClick={() => window.open('mailto:baibupsikolojitoplulugu@gmail.com')}>
+                  <div className="w-12 h-12 bg-cyan-100/80 dark:bg-cyan-900/30 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
                     <Mail className="h-6 w-6 text-cyan-600 dark:text-cyan-400" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-semibold text-slate-900 dark:text-white mb-1">E-posta</p>
-                    <p className="text-slate-600 dark:text-slate-400">
-                      <a href="mailto:baibupsikolojitoplulugu@gmail.com" className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors">
-                        baibupsikolojitoplulugu@gmail.com
-                      </a>
+                    <p className="font-semibold text-slate-900 dark:text-white mb-1">E-posta Adresi</p>
+                    <p className="text-sm sm:text-base text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors font-medium">
+                      baibupsikolojitoplulugu@gmail.com
                     </p>
-                    <p className="text-sm text-slate-500 dark:text-slate-500">Resmi başvurular için</p>
+                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">Resmi başvurular ve sorular için</p>
                   </div>
                 </div>
                 
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
+                  <div className="w-12 h-12 bg-emerald-100/80 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center">
                     <MapPin className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-semibold text-slate-900 dark:text-white mb-1">Adres</p>
-                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                    <p className="font-semibold text-slate-900 dark:text-white mb-2">Kampüs Adresimiz</p>
+                    <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed">
                       Bolu Abant İzzet Baysal Üniversitesi<br />
                       Fen Edebiyat Fakültesi<br />
                       Psikoloji Bölümü<br />
-                      14030 Gölköy/Bolu
+                      <span className="font-medium">14030 Gölköy/Bolu</span>
                     </p>
                   </div>
                 </div>
-                
+              </div>
+            </CardContent>
+          </Card>
 
-              </CardContent>
-            </Card>
-
-            {/* Social Media */}
-            <Card 
-              className="card-hover group overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm"
-              data-social-media-card
-            >
-              <CardHeader>
-                <CardTitle className="text-xl">Sosyal Medyada Bizi Takip Edin</CardTitle>
-                <p className="text-slate-600 dark:text-slate-400 text-sm mt-2">
-                  Güncel duyurular ve etkinliklerimizden haberdar olmak için sosyal medya hesaplarımızı takip edin.
-                </p>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Button 
-                    variant="outline" 
-                    className="group-hover:shadow-lg transition-all duration-200 h-14 justify-start"
-                    onClick={() => window.open('https://www.instagram.com/baibupsikoloji', '_blank')}
-                  >
-                    <div className="flex items-center gap-3 w-full">
-                      <div className="w-10 h-10 bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 rounded-lg flex items-center justify-center">
-                        <Instagram className="h-5 w-5 text-white" />
-                      </div>
-                      <div className="text-left">
-                        <div className="text-sm font-semibold text-slate-900 dark:text-white">Instagram</div>
-                        <div className="text-xs text-slate-600 dark:text-slate-400">@baibupsikoloji</div>
-                      </div>
+          {/* Social Media */}
+          <Card variant="modern">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="h-1 w-8 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full"></div>
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+                  📱 Sosyal Medya
+                </h3>
+              </div>
+              <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
+                Güncel duyurular ve etkinliklerimizden haberdar olmak için bizi takip edin.
+              </p>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <Button 
+                  variant="outline" 
+                  className="interactive-scale hover:border-pink-200 dark:hover:border-pink-800 h-12 sm:h-14 justify-start group"
+                  onClick={() => window.open('https://www.instagram.com/baibupsikoloji', '_blank')}
+                >
+                  <div className="flex items-center gap-3 w-full">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Instagram className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                     </div>
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    className="group-hover:shadow-lg transition-all duration-200 h-14 justify-start"
-                    onClick={() => window.open('https://facebook.com/aibu.pot', '_blank')}
-                  >
-                    <div className="flex items-center gap-3 w-full">
-                      <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                        <Facebook className="h-5 w-5 text-white" />
-                      </div>
-                      <div className="text-left">
-                        <div className="text-sm font-semibold text-slate-900 dark:text-white">Facebook</div>
-                        <div className="text-xs text-slate-600 dark:text-slate-400">aibu.pot</div>
-                      </div>
+                    <div className="text-left">
+                      <div className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white">Instagram</div>
+                      <div className="text-xs text-slate-600 dark:text-slate-400">@baibupsikoloji</div>
                     </div>
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    className="group-hover:shadow-lg transition-all duration-200 h-14 justify-start"
-                    onClick={() => window.open('https://twitter.com/baibupsikoloji', '_blank')}
-                  >
-                    <div className="flex items-center gap-3 w-full">
-                      <div className="w-10 h-10 bg-black dark:bg-white rounded-lg flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="h-5 w-5 text-white dark:text-black">
-                          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                        </svg>
-                      </div>
-                      <div className="text-left">
-                        <div className="text-sm font-semibold text-slate-900 dark:text-white">X (Twitter)</div>
-                        <div className="text-xs text-slate-600 dark:text-slate-400">@baibupsikoloji</div>
-                      </div>
-                    </div>
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    className="group-hover:shadow-lg transition-all duration-200 h-14 justify-start"
-                    onClick={() => window.open('https://tr.linkedin.com/in/baibupsikoloji?trk=public_post_feed-actor-name', '_blank')}
-                  >
-                    <div className="flex items-center gap-3 w-full">
-                      <div className="w-10 h-10 bg-blue-700 rounded-lg flex items-center justify-center">
-                        <Linkedin className="h-5 w-5 text-white" />
-                      </div>
-                      <div className="text-left">
-                        <div className="text-sm font-semibold text-slate-900 dark:text-white">LinkedIn</div>
-                        <div className="text-xs text-slate-600 dark:text-slate-400">baibupsikoloji</div>
-                      </div>
-                    </div>
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    className="group-hover:shadow-lg transition-all duration-200 h-14 justify-start"
-                    onClick={() => window.open('https://www.youtube.com/@BA%C4%B0B%C3%9CPsikolojiToplulu%C4%9Fu', '_blank')}
-                  >
-                    <div className="flex items-center gap-3 w-full">
-                      <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center">
-                        <Youtube className="h-5 w-5 text-white" />
-                      </div>
-                      <div className="text-left">
-                        <div className="text-sm font-semibold text-slate-900 dark:text-white">YouTube</div>
-                        <div className="text-xs text-slate-600 dark:text-slate-400">BAİBÜ PÖT</div>
-                      </div>
-                    </div>
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    className="group-hover:shadow-lg transition-all duration-200 h-14 justify-start"
-                    onClick={() => window.open('https://open.spotify.com/user/chg73jv11emfnf66gt23hqm67?si=82f2e1622ee64249', '_blank')}
-                  >
-                    <div className="flex items-center gap-3 w-full">
-                      <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="h-5 w-5 text-white">
-                          <path d="M12 0C5.371 0 0 5.371 0 12c0 6.627 5.371 12 12 12s12-5.373 12-12c0-6.629-5.371-12-12-12zm5.438 17.438c-.229.373-.708.49-1.08.26-2.953-1.807-6.675-2.213-11.06-1.209-.429.094-.859-.168-.953-.598-.094-.43.168-.859.598-.953 4.771-1.07 8.872-.617 12.174 1.318.373.229.49.708.261 1.082zm1.543-3.082c-.287.467-.893.617-1.359.33-3.381-2.08-8.547-2.684-12.547-1.463-.521.156-1.072-.137-1.229-.658-.156-.521.137-1.072.658-1.229 4.547-1.363 10.229-.707 14.047 1.684.467.287.617.893.33 1.336zm.146-3.146c-4.08-2.426-10.88-2.646-14.438-1.438-.635.199-1.318-.146-1.518-.781-.199-.635.146-1.318.781-1.518 4.08-1.281 11.453-1.027 16.02 1.646.573.344.76 1.094.416 1.668-.344.573-1.094.76-1.668.416z"/>
-                        </svg>
-                      </div>
-                      <div className="text-left">
-                        <div className="text-sm font-semibold text-slate-900 dark:text-white">Spotify</div>
-                        <div className="text-xs text-slate-600 dark:text-slate-400">Playlist'lerimiz</div>
-                      </div>
-                    </div>
-                  </Button>
-                </div>
-                
-
-              </CardContent>
-            </Card>
-
-            {/* FAQ Link */}
-            <Card className="card-hover group overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="text-xl">Sıkça Sorulan Sorular</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
-                  Merak ettiğiniz soruların cevapları zaten hazır olabilir. 
-                  Bize yazmadan önce SSS sayfamıza göz atın.
-                </p>
-                <Button variant="outline" className="w-full group-hover:shadow-lg transition-all duration-200" asChild>
-                  <Link to="/sss">
-                  ❓ SSS Sayfasını Ziyaret Et
-                  </Link>
+                  </div>
                 </Button>
-              </CardContent>
-            </Card>
-          </div>
+                  
+                <Button 
+                  variant="outline" 
+                  className="interactive-scale hover:border-blue-200 dark:hover:border-blue-800 h-12 sm:h-14 justify-start group"
+                  onClick={() => window.open('https://facebook.com/aibu.pot', '_blank')}
+                >
+                  <div className="flex items-center gap-3 w-full">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Facebook className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                    </div>
+                    <div className="text-left">
+                      <div className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white">Facebook</div>
+                      <div className="text-xs text-slate-600 dark:text-slate-400">aibu.pot</div>
+                    </div>
+                  </div>
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="interactive-scale hover:border-slate-200 dark:hover:border-slate-700 h-12 sm:h-14 justify-start group"
+                  onClick={() => window.open('https://twitter.com/baibupsikoloji', '_blank')}
+                >
+                  <div className="flex items-center gap-3 w-full">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-black dark:bg-white rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="h-4 w-4 sm:h-5 sm:w-5 text-white dark:text-black">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                      </svg>
+                    </div>
+                    <div className="text-left">
+                      <div className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white">X (Twitter)</div>
+                      <div className="text-xs text-slate-600 dark:text-slate-400">@baibupsikoloji</div>
+                    </div>
+                  </div>
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="interactive-scale hover:border-blue-200 dark:hover:border-blue-800 h-12 sm:h-14 justify-start group"
+                  onClick={() => window.open('https://tr.linkedin.com/in/baibupsikoloji', '_blank')}
+                >
+                  <div className="flex items-center gap-3 w-full">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-700 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Linkedin className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                    </div>
+                    <div className="text-left">
+                      <div className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white">LinkedIn</div>
+                      <div className="text-xs text-slate-600 dark:text-slate-400">baibupsikoloji</div>
+                    </div>
+                  </div>
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="interactive-scale hover:border-red-200 dark:hover:border-red-800 h-12 sm:h-14 justify-start group"
+                  onClick={() => window.open('https://www.youtube.com/@BAİBÜPsikolojiTopluluğu', '_blank')}
+                >
+                  <div className="flex items-center gap-3 w-full">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-red-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Youtube className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                    </div>
+                    <div className="text-left">
+                      <div className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white">YouTube</div>
+                      <div className="text-xs text-slate-600 dark:text-slate-400">BAİBÜ PÖT</div>
+                    </div>
+                  </div>
+                </Button>
+                  
+                <Button 
+                  variant="outline" 
+                  className="interactive-scale hover:border-green-200 dark:hover:border-green-800 h-12 sm:h-14 justify-start group col-span-1 sm:col-span-2"
+                  onClick={() => window.open('https://open.spotify.com/user/chg73jv11emfnf66gt23hqm67', '_blank')}
+                >
+                  <div className="flex items-center gap-3 w-full">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-500 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="h-4 w-4 sm:h-5 sm:w-5 text-white">
+                        <path d="M12 0C5.371 0 0 5.371 0 12c0 6.627 5.371 12 12 12s12-5.373 12-12c0-6.629-5.371-12-12-12zm5.438 17.438c-.229.373-.708.49-1.08.26-2.953-1.807-6.675-2.213-11.06-1.209-.429.094-.859-.168-.953-.598-.094-.43.168-.859.598-.953 4.771-1.07 8.872-.617 12.174 1.318.373.229.49.708.261 1.082zm1.543-3.082c-.287.467-.893.617-1.359.33-3.381-2.08-8.547-2.684-12.547-1.463-.521.156-1.072-.137-1.229-.658-.156-.521.137-1.072.658-1.229 4.547-1.363 10.229-.707 14.047 1.684.467.287.617.893.33 1.336zm.146-3.146c-4.08-2.426-10.88-2.646-14.438-1.438-.635.199-1.318-.146-1.518-.781-.199-.635.146-1.318.781-1.518 4.08-1.281 11.453-1.027 16.02 1.646.573.344.76 1.094.416 1.668-.344.573-1.094.76-1.668.416z"/>
+                      </svg>
+                    </div>
+                    <div className="text-left">
+                      <div className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white">Spotify</div>
+                      <div className="text-xs text-slate-600 dark:text-slate-400">Playlist'lerimiz</div>
+                    </div>
+                  </div>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Contact Form */}
-          <Card className="card-hover group overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-3 text-xl">
-                {isSubmitted ? (
-                  <>
-                    <CheckCircle className="h-6 w-6 text-green-500" />
-                    Mesaj Gönderildi
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-6 w-6 text-cyan-500" />
-                    Mesaj Gönder
-                  </>
-                )}
-              </CardTitle>
-              <p className="text-slate-600 dark:text-slate-400">
+          {/* FAQ Link */}
+          <Card variant="modern">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-1 w-8 bg-gradient-to-r from-orange-500 to-red-500 rounded-full"></div>
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+                  ❓ SSS
+                </h3>
+              </div>
+              <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
+                Merak ettiğiniz soruların cevapları zaten hazır olabilir. Bize yazmadan önce SSS sayfamıza göz atın.
+              </p>
+              <Button variant="outline" className="w-full interactive-scale" asChild>
+                <Link to="/sss">
+                  ❓ SSS Sayfasını Ziyaret Et
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+                  {/* Contact Form */}
+        <div className="animate-fade-in-up animation-delay-200">
+          <Card variant="modern">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="h-1 w-8 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full"></div>
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+                  {isSubmitted ? (
+                    <>
+                      <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-green-500" />
+                      ✅ Mesaj Gönderildi
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-5 w-5 sm:h-6 sm:w-6 text-cyan-500" />
+                      📝 Mesaj Gönder
+                    </>
+                  )}
+                </h3>
+              </div>
+              <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
                 {isSubmitted 
                   ? "Mesajınız başarıyla gönderildi! Size en kısa sürede geri dönüş yapacağız."
                   : "Aşağıdaki formu doldurarak bizimle iletişime geçebilirsiniz."
                 }
               </p>
-            </CardHeader>
-            <CardContent>
               {isSubmitted ? (
                 <div className="text-center py-12 space-y-6">
                   <div className="text-6xl mb-6">🎉</div>
@@ -322,10 +344,10 @@ const Iletisim = () => {
                   </div>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <Label htmlFor="name" className="text-base font-medium">
-                    Adınız Soyadınız <span className="text-red-500">*</span>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-sm font-semibold text-slate-900 dark:text-white">
+                    👤 Adınız Soyadınız <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="name"
@@ -334,14 +356,16 @@ const Iletisim = () => {
                     value={formData.name}
                     onChange={handleInputChange}
                     placeholder="Adınızı ve soyadınızı girin"
-                    className="mt-2 h-12 bg-white/80 dark:bg-slate-700/80"
+                    className="h-11 sm:h-12 rounded-xl border-slate-200 dark:border-slate-700 focus:border-cyan-500 bg-white/90 dark:bg-slate-800/90 focus-ring-modern"
                     disabled={isSubmitting}
                     required
                   />
                 </div>
 
-                <div>
-                  <Label htmlFor="email" className="text-base font-medium">E-posta Adresiniz</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm font-semibold text-slate-900 dark:text-white">
+                    📧 E-posta Adresiniz
+                  </Label>
                   <Input
                     id="email"
                     name="email"
@@ -349,17 +373,17 @@ const Iletisim = () => {
                     value={formData.email}
                     onChange={handleInputChange}
                     placeholder="ornek@email.com (isteğe bağlı)"
-                    className="mt-2 h-12 bg-white/80 dark:bg-slate-700/80"
+                    className="h-11 sm:h-12 rounded-xl border-slate-200 dark:border-slate-700 focus:border-cyan-500 bg-white/90 dark:bg-slate-800/90 focus-ring-modern"
                     disabled={isSubmitting}
                   />
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-                    E-posta adresinizi girmek isteğe bağlıdır, ancak yanıt verebilmemiz için önerilir.
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                    💡 E-posta adresinizi girmek isteğe bağlıdır, ancak yanıt verebilmemiz için önerilir.
                   </p>
                 </div>
 
-                <div>
-                  <Label htmlFor="subject" className="text-base font-medium">
-                    Konu <span className="text-red-500">*</span>
+                <div className="space-y-2">
+                  <Label htmlFor="subject" className="text-sm font-semibold text-slate-900 dark:text-white">
+                    📋 Konu <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="subject"
@@ -368,15 +392,15 @@ const Iletisim = () => {
                     value={formData.subject}
                     onChange={handleInputChange}
                     placeholder="Mesajınızın konusunu girin"
-                    className="mt-2 h-12 bg-white/80 dark:bg-slate-700/80"
+                    className="h-11 sm:h-12 rounded-xl border-slate-200 dark:border-slate-700 focus:border-cyan-500 bg-white/90 dark:bg-slate-800/90 focus-ring-modern"
                     disabled={isSubmitting}
                     required
                   />
                 </div>
 
-                <div>
-                  <Label htmlFor="message" className="text-base font-medium">
-                    Mesajınız <span className="text-red-500">*</span>
+                <div className="space-y-2">
+                  <Label htmlFor="message" className="text-sm font-semibold text-slate-900 dark:text-white">
+                    💬 Mesajınız <span className="text-red-500">*</span>
                   </Label>
                   <Textarea
                     id="message"
@@ -385,7 +409,7 @@ const Iletisim = () => {
                     onChange={handleInputChange}
                     placeholder="Mesajınızı buraya yazın... Detaylı bilgi vermeniz, size daha iyi yardımcı olmamızı sağlar."
                     rows={6}
-                    className="mt-2 bg-white/80 dark:bg-slate-700/80 resize-none"
+                    className="rounded-xl border-slate-200 dark:border-slate-700 focus:border-cyan-500 bg-white/90 dark:bg-slate-800/90 resize-none focus-ring-modern"
                     disabled={isSubmitting}
                     required
                   />
@@ -393,89 +417,91 @@ const Iletisim = () => {
 
                 <Button 
                   type="submit" 
-                  className="w-full h-12 text-base group-hover:shadow-lg transition-all duration-200"
+                  size="touch"
+                  className="w-full gradient-primary text-white font-semibold"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? (
                     <>
                       <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" />
-                      Gönderiliyor...
+                      🚀 Gönderiliyor...
                     </>
                   ) : (
                     <>
                       <Send className="h-5 w-5 mr-2" />
-                      Mesaj Gönder
+                      📨 Mesaj Gönder
                     </>
                   )}
                 </Button>
 
-                <p className="text-sm text-slate-500 dark:text-slate-400 text-center">
-                  <span className="text-red-500">*</span> işaretli alanlar zorunludur.
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 text-center leading-relaxed">
+                  <span className="text-red-500 font-medium">*</span> işaretli alanlar zorunludur. Mesajınızı 24 saat içinde yanıtlamaya çalışıyoruz.
                 </p>
               </form>
               )}
             </CardContent>
           </Card>
         </div>
-      </section>
+      </div>  
 
       {/* Map Section */}
-      <section className="py-16">
-        <Card className="card-hover overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-3 text-xl">
-              <MapPin className="h-6 w-6 text-emerald-500" />
-              Fen Edebiyat Fakültesi Konumu
-            </CardTitle>
-            <p className="text-slate-600 dark:text-slate-400">
-              Psikoloji Bölümümüzün bulunduğu Fen Edebiyat Fakültesi'nin kampüs konumu
-            </p>
-          </CardHeader>
-          <CardContent>
-            <div className="h-96 rounded-lg overflow-hidden shadow-lg border border-slate-200 dark:border-slate-700">
-              <iframe
-                src="https://maps.google.com/maps?width=100%&height=600&hl=tr&q=40.71389916736156,31.514386464970723+(BAİBÜ+Fen+Edebiyat+Fakültesi)&t=&z=17&ie=UTF8&iwloc=B&output=embed"
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                allowFullScreen={true}
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title="BAİBÜ Fen Edebiyat Fakültesi - Psikoloji Bölümü Haritası"
-                className="w-full h-full"
-              />
-            </div>
+      <Card variant="modern" className="animate-fade-in-up">
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-1 w-8 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full"></div>
+            <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+              <MapPin className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500" />
+              🗺️ Kampüs Konumumuz
+            </h3>
+          </div>
+          <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
+            Psikoloji Bölümümüzün bulunduğu Fen Edebiyat Fakültesi'nin kampüs konumu. Ziyaret etmek için haritayı kullanabilirsiniz.
+          </p>
+          
+          <div className="h-80 sm:h-96 rounded-2xl overflow-hidden shadow-lg border border-slate-200/50 dark:border-slate-700/50">
+            <iframe
+              src="https://maps.google.com/maps?width=100%&height=600&hl=tr&q=40.71389916736156,31.514386464970723+(BAİBÜ+Fen+Edebiyat+Fakültesi)&t=&z=17&ie=UTF8&iwloc=B&output=embed"
+              width="100%"
+              height="100%"
+              style={{ border: 0 }}
+              allowFullScreen={true}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              title="BAİBÜ Fen Edebiyat Fakültesi - Psikoloji Bölümü Haritası"
+              className="w-full h-full grayscale hover:grayscale-0 transition-all duration-500"
+            />
+          </div>
             
-            {/* Harita Altında Bilgi Kartları */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-              <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-4 text-center">
-                <div className="text-2xl mb-2">🚗</div>
-                <h4 className="font-semibold text-slate-900 dark:text-white mb-1">Araç ile</h4>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Bolu merkezden 15 dk<br />
-                  Gölköy yerleşkesi
-                </p>
-              </div>
-              
-              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 text-center">
-                <div className="text-2xl mb-2">🚌</div>
-                <h4 className="font-semibold text-slate-900 dark:text-white mb-1">Toplu Taşıma</h4>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  30 | Kampüs İçi Ring<br />
-                  7  | BAİBÜ Kampüs – Merkez<br />
-                  15 | D-100 – BAİBÜ Kampüs – Merkez
-                  </p>
-                </div>
-              
-              <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 text-center">
-                <div className="text-2xl mb-2">📍</div>
-                <h4 className="font-semibold text-slate-900 dark:text-white mb-1">Koordinatlar</h4>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  40.7139° N<br />
-                  31.5144° E
-                </p>
-              </div>
-            </div>
+          {/* Harita Altında Bilgi Kartları */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mt-6">
+            <Card variant="modern" className="text-center p-4 animate-fade-in-up animation-delay-100">
+              <div className="text-2xl sm:text-3xl mb-2">🚗</div>
+              <h4 className="font-bold text-slate-900 dark:text-white mb-2 text-sm sm:text-base">Araç ile</h4>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                Bolu merkezden 15 dk<br />
+                <span className="font-medium">Gölköy yerleşkesi</span>
+              </p>
+            </Card>
+            
+            <Card variant="modern" className="text-center p-4 animate-fade-in-up animation-delay-200">
+              <div className="text-2xl sm:text-3xl mb-2">🚌</div>
+              <h4 className="font-bold text-slate-900 dark:text-white mb-2 text-sm sm:text-base">Toplu Taşıma</h4>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                30 | Kampüs İçi Ring<br />
+                7 | BAİBÜ Kampüs – Merkez<br />
+                <span className="font-medium">15 | D-100 – Merkez</span>
+              </p>
+            </Card>
+            
+            <Card variant="modern" className="text-center p-4 animate-fade-in-up animation-delay-300">
+              <div className="text-2xl sm:text-3xl mb-2">📍</div>
+              <h4 className="font-bold text-slate-900 dark:text-white mb-2 text-sm sm:text-base">Koordinatlar</h4>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                <span className="font-medium">40.7139° N</span><br />
+                <span className="font-medium">31.5144° E</span>
+              </p>
+            </Card>
+          </div>
             
             {/* Navigasyon Butonları */}
             <div className="flex flex-col sm:flex-row gap-3 mt-6">
@@ -568,7 +594,6 @@ const Iletisim = () => {
             </div>
           </CardContent>
         </Card>
-      </section>
 
       {/* Quick Contact CTA */}
       <section className="py-16">

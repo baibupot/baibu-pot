@@ -138,173 +138,167 @@ const Urunler = () => {
       {/* Hero Section */}
       <PageHero
         title="BAİBÜ PÖT Ürünleri"
-        description="Psikoloji öğrencileri topluluğumuzun özel tasarım ürünleri. Kaliteli malzemeler ve anlam yüklü tasarımlarla günlük hayatınıza renk katın."
-        icon={ShoppingBag}
         gradient="cyan"
-      >
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-8">
-          <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
-            <div className="text-3xl font-bold text-slate-900 dark:text-white">
+      />
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-8 sm:mb-12">
+        <Card variant="modern" className="text-center p-4 sm:p-6 animate-fade-in-up">
+          <div className="space-y-1 sm:space-y-2">
+            <div className="text-2xl sm:text-3xl font-bold text-cyan-600 dark:text-cyan-400">
               {products.length}
             </div>
-            <div className="text-sm text-slate-600 dark:text-slate-300">Toplam Ürün</div>
+            <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium">
+              📦 Toplam Ürün
+            </div>
           </div>
-          <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
-            <div className="text-3xl font-bold text-slate-900 dark:text-white">
+        </Card>
+        
+        <Card variant="modern" className="text-center p-4 sm:p-6 animate-fade-in-up animation-delay-100">
+          <div className="space-y-1 sm:space-y-2">
+            <div className="text-2xl sm:text-3xl font-bold text-purple-600 dark:text-purple-400">
               {new Set(products.map(p => p.category)).size}
             </div>
-            <div className="text-sm text-slate-600 dark:text-slate-300">Kategori</div>
+            <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium">
+              🏷️ Kategori
+            </div>
           </div>
-          <div className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 text-center">
-            <div className="text-3xl font-bold text-slate-900 dark:text-white">
+        </Card>
+        
+        <Card variant="modern" className="col-span-2 lg:col-span-1 text-center p-4 sm:p-6 animate-fade-in-up animation-delay-200">
+          <div className="space-y-1 sm:space-y-2">
+            <div className="text-2xl sm:text-3xl font-bold gradient-text-primary">
               {products.filter(p => p.stock_status === 'available').length}
             </div>
-            <div className="text-sm text-slate-600 dark:text-slate-300">Stokta Var</div>
+            <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium">
+              ✅ Stokta Var
+            </div>
           </div>
-        </div>
-      </PageHero>
+        </Card>
+      </div>
 
       {/* Products Grid */}
-      <section className="py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {products.map((product) => (
-            <Card 
-              key={product.id} 
-              className="card-hover group overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm cursor-pointer hover:shadow-xl transition-all duration-300"
-              onClick={() => handleProductClick(product)}
-            >
-              <CardHeader className="p-0">
-                <div className="h-64 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center relative overflow-hidden">
-                  {product.images && product.images.length > 0 ? (
-                    <LazyImage
-                      src={product.images[0]}
-                      alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      fallback={<Package className="h-16 w-16 text-slate-400" />}
-                    />
-                  ) : (
-                    <div className="text-center space-y-4">
-                      <Package className="h-16 w-16 text-slate-400 mx-auto group-hover:scale-110 transition-transform duration-300" />
-                      <p className="text-sm text-slate-500">Görsel Yakında</p>
-                    </div>
-                  )}
-                  
-                  {/* Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  
-                  {/* Category Badge */}
-                  <div className="absolute top-4 left-4">
-                    <Badge className={getCategoryColor(product.category)}>
-                      {getCategoryLabel(product.category)}
-                    </Badge>
-                  </div>
-                  
-                  {/* Stock Status Badge */}
-                  <div className="absolute top-4 right-4">
-                    <Badge 
-                      variant={product.stock_status === 'available' ? 'default' : 'secondary'}
-                      className="flex items-center gap-1"
-                    >
-                      {getStockIcon(product.stock_status)}
-                      {getStockText(product.stock_status)}
-                    </Badge>
-                  </div>
-
-                  {/* Click to View Overlay */}
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-full p-3 shadow-lg">
-                      <Eye className="h-6 w-6 text-cyan-600 dark:text-cyan-400" />
-                    </div>
-                  </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        {products.map((product, index) => (
+          <Card 
+            key={product.id} 
+            variant="interactive"
+            className="group overflow-hidden animate-fade-in-up"
+            style={{ animationDelay: `${index * 100}ms` }}
+            onClick={() => handleProductClick(product)}
+          >
+            {/* Product Image */}
+            <div className="aspect-square bg-gradient-to-br from-slate-100/50 to-slate-200/50 dark:from-slate-700/50 dark:to-slate-800/50 flex items-center justify-center relative overflow-hidden">
+              {product.images && product.images.length > 0 ? (
+                <LazyImage
+                  src={product.images[0]}
+                  alt={product.name}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  fallback={<Package className="h-12 w-12 sm:h-16 sm:w-16 text-slate-400" />}
+                />
+              ) : (
+                <div className="text-center space-y-3">
+                  <Package className="h-12 w-12 sm:h-16 sm:w-16 text-slate-400 mx-auto group-hover:scale-110 transition-transform duration-300" />
+                  <p className="text-xs sm:text-sm text-slate-500 font-medium">Görsel Yakında</p>
                 </div>
-              </CardHeader>
+              )}
               
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  {/* Title & Price */}
-                  <div className="flex justify-between items-start">
-                    <CardTitle className="text-lg line-clamp-1 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors duration-200">
-                      {product.name}
-                    </CardTitle>
-                    <div className="text-right ml-2">
-                      <div className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">
-                        ₺{product.price}
-                      </div>
+              {/* Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              
+              {/* Category Badge */}
+              <div className="absolute top-3 left-3">
+                <Badge className={`${getCategoryColor(product.category)} text-xs font-medium backdrop-blur-sm`}>
+                  {getCategoryLabel(product.category)}
+                </Badge>
+              </div>
+              
+              {/* Stock Status */}
+              <div className="absolute top-3 right-3">
+                <div className="flex items-center gap-1 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-lg px-2 py-1">
+                  {getStockIcon(product.stock_status)}
+                  <span className="text-xs font-medium">{getStockText(product.stock_status)}</span>
+                </div>
+              </div>
+              
+              {/* View Details Indicator */}
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-full p-3 shadow-lg animate-fade-in-scale">
+                  <Eye className="h-5 w-5 sm:h-6 sm:w-6 text-cyan-600 dark:text-cyan-400" />
+                </div>
+              </div>
+            </div>
+              
+                          {/* Product Info */}
+            <CardContent className="p-4 sm:p-6">
+              <div className="space-y-3 sm:space-y-4">
+                {/* Title & Price */}
+                <div className="flex justify-between items-start gap-3">
+                  <h3 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors duration-200 line-clamp-2 flex-1">
+                    {product.name}
+                  </h3>
+                  <div className="text-right flex-shrink-0">
+                    <div className="text-lg sm:text-xl font-bold text-cyan-600 dark:text-cyan-400">
+                      ₺{product.price}
                     </div>
                   </div>
-
-                  {/* Description */}
-                  {product.description && (
-                    <p className="text-slate-600 dark:text-slate-400 text-sm line-clamp-2 leading-relaxed">
-                      {product.description}
-                    </p>
-                  )}
-
-                  {/* Features */}
-                  <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span>Özel Tasarım</span>
-                    <span>•</span>
-                    <Tag className="h-4 w-4" />
-                    <span>Kaliteli Malzeme</span>
-                  </div>
-
-                  {/* Action Button */}
-                  <Button 
-                    className="w-full group-hover:shadow-lg transition-all duration-200"
-                    disabled={product.stock_status === 'out_of_stock'}
-                    onClick={(e) => {
-                      e.stopPropagation(); // Prevent card click when button is clicked
-                      handleProductClick(product);
-                    }}
-                  >
-                    {product.stock_status === 'out_of_stock' ? (
-                      'Stokta Yok'
-                    ) : (
-                      <>
-                        <Eye className="h-4 w-4 mr-2" />
-                        Detayları Gör
-                      </>
-                    )}
-                  </Button>
                 </div>
-              </CardContent>
+
+                {/* Description */}
+                {product.description && (
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                    {product.description}
+                  </p>
+                )}
+
+                {/* Features */}
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                  <Star className="h-3 w-3 sm:h-4 sm:w-4 fill-yellow-400 text-yellow-400" />
+                  <span>Özel Tasarım</span>
+                  <span>•</span>
+                  <Tag className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span>Kaliteli</span>
+                </div>
+
+                {/* Action */}
+                <div className="pt-2">
+                  <div className="flex items-center gap-2 text-cyan-600 dark:text-cyan-400 text-sm font-medium group-hover:gap-3 transition-all duration-200">
+                    <Eye className="h-4 w-4" />
+                    <span>Detayları Gör</span>
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
             </Card>
           ))}
         </div>
-      </section>
 
       {/* Call to Action */}
-      <section className="py-16">
-        <div className="bg-gradient-to-br from-cyan-50 via-blue-50 to-purple-50 dark:from-cyan-950 dark:via-blue-950 dark:to-purple-950 rounded-2xl p-12 text-center relative overflow-hidden">
-          {/* Background decoration */}
-          <div className="absolute inset-0 opacity-20">
-            <div className="absolute top-0 left-1/4 w-72 h-72 bg-cyan-300 rounded-full mix-blend-multiply filter blur-xl animate-pulse"></div>
-            <div className="absolute bottom-0 right-1/4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl animate-pulse animation-delay-2000"></div>
-          </div>
-          
-          <div className="relative z-10 max-w-2xl mx-auto space-y-8">
-            <div className="text-6xl mb-6">🎨</div>
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white">
+      <Card variant="modern" className="animate-fade-in-up">
+        <CardContent className="p-6 sm:p-8 lg:p-12 text-center">
+          <div className="max-w-2xl mx-auto space-y-6 sm:space-y-8">
+            <div className="text-4xl sm:text-5xl lg:text-6xl mb-4 sm:mb-6">🎨</div>
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white">
               Özel Tasarım Talebi
             </h2>
-            <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
-              Aklınızda özel bir tasarım mı var? Bizimle iletişime geçin, ürünleri tasarlayalım. 
+            <p className="text-sm sm:text-base lg:text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
+              Aklınızda özel bir tasarım mı var? Bizimle iletişime geçin, beraber tasarlayalım. 
               Kendi stilinizi yansıtan, anlamlı ve kaliteli ürünler için taleplerinizi bekliyoruz.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
               <Button 
-                size="lg" 
-                className="group bg-cyan-600 hover:bg-cyan-700 text-white"
+                size="touch" 
+                className="group gradient-primary text-white font-semibold"
                 onClick={() => setIsDesignRequestModalOpen(true)}
               >
                 <Package className="h-5 w-5 mr-2 group-hover:rotate-12 transition-transform duration-200" />
-                🎯 Özel Tasarım Talebi Gönder
+                🎨 Özel Tasarım Talebi Gönder
               </Button>
             </div>
           </div>
-        </div>
-      </section>
+        </CardContent>
+      </Card>
 
       {/* Product Detail Modal */}
       {selectedProduct && (

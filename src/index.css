@@ -2,60 +2,123 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom Animations for Design System */
+/* Modern Mobile-First Design System */
+
+/* Smooth Animations */
 @keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
+  0% { transform: translateX(-100%); opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { transform: translateX(100%); opacity: 0.6; }
 }
 
-.animate-shimmer {
-  animation: shimmer 2s infinite;
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.animation-delay-100 {
-  animation-delay: 100ms;
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
 }
 
-.animation-delay-150 {
-  animation-delay: 150ms;
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
-.animation-delay-200 {
-  animation-delay: 200ms;
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
 }
 
-.animation-delay-300 {
-  animation-delay: 300ms;
-}
+/* Animation Classes */
+.animate-shimmer { animation: shimmer 2s infinite; }
+.animate-fade-in-up { animation: fadeInUp 0.6s ease-out; }
+.animate-fade-in-scale { animation: fadeInScale 0.4s ease-out; }
+.animate-slide-in-right { animation: slideInRight 0.5s ease-out; }
+.animate-pulse-soft { animation: pulse-soft 2s infinite; }
 
-.animation-delay-2000 {
-  animation-delay: 2000ms;
-}
+/* Animation Delays */
+.animation-delay-100 { animation-delay: 100ms; }
+.animation-delay-200 { animation-delay: 200ms; }
+.animation-delay-300 { animation-delay: 300ms; }
+.animation-delay-400 { animation-delay: 400ms; }
+.animation-delay-500 { animation-delay: 500ms; }
 
-.animation-delay-4000 {
-  animation-delay: 4000ms;
-}
-
-/* Enhanced Card Hover Effects */
-.card-hover {
+/* Modern Card System */
+.card-modern {
+  @apply bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.card-hover:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+.card-modern:hover {
+  @apply shadow-lg border-slate-300/50 dark:border-slate-600/50;
+  transform: translateY(-2px);
 }
 
-/* Gradient Text */
-.gradient-text {
+.card-interactive {
+  @apply card-modern cursor-pointer;
+}
+
+.card-interactive:hover {
+  @apply shadow-xl;
+  transform: translateY(-4px);
+}
+
+.card-interactive:active {
+  transform: translateY(-1px);
+}
+
+/* Mobile-Optimized Buttons */
+.btn-touch {
+  @apply min-h-[44px] min-w-[44px] touch-manipulation;
+}
+
+/* Gradient System */
+.gradient-primary {
+  background: linear-gradient(135deg, #0891b2 0%, #0f766e 50%, #059669 100%);
+}
+
+.gradient-warm {
+  background: linear-gradient(135deg, #f59e0b 0%, #ea580c 50%, #dc2626 100%);
+}
+
+.gradient-cool {
+  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 50%, #8b5cf6 100%);
+}
+
+.gradient-text-primary {
   background: linear-gradient(135deg, #0891b2, #0f766e, #059669);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* Mobile-First Spacing */
+.container-mobile {
+  @apply px-4 sm:px-6 lg:px-8;
+}
+
+.spacing-mobile {
+  @apply space-y-4 sm:space-y-6 lg:space-y-8;
+}
+
+/* Interactive States */
+.interactive-scale {
+  transition: transform 0.2s ease-out;
+}
+
+.interactive-scale:hover {
+  transform: scale(1.02);
+}
+
+.interactive-scale:active {
+  transform: scale(0.98);
+}
+
+/* Focus Ring Modern */
+.focus-ring-modern {
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900;
 }
 
 /* Smooth scrolling */
