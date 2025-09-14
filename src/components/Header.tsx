@@ -35,7 +35,7 @@ const Header = () => {
           <Link to="/" className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-shrink-0 interactive-scale">
             <div className="relative">
               <img 
-                src="/logo.png" 
+                src="/logo.webp" 
                 alt="PÖT Logo" 
                 className="w-9 h-9 sm:w-11 sm:h-11 object-contain"
               />

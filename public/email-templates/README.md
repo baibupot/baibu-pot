@@ -91,7 +91,7 @@ Template'lerdeki emoji logoları (��, 🔒) yerine gerçek logo kullanmak is
 
 <!-- Yeni -->
 <div class="logo">
-    <img src="https://yourdomain.com/logo.png" alt="Logo" style="width: 60px; height: 60px;">
+    <img src="https://yourdomain.com/logo.webp" alt="Logo" style="width: 60px; height: 60px;">
 </div>
 ```
 

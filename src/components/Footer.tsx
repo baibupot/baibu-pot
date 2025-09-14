@@ -16,7 +16,7 @@ const Footer = () => {
             <div className="flex items-center space-x-3 mb-4 sm:mb-6 interactive-scale cursor-pointer" onClick={() => window.location.href = '/'}>
               <div className="relative">
                 <img 
-                  src="/logo.png" 
+                  src="/logo.webp" 
                   alt="PÖT Logo" 
                   className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
                 />

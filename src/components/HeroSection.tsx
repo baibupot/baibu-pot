@@ -73,7 +73,7 @@ const HeroSection = () => {
                 <div className="text-center">
                   <div className="w-21 h-21 flex items-center justify-center mx-auto mb-4">
                     <img 
-                      src="/logo.png" 
+                      src="/logo.webp" 
                       alt="BAİBÜ Psikoloji Öğrencileri Topluluğu Logosu" 
                       className="w-full h-full object-contain"
                     />
