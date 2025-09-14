@@ -71,7 +71,7 @@ export const colors = {
   cyan: {
     50: 'bg-cyan-50 dark:bg-cyan-900/20',
     600: 'bg-cyan-600',
-    text: 'text-cyan-600 dark:text-cyan-400',
+    text: 'text-cyan-700 dark:text-cyan-300',
     border: 'border-cyan-300 dark:border-cyan-700'
   },
 

@@ -112,7 +112,7 @@ const CookieBanner = () => {
               </button>
               <button
                 onClick={() => setShowDetails(!showDetails)}
-                className="px-4 py-2 text-sm font-medium text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 bg-cyan-50 dark:bg-cyan-900/20 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 rounded-lg transition-all duration-200 border border-cyan-200 dark:border-cyan-800"
+                className="px-4 py-2 text-sm font-medium text-cyan-700 dark:text-cyan-300 hover:text-cyan-800 dark:hover:text-cyan-200 bg-cyan-50 dark:bg-cyan-900/20 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 rounded-lg transition-all duration-200 border border-cyan-200 dark:border-cyan-800"
               >
                 {showDetails ? 'Detayları Gizle' : 'Detayları Görüntüle'}
               </button>

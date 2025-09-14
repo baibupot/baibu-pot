@@ -78,9 +78,9 @@ const HeroSection = () => {
                       className="w-full h-full object-contain"
                     />
                   </div>
-                  <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
+                  <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
                     BAİBÜ Psikoloji Topluluğu
-                  </h3>
+                  </h2>
                   <p className="text-slate-600 dark:text-slate-400">
                     Bilim, sanat ve sosyal aktivitelerle dolu bir topluluk
                   </p>

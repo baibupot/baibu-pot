@@ -60,7 +60,10 @@ const Header = () => {
               </Link>
             ))}
             <div className="relative group">
-              <button className="px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-white/50 dark:hover:bg-slate-800/50 rounded-xl transition-all duration-200 flex items-center gap-2 backdrop-blur-sm border border-transparent hover:border-cyan-200 dark:hover:border-cyan-800">
+              <button 
+                className="px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-white/50 dark:hover:bg-slate-800/50 rounded-xl transition-all duration-200 flex items-center gap-2 backdrop-blur-sm border border-transparent hover:border-cyan-200 dark:hover:border-cyan-800"
+                aria-label="Daha fazla sayfa seçenekleri"
+              >
                 <Users className="h-4 w-4" />
                 Daha Fazla
               </button>
@@ -89,6 +92,7 @@ const Header = () => {
               size="icon"
               onClick={toggleTheme}
               className="rounded-xl h-10 w-10 sm:h-11 sm:w-11 hover:bg-white/50 dark:hover:bg-slate-800/50 border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
+              aria-label={theme === 'light' ? 'Karanlık tema' : 'Aydınlık tema'}
             >
               {theme === 'light' ? (
                 <Moon className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -103,6 +107,7 @@ const Header = () => {
               size="icon"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="lg:hidden rounded-xl h-11 w-11 sm:h-12 sm:w-12 hover:bg-white/50 dark:hover:bg-slate-800/50 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 active:scale-95 transition-all duration-200"
+              aria-label={isMenuOpen ? 'Menüyü kapat' : 'Menüyü aç'}
             >
               {isMenuOpen ? (
                 <X className="h-6 w-6" />
