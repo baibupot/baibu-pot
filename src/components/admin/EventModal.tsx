@@ -157,9 +157,28 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
     }
   }, [initialData, existingSponsors]);
 
-  // 🎯 Slug generation
+  // 🎯 Slug generation with Turkish character support
   const generateSlug = (title: string) => {
-    return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const turkishMap: { [key: string]: string } = {
+      'ş': 's', 'Ş': 's',
+      'ğ': 'g', 'Ğ': 'g',
+      'ü': 'u', 'Ü': 'u',
+      'ı': 'i', 'İ': 'i',
+      'ö': 'o', 'Ö': 'o',
+      'ç': 'c', 'Ç': 'c'
+    };
+    
+    // Türkçe karakterleri İngilizce karşılıklarına çevir
+    let slug = title.split('').map(char => turkishMap[char] || char).join('');
+    
+    // Küçük harfe çevir, özel karakterleri kaldır, boşlukları tire yap
+    slug = slug
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')  // Alfanumerik olmayan her şeyi tire yap
+      .replace(/^-+|-+$/g, '')      // Baştaki ve sondaki tireleri kaldır
+      .replace(/-+/g, '-');         // Birden fazla tireyi tek tire yap
+    
+    return slug;
   };
 
   const handleTitleChange = (title: string) => {
