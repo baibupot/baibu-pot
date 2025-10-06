@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Upload, X, Image, Loader2, Plus, Calendar, MapPin, Users, 
-  Settings2, FileText, Trash2, ExternalLink, Save 
+  Settings2, FileText, Trash2, ExternalLink, Save, Navigation 
 } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
@@ -493,10 +493,56 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
             <Input
               value={formData.location || ''}
               onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                      placeholder="Etkinlik konumu"
+                      placeholder="Örnek: Üniversite Konferans Salonu"
                       className="h-12 sm:h-11 text-base touch-manipulation"
             />
           </div>
+
+                  {/* Coordinates (GPS) */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2 text-sm">
+                        <Navigation className="h-3 w-3" />
+                        Enlem (Latitude)
+                      </Label>
+                      <Input
+                        value={formData.latitude?.toString() || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, latitude: e.target.value ? parseFloat(e.target.value) : null }))}
+                        placeholder="Örnek: 41.0082"
+                        type="number"
+                        step="0.000001"
+                        className="h-12 sm:h-11 text-base touch-manipulation"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Google Maps'ten koordinat alabilirsiniz
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2 text-sm">
+                        <Navigation className="h-3 w-3" />
+                        Boylam (Longitude)
+                      </Label>
+                      <Input
+                        value={formData.longitude?.toString() || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, longitude: e.target.value ? parseFloat(e.target.value) : null }))}
+                        placeholder="Örnek: 28.9784"
+                        type="number"
+                        step="0.000001"
+                        className="h-12 sm:h-11 text-base touch-manipulation"
+                      />
+                      {formData.latitude && formData.longitude && (
+                        <a
+                          href={`https://www.google.com/maps?q=${formData.latitude},${formData.longitude}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 flex items-center gap-1"
+                        >
+                          <MapPin className="h-3 w-3" />
+                          Haritada Görüntüle
+                        </a>
+                      )}
+                    </div>
+                  </div>
 
                   {/* Settings */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -532,6 +578,8 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
               value={formData.max_participants?.toString() || ''}
               onChange={(e) => setFormData(prev => ({ ...prev, max_participants: e.target.value ? parseInt(e.target.value) : null }))}
               type="number"
+              className="h-12 sm:h-11 text-base touch-manipulation"
+              placeholder="Örn: 50"
             />
                     </div>
           </div>
@@ -545,6 +593,8 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
                         onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value ? parseFloat(e.target.value) : null }))}
                         type="number"
                         step="0.01"
+                        className="h-12 sm:h-11 text-base touch-manipulation"
+                        placeholder="Örn: 50.00"
                       />
                     </div>
                     <div className="space-y-2">
@@ -683,23 +733,46 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
 
                     {/* Manuel Kayıt Kontrolü */}
                     {formData.registration_required && (
-                      <div className="flex items-center space-x-3">
-                        <Switch
-                          checked={formData.registration_enabled !== false}
-                          onCheckedChange={(enabled) => setFormData(prev => ({ 
-                            ...prev, 
-                            registration_enabled: enabled,
-                            registration_closed_reason: enabled ? null : 'Manuel olarak kapatıldı'
-                          }))}
-                        />
-                        <div>
-                          <Label className="text-base font-medium">Kayıtlar Açık</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Kayıtları manuel olarak açıp kapatabilirsiniz
-                          </p>
+                      <div className="space-y-4">
+                        <div className="flex items-center space-x-3">
+                          <Switch
+                            checked={formData.registration_enabled !== false}
+                            onCheckedChange={(enabled) => setFormData(prev => ({ 
+                              ...prev, 
+                              registration_enabled: enabled,
+                              registration_closed_reason: enabled ? null : prev.registration_closed_reason || 'Manuel olarak kapatıldı'
+                            }))}
+                          />
+                          <div>
+                            <Label className="text-base font-medium">Kayıtlar Açık</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Kayıtları manuel olarak açıp kapatabilirsiniz
+                            </p>
+                          </div>
                         </div>
-                                </div>
-                              )}
+                        
+                        {/* Kapanma Sebebi Input */}
+                        {formData.registration_enabled === false && (
+                          <div className="space-y-2 pl-8">
+                            <Label className="text-sm font-medium text-red-700 dark:text-red-400">
+                              Kayıt Kapatma Sebebi
+                            </Label>
+                            <Input
+                              value={formData.registration_closed_reason || ''}
+                              onChange={(e) => setFormData(prev => ({ 
+                                ...prev, 
+                                registration_closed_reason: e.target.value 
+                              }))}
+                              placeholder="Örn: Kontenjan doldu, Etkinlik ertelendi"
+                              className="h-12 sm:h-11 text-base touch-manipulation"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Bu mesaj kullanıcılara gösterilecek
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Kayıt Durumu Göstergesi */}
                     {formData.registration_required && (
