@@ -105,12 +105,16 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
       const formatDateTime = (date: string | null) => {
         if (!date) return '';
         try {
+          // UTC tarihini lokal saat dilimine çevir (datetime-local input için)
           const d = new Date(date);
-          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+          // Timezone offset'i hesaba katarak lokal saati al
+          const offset = d.getTimezoneOffset();
+          const localDate = new Date(d.getTime() - (offset * 60 * 1000));
+          return localDate.toISOString().slice(0, 16); // YYYY-MM-DDTHH:mm formatı
         } catch {
-      return '';
-    }
-  };
+          return '';
+        }
+      };
 
       setFormData({
         title: initialData.title || '',
@@ -300,10 +304,23 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
       return;
     }
     
+    // Lokal saati UTC'ye çevir (veritabanına kaydetmek için)
+    const convertToUTC = (dateString: string | null) => {
+      if (!dateString) return null;
+      try {
+        // datetime-local input'tan gelen değer lokal saat dilimindeir
+        const localDate = new Date(dateString);
+        // ISO string formatında UTC'ye çevir
+        return localDate.toISOString();
+      } catch {
+        return null;
+      }
+    };
+    
     const eventData: Partial<EventData> & { sponsorIds: string[] } = {
       ...formData,
-      event_date: formData.event_date || null,
-      end_date: formData.end_date || null,
+      event_date: convertToUTC(formData.event_date),
+      end_date: convertToUTC(formData.end_date),
       max_participants: formData.max_participants ? Number(formData.max_participants) : null,
       price: formData.price ? Number(formData.price) : null,
       latitude: formData.latitude ? Number(formData.latitude) : null,
