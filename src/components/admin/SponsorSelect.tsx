@@ -62,23 +62,23 @@ const SponsorSelect = ({ selectedIds, onChange, maxSelection }: SponsorSelectPro
               {selectedSponsors.map((sponsor) => (
                 <div
                   key={sponsor.id}
-                  className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg px-3 py-2"
+                  className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg px-3 py-2 sm:px-2 sm:py-1.5"
                 >
                   {sponsor.logo && (
                     <img 
                       src={sponsor.logo} 
                       alt={sponsor.name} 
-                      className="w-6 h-6 object-contain rounded border bg-white" 
+                      className="w-6 h-6 object-contain rounded border bg-white flex-shrink-0" 
                     />
                   )}
-                  <span className="text-sm font-medium text-green-800 dark:text-green-200">
+                  <span className="text-sm font-medium text-green-800 dark:text-green-200 truncate">
                     {sponsor.name}
                   </span>
                   <button
                     onClick={() => handleToggle(sponsor.id)}
-                    className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200"
+                    className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 p-1 flex-shrink-0 touch-manipulation"
                   >
-                    <Check className="h-3 w-3" />
+                    <Check className="h-4 w-4 sm:h-3 sm:w-3" />
                   </button>
                 </div>
               ))}
@@ -91,12 +91,12 @@ const SponsorSelect = ({ selectedIds, onChange, maxSelection }: SponsorSelectPro
       <Card>
         <CardContent className="p-4">
           <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
             <Input
               placeholder="Sponsor ara..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
+              className="pl-9 sm:pl-11 h-12 sm:h-11 text-base touch-manipulation"
             />
           </div>
           
@@ -124,12 +124,12 @@ const SponsorSelect = ({ selectedIds, onChange, maxSelection }: SponsorSelectPro
               return (
                 <Label
                   key={sponsor.id}
-                  className={`flex items-center gap-3 cursor-pointer rounded-md p-3 transition-colors ${
+                  className={`flex items-center gap-3 cursor-pointer rounded-md p-3 sm:p-4 transition-colors touch-manipulation ${
                     isSelected 
                       ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800' 
                       : isDisabled
                       ? 'bg-gray-50 dark:bg-gray-900/50 cursor-not-allowed opacity-50'
-                      : 'hover:bg-gray-50 dark:hover:bg-gray-800/50 border border-transparent'
+                      : 'hover:bg-gray-50 dark:hover:bg-gray-800/50 border border-transparent active:bg-gray-100 dark:active:bg-gray-800'
                   }`}
                 >
                   <input
@@ -137,7 +137,7 @@ const SponsorSelect = ({ selectedIds, onChange, maxSelection }: SponsorSelectPro
                     checked={isSelected}
                     onChange={() => handleToggle(sponsor.id)}
                     disabled={isDisabled}
-                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+                    className="h-5 w-5 sm:h-4 sm:w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50 flex-shrink-0"
                   />
                   {sponsor.logo ? (
                     <img 

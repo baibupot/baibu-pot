@@ -248,63 +248,79 @@ const Etkinlikler = () => {
                 <CardContent className="p-4 sm:p-6 pt-0">
                   <div className="space-y-4 sm:space-y-6">
                     <div className="relative">
-                      <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400 h-5 w-5" />
+                      <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-blue-400" />
                       <Input
-                        placeholder="Etkinlik ara..."
+                        placeholder="Etkinlik ara... (🔍 Başlık veya açıklama)"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-12 h-12 text-base bg-white/90 dark:bg-slate-700/90 border-blue-200 focus:border-blue-400 dark:border-blue-800 dark:focus:border-blue-600 rounded-xl"
+                        className="h-12 sm:h-11 pl-10 sm:pl-12 text-base bg-white/90 dark:bg-slate-700/90 border-blue-200 focus:border-blue-400 dark:border-blue-800 dark:focus:border-blue-600 rounded-xl touch-manipulation"
                       />
                       {searchTerm && (
                         <button
                           onClick={() => setSearchTerm('')}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors h-8 w-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"
                         >
-                          ×
+                          <span className="text-xl">×</span>
                         </button>
                       )}
                     </div>
                   
-                  {/* Mobile: Stacked Filters */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger className="h-12 bg-white/90 dark:bg-slate-700/90 border-blue-200 dark:border-blue-800 rounded-xl text-base focus:border-blue-400 dark:focus:border-blue-600">
-                        <SelectValue placeholder="Durum Seç" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Tüm Durumlar</SelectItem>
-                        {Object.entries(EVENT_STATUSES).map(([key, label]) => (
-                          <SelectItem key={key} value={key}>{label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  {/* Mobile-Friendly Filters */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                        <span>📊</span> Durum Filtrele
+                      </label>
+                      <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger className="h-12 bg-white/90 dark:bg-slate-700/90 border-blue-200 dark:border-blue-800 rounded-xl text-base focus:border-blue-400 dark:focus:border-blue-600 touch-manipulation">
+                          <SelectValue placeholder="Durum Seç" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Tüm Durumlar</SelectItem>
+                          {Object.entries(EVENT_STATUSES).map(([key, label]) => (
+                            <SelectItem key={key} value={key}>{label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                    <Select value={typeFilter} onValueChange={setTypeFilter}>
-                      <SelectTrigger className="h-12 bg-white/90 dark:bg-slate-700/90 border-blue-200 dark:border-blue-800 rounded-xl text-base focus:border-blue-400 dark:focus:border-blue-600">
-                        <SelectValue placeholder="Tür Seç" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Tüm Türler</SelectItem>
-                        {Object.entries(EVENT_TYPES).map(([key, label]) => (
-                          <SelectItem key={key} value={key}>{label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-
-                    <Button 
-                      variant="outline" 
-                      className="h-12 flex items-center justify-center gap-2 bg-white/90 dark:bg-slate-700/90 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-xl font-medium transition-all duration-200 group" 
-                      onClick={() => {
-                        setSearchTerm('');
-                        setStatusFilter('all');
-                        setTypeFilter('all');
-                      }}
-                    >
-                      <Filter className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
-                      <span className="hidden sm:inline">Filtreleri Temizle</span>
-                      <span className="sm:hidden">Temizle</span>
-                    </Button>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                        <span>🎯</span> Tür Filtrele
+                      </label>
+                      <Select value={typeFilter} onValueChange={setTypeFilter}>
+                        <SelectTrigger className="h-12 bg-white/90 dark:bg-slate-700/90 border-blue-200 dark:border-blue-800 rounded-xl text-base focus:border-blue-400 dark:focus:border-blue-600 touch-manipulation">
+                          <SelectValue placeholder="Tür Seç" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Tüm Türler</SelectItem>
+                          {Object.entries(EVENT_TYPES).map(([key, label]) => (
+                            <SelectItem key={key} value={key}>{label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
+
+                  {/* Clear Filters Button */}
+                  {(searchTerm || statusFilter !== 'all' || typeFilter !== 'all') && (
+                    <div className="flex justify-end">
+                      <Button 
+                        variant="outline" 
+                        size="lg"
+                        className="h-12 flex items-center justify-center gap-2 bg-white/90 dark:bg-slate-700/90 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-xl font-medium transition-all duration-200 group touch-manipulation" 
+                        onClick={() => {
+                          setSearchTerm('');
+                          setStatusFilter('all');
+                          setTypeFilter('all');
+                        }}
+                      >
+                        <Filter className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
+                        <span className="hidden sm:inline">Filtreleri Temizle</span>
+                        <span className="sm:hidden">Temizle</span>
+                      </Button>
+                    </div>
+                  )}
 
                   {/* Active Filters Display - Mobile Friendly */}
                   {(searchTerm || statusFilter !== 'all' || typeFilter !== 'all') && (

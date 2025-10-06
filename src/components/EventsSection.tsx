@@ -99,12 +99,6 @@ const EventsSection = () => {
                         <span className="flex-1">{event.location}</span>
                       </div>
                     )}
-                    {event.max_participants && (
-                      <div className="flex items-center">
-                        <span className="font-medium w-16">Kontenjan:</span>
-                        <span>{event.max_participants} kişi</span>
-                      </div>
-                    )}
                   </div>
                 </CardContent>
                 

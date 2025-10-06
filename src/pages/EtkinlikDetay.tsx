@@ -250,7 +250,7 @@ const EtkinlikDetay = () => {
         <Button 
           variant="ghost" 
           onClick={() => navigate('/etkinlikler')}
-          className="mb-4 h-12 px-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-xl border border-white/20 dark:border-slate-700/20 hover:bg-white/80 dark:hover:bg-slate-800/80"
+          className="mb-4 h-12 sm:h-11 px-4 sm:px-3 text-base bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-xl border border-white/20 dark:border-slate-700/20 hover:bg-white/80 dark:hover:bg-slate-800/80 active:scale-95 touch-manipulation"
         >
           <ArrowLeft className="h-5 w-5 mr-2" />
           <span className="font-medium">Etkinliklere Dön</span>
@@ -373,21 +373,7 @@ const EtkinlikDetay = () => {
                 </Card>
               )}
               
-              {/* Participants Card */}
-              {event.max_participants && (
-                <Card variant="modern" className="bg-gradient-to-br from-orange-50/80 to-amber-50/80 dark:from-orange-950/50 dark:to-amber-950/50 border-orange-200/50 dark:border-orange-800/50 animate-fade-in-up animation-delay-300">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-orange-100 dark:bg-orange-900/50 rounded-xl">
-                        <Users className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600 dark:text-orange-400" />
-                      </div>
-                      <div className="font-bold text-orange-900 dark:text-orange-100">
-                        👥 Maksimum {event.max_participants} katılımcı
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+
             </div>
               
             {/* Registration Button - Mobile Optimized */}
@@ -395,11 +381,11 @@ const EtkinlikDetay = () => {
               <div className="space-y-4">
                 <Button 
                   size="lg" 
-                  className="w-full h-14 text-base sm:text-lg font-bold bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 text-white rounded-xl"
+                  className="w-full h-16 sm:h-14 text-lg sm:text-xl font-bold bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 shadow-xl hover:shadow-2xl transition-all duration-300 sm:transform sm:hover:-translate-y-1 active:scale-95 text-white rounded-xl touch-manipulation"
                   onClick={handleRegistration}
                   disabled={event.status === 'completed' || event.status === 'cancelled'}
                 >
-                  <UserPlus className="h-6 w-6 mr-3" />
+                  <UserPlus className="h-6 w-6 sm:h-7 sm:w-7 mr-3" />
                   {event.status === 'completed' ? '✅ Etkinlik Tamamlandı' :
                    event.status === 'cancelled' ? '❌ Etkinlik İptal Edildi' :
                    event.registration_link ? '🔗 Kayıt Sayfasına Git' :

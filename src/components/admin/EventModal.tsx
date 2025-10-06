@@ -35,6 +35,14 @@ import {
   SPONSOR_TYPES,
   type SponsorType
 } from '@/constants/eventConstants';
+
+// 🛡️ Database schema ile uyumlu status listesi (draft yok!)
+const ADMIN_EVENT_STATUSES = {
+  upcoming: 'Yaklaşan',
+  ongoing: 'Devam Eden',
+  completed: 'Tamamlandı',
+  cancelled: 'İptal Edildi'
+};
 import SponsorSelect from './SponsorSelect';
 
 type Tables = Database['public']['Tables'];
@@ -388,24 +396,27 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
         <form onSubmit={handleSubmit} className="flex flex-col h-full">
           <Tabs defaultValue="basic" className="flex flex-col h-full">
             {/* Tabs */}
-            <TabsList className="mx-6 mt-[-1rem] grid grid-cols-3 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
-              <TabsTrigger value="basic" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
+            <TabsList className="mx-4 sm:mx-6 mt-[-1rem] grid grid-cols-3 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+              <TabsTrigger value="basic" className="flex items-center justify-center gap-2 h-11 sm:h-10 text-sm sm:text-base touch-manipulation">
+                <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
                 <span className="hidden sm:inline">Temel</span>
+                <span className="sm:hidden text-xs">Temel</span>
               </TabsTrigger>
-              <TabsTrigger value="media" className="flex items-center gap-2">
-                <Image className="h-4 w-4" />
+              <TabsTrigger value="media" className="flex items-center justify-center gap-2 h-11 sm:h-10 text-sm sm:text-base touch-manipulation">
+                <Image className="h-4 w-4 sm:h-5 sm:w-5" />
                 <span className="hidden sm:inline">Medya</span>
+                <span className="sm:hidden text-xs">Medya</span>
               </TabsTrigger>
-              <TabsTrigger value="registration" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
+              <TabsTrigger value="registration" className="flex items-center justify-center gap-2 h-11 sm:h-10 text-sm sm:text-base touch-manipulation">
+                <Users className="h-4 w-4 sm:h-5 sm:w-5" />
                 <span className="hidden sm:inline">Kayıt & Form</span>
+                <span className="sm:hidden text-xs">Kayıt</span>
               </TabsTrigger>
             </TabsList>
             
             <div className="flex-1 overflow-y-auto pt-6">
               {/* Basic Info */}
-              <TabsContent value="basic" className="px-6 mt-0 space-y-6">
+              <TabsContent value="basic" className="px-4 sm:px-6 mt-0 space-y-4 sm:space-y-6">
                 <div className="space-y-6">
                   {/* Title */}
                   <div className="space-y-2">
@@ -417,7 +428,7 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
               value={formData.title}
               onChange={(e) => handleTitleChange(e.target.value)}
                       placeholder="Etkinliğinizin başlığını yazın..."
-                      className="h-11"
+                      className="h-12 sm:h-11 text-base touch-manipulation"
               required
                     />
                     {formData.title && (
@@ -438,6 +449,7 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                       placeholder="Etkinliği detaylı açıklayın..."
               rows={4}
+              className="text-base resize-none touch-manipulation"
               required
             />
           </div>
@@ -454,7 +466,7 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
                 type="datetime-local"
                 value={formData.event_date}
                 onChange={(e) => setFormData(prev => ({ ...prev, event_date: e.target.value }))}
-                        className="h-11"
+                        className="h-12 sm:h-11 text-base touch-manipulation"
                 required
               />
             </div>
@@ -467,7 +479,7 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
                 type="datetime-local"
                 value={formData.end_date || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, end_date: e.target.value }))}
-                        className="h-11"
+                        className="h-12 sm:h-11 text-base touch-manipulation"
               />
             </div>
           </div>
@@ -482,7 +494,7 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
               value={formData.location || ''}
               onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
                       placeholder="Etkinlik konumu"
-                      className="h-11"
+                      className="h-12 sm:h-11 text-base touch-manipulation"
             />
           </div>
 
@@ -491,7 +503,7 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
                     <div className="space-y-2">
                       <Label>Tür</Label>
               <Select value={formData.event_type} onValueChange={(value) => setFormData(prev => ({ ...prev, event_type: value }))}>
-                        <SelectTrigger className="h-11">
+                        <SelectTrigger className="h-12 sm:h-11 text-base touch-manipulation">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -504,11 +516,11 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
                     <div className="space-y-2">
                       <Label>Durum</Label>
               <Select value={formData.status} onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}>
-                        <SelectTrigger className="h-11">
+                        <SelectTrigger className="h-12 sm:h-11 text-base touch-manipulation">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                          {Object.entries(EVENT_STATUSES).map(([key, label]) => (
+                          {Object.entries(ADMIN_EVENT_STATUSES).map(([key, label]) => (
                             <SelectItem key={key} value={key}>{label}</SelectItem>
                           ))}
                 </SelectContent>
@@ -538,7 +550,7 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
                     <div className="space-y-2">
                       <Label>Para Birimi</Label>
                       <Select value={formData.currency} onValueChange={(value) => setFormData(prev => ({ ...prev, currency: value }))}>
-                        <SelectTrigger className="h-11">
+                        <SelectTrigger className="h-12 sm:h-11 text-base touch-manipulation">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -553,7 +565,7 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
             </TabsContent>
 
               {/* Media */}
-              <TabsContent value="media" className="px-6 mt-0 space-y-6">
+              <TabsContent value="media" className="px-4 sm:px-6 mt-0 space-y-4 sm:space-y-6">
                 {/* Featured Image */}
                 <div className="space-y-4">
                   <Label>Öne Çıkan Görsel</Label>
@@ -648,7 +660,7 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
               </TabsContent>
 
               {/* Registration & Form */}
-              <TabsContent value="registration" className="px-6 mt-0 space-y-6">
+              <TabsContent value="registration" className="px-4 sm:px-6 mt-0 space-y-4 sm:space-y-6">
                 <div className="space-y-6">
                   {/* 🎛️ Kayıt Kontrol Paneli */}
                   <div className="space-y-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border">
@@ -798,7 +810,7 @@ const EventModal = ({ isOpen, onClose, onSave, initialData }: EventModalProps) =
                               value={formData.registration_link || ''}
                               onChange={(e) => setFormData(prev => ({ ...prev, registration_link: e.target.value }))}
                               placeholder="https://forms.google.com/..."
-                              className="h-11"
+                              className="h-12 sm:h-11 text-base touch-manipulation"
                             />
                             {formData.registration_link && (
                               <div className="flex items-center gap-2 text-sm">

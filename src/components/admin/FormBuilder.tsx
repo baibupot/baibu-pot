@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { 
   Trash2, Plus, MoveUp, MoveDown, Eye, FileText, 
   Edit2, Save, X, 
-  Mail, Hash, Phone, Calendar, List, RadioIcon, CheckSquare, FileImage, Loader2
+  Mail, Hash, Phone, Calendar, List, RadioIcon, CheckSquare, FileImage, Loader2, Users
 } from 'lucide-react';
 import { useCreateFormField, useUpdateFormField, useDeleteFormField, useFormFields } from '@/hooks/useSupabaseData';
 import { toast } from 'sonner';
@@ -248,37 +248,45 @@ const FormBuilder = ({ formId, formType, onSave, formTitle }: FormBuilderProps) 
   return (
     <div className="space-y-6">
       {/* Add New Field */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Plus className="h-5 w-5" />
-            Yeni Form Alanı Ekle
+      <Card className="border-2 border-blue-200 dark:border-blue-800 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700">
+          <CardTitle className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <Plus className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <div className="text-lg">Yeni Form Alanı Ekle</div>
+              <p className="text-sm text-muted-foreground font-normal mt-1">
+                Kullanıcılardan toplamak istediğiniz bilgileri form alanı olarak ekleyin
+              </p>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-4 sm:p-6 space-y-6">
           <div>
-            <Label className="text-base font-medium">Alan Türü</Label>
-              <Select value={newField.field_type} onValueChange={(value) => setNewField(prev => ({ ...prev, field_type: value }))}>
-              <SelectTrigger className="mt-2">
-                <SelectValue />
-                </SelectTrigger>
-              <SelectContent>
-                {Object.entries(fieldTypes).map(([key, type]) => (
-                  <SelectItem key={key} value={key}>
-                    <div className="flex items-center gap-2">
-                      <type.icon className="h-4 w-4" />
-                      <div className="hidden sm:block">
-                        <div className="font-medium">{type.name}</div>
-                        <div className="text-xs text-muted-foreground">{type.desc}</div>
-                      </div>
-                      <div className="sm:hidden">
-                        <span className="font-medium">{type.name}</span>
-                      </div>
-                    </div>
-                  </SelectItem>
-                ))}
-                </SelectContent>
-              </Select>
+            <Label className="text-base font-medium mb-3 block">Alan Türü Seçin</Label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              {Object.entries(fieldTypes).map(([key, type]) => {
+                const Icon = type.icon;
+                const isSelected = newField.field_type === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setNewField(prev => ({ ...prev, field_type: key }))}
+                    className={`p-3 rounded-lg border-2 transition-all text-left ${
+                      isSelected 
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-md' 
+                        : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                    }`}
+                  >
+                    <Icon className={`h-5 w-5 mb-2 ${isSelected ? 'text-blue-600' : 'text-gray-600'}`} />
+                    <div className="font-medium text-sm mb-1">{type.name}</div>
+                    <div className="text-xs text-muted-foreground line-clamp-2">{type.desc}</div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div>
@@ -302,14 +310,18 @@ const FormBuilder = ({ formId, formType, onSave, formTitle }: FormBuilderProps) 
                 className="mt-2"
               />
               {options && (
-                <div className="mt-2 p-3 bg-muted rounded-lg">
-                  <div className="font-medium text-sm mb-2">Önizleme:</div>
-                  <div className="space-y-1">
+                <div className="mt-2 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 rounded-lg border-2 border-blue-200 dark:border-blue-700">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Eye className="h-4 w-4 text-blue-600" />
+                    <div className="font-semibold text-sm text-blue-900 dark:text-blue-200">
+                      Önizleme: {options.split('\n').filter(opt => opt.trim()).length} Seçenek
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
                     {options.split('\n').filter(opt => opt.trim()).map((option, index) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">{index + 1}</Badge>
-                        <span className="text-sm truncate">{option.trim()}</span>
-                      </div>
+                      <Badge key={index} variant="secondary" className="text-xs font-medium">
+                        {index + 1}. {option.trim()}
+                      </Badge>
                     ))}
                   </div>
                 </div>
@@ -342,18 +354,21 @@ const FormBuilder = ({ formId, formType, onSave, formTitle }: FormBuilderProps) 
 
       {/* 🎯 Manuel Form Kaydetme */}
       {hasUnsavedChanges && (
-        <Card>
-          <CardContent className="p-4 sm:p-6">
+        <Card className="border-2 border-green-300 dark:border-green-700 shadow-lg animate-pulse-slow">
+          <CardContent className="p-4 sm:p-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Save className="h-5 w-5 text-white" />
+                <div className="w-12 h-12 bg-green-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md">
+                  <Save className="h-6 w-6 text-white" />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-lg font-semibold text-green-800">
+                  <h3 className="text-lg font-bold text-green-800 dark:text-green-300 flex items-center gap-2">
                     Form Alanlarını Kaydet
+                    <Badge variant="destructive" className="text-xs animate-bounce">
+                      {fields.filter(f => !f.id).length}
+                    </Badge>
                   </h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-green-700 dark:text-green-400">
                     {fields.filter(f => !f.id).length} yeni alan kaydedilmeyi bekliyor
                   </p>
                 </div>
@@ -362,16 +377,16 @@ const FormBuilder = ({ formId, formType, onSave, formTitle }: FormBuilderProps) 
                 type="button"
                 onClick={saveForm}
                 disabled={createFormField.isPending}
-                className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
+                className="bg-green-600 hover:bg-green-700 w-full sm:w-auto h-12 text-base font-semibold shadow-lg"
               >
                 {createFormField.isPending ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
                     Kaydediliyor...
                   </>
                 ) : (
                   <>
-                    <Save className="h-4 w-4 mr-2" />
+                    <Save className="h-5 w-5 mr-2" />
                     <span className="hidden sm:inline">Form Alanlarını Kaydet ({fields.filter(f => !f.id).length})</span>
                     <span className="sm:hidden">Kaydet ({fields.filter(f => !f.id).length})</span>
                   </>
@@ -383,27 +398,40 @@ const FormBuilder = ({ formId, formType, onSave, formTitle }: FormBuilderProps) 
       )}
 
       {/* Form Fields List */}
-      <Card>
-        <CardHeader className="p-4 sm:p-6">
+      <Card className="border-2 border-gray-200 dark:border-gray-700">
+        <CardHeader className="p-4 sm:p-6 bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-800 dark:to-gray-700">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Form Alanları
-              </CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                {fields.length > 0 ? `${fields.length} alan tanımlandı` : 'Henüz alan eklenmemiş'}
-              </p>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gray-700 dark:bg-gray-600 rounded-lg flex items-center justify-center">
+                <FileText className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">
+                  Form Alanları
+                </CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {fields.length > 0 ? (
+                    <>
+                      <span className="font-semibold text-blue-600 dark:text-blue-400">{fields.length}</span> alan tanımlandı
+                      {fields.filter(f => f.required).length > 0 && (
+                        <> • <span className="font-semibold text-red-600 dark:text-red-400">{fields.filter(f => f.required).length}</span> zorunlu</>
+                      )}
+                    </>
+                  ) : (
+                    'Henüz alan eklenmemiş'
+                  )}
+                </p>
+              </div>
             </div>
             {fields.length > 0 && (
           <Button
             type="button"
-            variant="outline"
+            variant={showPreview ? "default" : "outline"}
             onClick={() => setShowPreview(!showPreview)}
                 className="w-full sm:w-auto"
           >
                 <Eye className="h-4 w-4 mr-2" />
-                {showPreview ? 'Önizlemeyi Gizle' : 'Önizleme'}
+                {showPreview ? 'Önizlemeyi Gizle' : 'Formu Önizle'}
           </Button>
             )}
         </div>
@@ -487,95 +515,125 @@ const FormBuilder = ({ formId, formType, onSave, formTitle }: FormBuilderProps) 
                       </div>
                           </div>
                   ) : (
-                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-2">
-                          {React.createElement(fieldTypes[field.field_type as keyof typeof fieldTypes]?.icon || FileText, {
-                            className: "h-5 w-5 text-gray-600 flex-shrink-0"
-                          })}
-                          <div className="min-w-0 flex-1">
-                            <div className="font-medium truncate">{field.field_label}</div>
-                          <div className="flex flex-wrap items-center gap-2 mt-1">
-                              <Badge variant="secondary" className="text-xs">
-                              {fieldTypes[field.field_type as keyof typeof fieldTypes]?.name}
-                            </Badge>
-                              <Badge variant="outline" className="text-xs font-mono">
-                              {field.field_name}
-                            </Badge>
-                            {field.required && (
-                                <Badge variant="destructive" className="text-xs">Zorunlu</Badge>
-                            )}
+                    <div className="space-y-3">
+                      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start gap-3">
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                              field.required ? 'bg-red-50 dark:bg-red-900/20' : 'bg-blue-50 dark:bg-blue-900/20'
+                            }`}>
+                              {React.createElement(fieldTypes[field.field_type as keyof typeof fieldTypes]?.icon || FileText, {
+                                className: `h-5 w-5 ${field.required ? 'text-red-600' : 'text-blue-600'}`
+                              })}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <div className="font-semibold text-base">{field.field_label}</div>
+                                {field.required && (
+                                  <Badge variant="destructive" className="text-xs">Zorunlu</Badge>
+                                )}
+                              </div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Badge variant="secondary" className="text-xs">
+                                  {fieldTypes[field.field_type as keyof typeof fieldTypes]?.name}
+                                </Badge>
+                                <Badge variant="outline" className="text-xs font-mono">
+                                  {field.field_name}
+                                </Badge>
+                              </div>
+                            </div>
                           </div>
-                    </div>
-                    </div>
-                    {field.options && field.options.length > 0 && (
-                          <div className="mt-2 p-2 bg-muted rounded text-sm">
-                            <span className="font-medium">Seçenekler: </span>
-                            <span className="break-words">{field.options.join(', ')}</span>
-                          </div>
-                        )}
+                          {field.options && field.options.length > 0 && (
+                            <div className="mt-3 p-3 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-lg">
+                              <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+                                Seçenekler ({field.options.length})
+                              </div>
+                              <div className="flex flex-wrap gap-1">
+                                {field.options.map((option, optIdx) => (
+                                  <Badge key={optIdx} variant="outline" className="text-xs">
+                                    {optIdx + 1}. {option}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 justify-end lg:justify-start flex-shrink-0">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => startEditField(index)}
+                            className="h-9 w-9 p-0 hover:bg-blue-100 hover:text-blue-600"
+                            title="Düzenle"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => moveField(index, 'up')}
+                            disabled={index === 0}
+                            className="h-9 w-9 p-0 hover:bg-gray-100 disabled:opacity-30"
+                            title="Yukarı Taşı"
+                          >
+                            <MoveUp className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => moveField(index, 'down')}
+                            disabled={index === fields.length - 1}
+                            className="h-9 w-9 p-0 hover:bg-gray-100 disabled:opacity-30"
+                            title="Aşağı Taşı"
+                          >
+                            <MoveDown className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeField(index)}
+                            className="text-red-600 hover:bg-red-100 hover:text-red-700 h-9 w-9 p-0"
+                            title="Sil"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1 lg:gap-2 justify-end lg:justify-start">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => startEditField(index)}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                    <Button
-                        type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => moveField(index, 'up')}
-                      disabled={index === 0}
-                          className="h-8 w-8 p-0"
-                    >
-                      <MoveUp className="h-4 w-4" />
-                    </Button>
-                    <Button
-                        type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => moveField(index, 'down')}
-                      disabled={index === fields.length - 1}
-                          className="h-8 w-8 p-0"
-                    >
-                      <MoveDown className="h-4 w-4" />
-                    </Button>
-                    <Button
-                        type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeField(index)}
-                          className="text-red-600 hover:text-red-700 h-8 w-8 p-0"
-                    >
-                        <Trash2 className="h-4 w-4" />
-                    </Button>
                     </div>
-                  </div>
                   )}
                 </div>
               ))}
 
               {/* Form Preview */}
             {showPreview && (
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6">
-                  <h4 className="font-medium mb-4 flex items-center gap-2">
-                  <Eye className="h-5 w-5" />
-                    Form Önizlemesi
-                </h4>
-                  <div className="space-y-4 max-w-md mx-auto">
+                <div className="border-2 border-blue-300 rounded-xl p-6 bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-800 dark:via-gray-900 dark:to-gray-800">
+                  <div className="flex items-center justify-between mb-6">
+                    <h4 className="font-bold text-lg flex items-center gap-2">
+                      <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                        <Eye className="h-4 w-4 text-white" />
+                      </div>
+                      Form Önizlemesi
+                    </h4>
+                    <Badge variant="secondary" className="text-xs">
+                      {fields.length} Alan • {fields.filter(f => f.required).length} Zorunlu
+                    </Badge>
+                  </div>
+                  <div className="space-y-5 max-w-2xl mx-auto bg-white dark:bg-gray-900 p-6 rounded-lg shadow-lg">
                   {fields.map((field, index) => (
                     <div key={index} className="space-y-2">
-                      <Label className="text-sm font-medium">
+                      <Label className="text-sm font-semibold flex items-center gap-2">
+                        {React.createElement(fieldTypes[field.field_type as keyof typeof fieldTypes]?.icon || FileText, {
+                          className: "h-4 w-4 text-gray-600"
+                        })}
                         {field.field_label}
-                        {field.required && <span className="text-red-500 ml-1">*</span>}
+                        {field.required && <span className="text-red-500">*</span>}
                       </Label>
                       {field.field_type === 'textarea' ? (
-                        <Textarea placeholder={`${field.field_label} giriniz...`} disabled />
+                        <Textarea placeholder={`${field.field_label} giriniz...`} disabled className="resize-none" />
                       ) : field.field_type === 'select' ? (
                         <Select disabled>
                           <SelectTrigger>
@@ -583,22 +641,27 @@ const FormBuilder = ({ formId, formType, onSave, formTitle }: FormBuilderProps) 
                           </SelectTrigger>
                         </Select>
                       ) : field.field_type === 'radio' && field.options ? (
-                        <div className="space-y-2">
+                        <div className="space-y-2 pl-2">
                           {field.options.map((option, optIndex) => (
-                            <div key={optIndex} className="flex items-center space-x-2">
-                              <input type="radio" disabled />
+                            <div key={optIndex} className="flex items-center space-x-3 p-2 rounded hover:bg-gray-50">
+                              <input type="radio" disabled className="w-4 h-4" />
                               <span className="text-sm">{option}</span>
                             </div>
                           ))}
                         </div>
                       ) : field.field_type === 'checkbox' && field.options ? (
-                        <div className="space-y-2">
+                        <div className="space-y-2 pl-2">
                           {field.options.map((option, optIndex) => (
-                            <div key={optIndex} className="flex items-center space-x-2">
-                              <input type="checkbox" disabled />
+                            <div key={optIndex} className="flex items-center space-x-3 p-2 rounded hover:bg-gray-50">
+                              <input type="checkbox" disabled className="w-4 h-4" />
                               <span className="text-sm">{option}</span>
                             </div>
                           ))}
+                        </div>
+                      ) : field.field_type === 'file' ? (
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                          <FileImage className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                          <p className="text-sm text-gray-500">Dosya seçin veya sürükleyip bırakın</p>
                         </div>
                       ) : (
                         <Input 
@@ -609,11 +672,17 @@ const FormBuilder = ({ formId, formType, onSave, formTitle }: FormBuilderProps) 
                       )}
                     </div>
                   ))}
-                    <Button disabled className="w-full">Kayıt Ol</Button>
+                    <Button disabled className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12">
+                      <Users className="h-4 w-4 mr-2" />
+                      Kayıt Ol
+                    </Button>
                 </div>
-                  <p className="text-xs text-muted-foreground mt-4 text-center">
-                    Bu sadece önizleme - gerçek form etkinlik sayfasında görünecek
-                  </p>
+                  <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-700">
+                    <p className="text-xs text-yellow-800 dark:text-yellow-300 text-center flex items-center justify-center gap-2">
+                      <Eye className="h-3 w-3" />
+                      Bu sadece önizleme - gerçek form etkinlik sayfasında kullanıcılara gösterilecek
+                    </p>
+                  </div>
               </div>
             )}
           </div>

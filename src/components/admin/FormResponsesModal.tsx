@@ -204,7 +204,7 @@ const FormResponsesModal: React.FC<FormResponsesModalProps> = ({
                 </div>
               </div>
 
-              {/* 📋 Tablo */}
+              {/* 📋 Yanıtlar - Card Tabanlı Modern Görünüm */}
               {formResponses.length === 0 ? (
                 <Card>
                   <CardContent className="text-center py-12">
@@ -216,115 +216,229 @@ const FormResponsesModal: React.FC<FormResponsesModalProps> = ({
                   </CardContent>
                 </Card>
               ) : (
-                <Card>
-                  <CardContent className="p-0">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead className="bg-gray-50 dark:bg-gray-800">
-                          <tr>
-                            <th className="px-4 py-3 text-left font-medium">#</th>
-                            <th className="px-4 py-3 text-left font-medium">Katılımcı</th>
-                            <th className="px-4 py-3 text-left font-medium">Kayıt Tarihi</th>
-                            {tableHeaders.map(header => (
-                              <th key={header.key} className="px-4 py-3 text-left font-medium">
-                                <div className="flex items-center gap-1">
-                                  {header.type === 'file' && <span>📎</span>}
-                                  {header.label}
-                                </div>
-                              </th>
-                            ))}
-                            <th className="px-4 py-3 text-left font-medium">İşlemler</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {formResponses.map((response, index) => (
-                            <tr key={response.id} className="border-t hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                              <td className="px-4 py-3">{index + 1}</td>
-                              <td className="px-4 py-3">{response.user_name || 'Anonim'}</td>
-                              <td className="px-4 py-3">{new Date(response.submitted_at).toLocaleString('tr-TR')}</td>
+                <div className="space-y-4">
+                  {/* Masaüstü: Tablo Görünümü */}
+                  <div className="hidden lg:block">
+                    <Card>
+                      <CardContent className="p-0">
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700">
+                              <tr>
+                                <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-200">#</th>
+                                <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-200">Katılımcı</th>
+                                <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-200">Kayıt Tarihi</th>
+                                {tableHeaders.map(header => (
+                                  <th key={header.key} className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-200">
+                                    <div className="flex items-center gap-1">
+                                      {header.type === 'file' && <span>📎</span>}
+                                      {header.label}
+                                    </div>
+                                  </th>
+                                ))}
+                                <th className="px-4 py-3 text-center font-semibold text-gray-700 dark:text-gray-200">İşlemler</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {formResponses.map((response, index) => (
+                                <tr key={response.id} className="border-t hover:bg-blue-50/50 dark:hover:bg-gray-700/50 transition-colors">
+                                  <td className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400">{index + 1}</td>
+                                  <td className="px-4 py-3">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold text-xs">
+                                        {(response.user_name || 'A')[0].toUpperCase()}
+                                      </div>
+                                      <span className="font-medium">{response.user_name || 'Anonim'}</span>
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="text-sm">
+                                      <div className="font-medium">{new Date(response.submitted_at).toLocaleDateString('tr-TR')}</div>
+                                      <div className="text-gray-500 text-xs">{new Date(response.submitted_at).toLocaleTimeString('tr-TR')}</div>
+                                    </div>
+                                  </td>
                               
-                              {tableHeaders.map(header => (
-                                <td key={header.key} className="px-4 py-3">
-                                  {header.type === 'file' ? (
-                                    // 📁 Dosya alanı için özel render
-                                    (() => {
-                                      const fileName = response.response_data[header.key];
-                                      const base64Data = response.response_data[`${header.key}_file`];
-                                      
-                                      if (!fileName || !base64Data) {
-                                        return <span className="text-gray-400">-</span>;
-                                      }
-                                      
-                                      const isImage = isImageFile(fileName);
-                                      
-                                      return (
-                                        <div className="flex items-center gap-2">
-                                          <div className="flex items-center gap-1 text-blue-600 hover:text-blue-800">
-                                            <span className="text-sm">{getFileIcon(fileName)}</span>
-                                            <span className="text-xs font-medium truncate max-w-32">
-                                              {fileName}
-                                            </span>
-                                          </div>
+                                  {tableHeaders.map(header => (
+                                    <td key={header.key} className="px-4 py-3">
+                                      {header.type === 'file' ? (
+                                        // 📁 Dosya alanı için özel render
+                                        (() => {
+                                          const fileName = response.response_data[header.key];
+                                          const base64Data = response.response_data[`${header.key}_file`];
                                           
-                                          <div className="flex gap-1">
-                                            {isImage && (
-                                              <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => setPreviewImage({ src: base64Data, name: fileName })}
-                                                className="h-6 w-6 p-0 hover:bg-blue-100"
-                                                title="Önizle"
-                                              >
-                                                <Eye className="h-3 w-3" />
-                                              </Button>
-                                            )}
-                                            <Button
-                                              type="button"
-                                              variant="ghost"
-                                              size="sm"
-                                              onClick={() => downloadBase64File(base64Data, fileName)}
-                                              className="h-6 w-6 p-0 hover:bg-green-100"
-                                              title="İndir"
-                                            >
-                                              <Download className="h-3 w-3" />
-                                            </Button>
-                                          </div>
-                                        </div>
-                                      );
-                                    })()
-                                  ) : (
-                                    // 📝 Normal alan için standart render
-                                    (() => {
-                                      const value = response.response_data[header.key];
-                                      if (Array.isArray(value)) {
-                                        return <span className="text-sm">{value.join(', ')}</span>;
-                                      }
-                                      return <span className="text-sm">{String(value || '-')}</span>;
-                                    })()
-                                  )}
-                                </td>
-                              ))}
+                                          if (!fileName || !base64Data) {
+                                            return <span className="text-gray-400">-</span>;
+                                          }
+                                          
+                                          const isImage = isImageFile(fileName);
+                                          
+                                          return (
+                                            <div className="flex items-center gap-2">
+                                              <div className="flex items-center gap-1 text-blue-600 hover:text-blue-800">
+                                                <span className="text-sm">{getFileIcon(fileName)}</span>
+                                                <span className="text-xs font-medium truncate max-w-32">
+                                                  {fileName}
+                                                </span>
+                                              </div>
+                                              
+                                              <div className="flex gap-1">
+                                                {isImage && (
+                                                  <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => setPreviewImage({ src: base64Data, name: fileName })}
+                                                    className="h-6 w-6 p-0 hover:bg-blue-100"
+                                                    title="Önizle"
+                                                  >
+                                                    <Eye className="h-3 w-3" />
+                                                  </Button>
+                                                )}
+                                                <Button
+                                                  type="button"
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  onClick={() => downloadBase64File(base64Data, fileName)}
+                                                  className="h-6 w-6 p-0 hover:bg-green-100"
+                                                  title="İndir"
+                                                >
+                                                  <Download className="h-3 w-3" />
+                                                </Button>
+                                              </div>
+                                            </div>
+                                          );
+                                        })()
+                                      ) : (
+                                        // 📝 Normal alan için standart render
+                                        (() => {
+                                          const value = response.response_data[header.key];
+                                          if (Array.isArray(value)) {
+                                            return <span className="text-sm">{value.join(', ')}</span>;
+                                          }
+                                          return <span className="text-sm">{String(value || '-')}</span>;
+                                        })()
+                                      )}
+                                    </td>
+                                  ))}
 
-                              <td className="px-4 py-3">
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setDeleteConfirm({ id: response.id, name: response.user_name || 'Anonim' })}
-                                  className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600"
-                                  title="Kayıt Sil"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </CardContent>
-                </Card>
+                                  <td className="px-4 py-3 text-center">
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => setDeleteConfirm({ id: response.id, name: response.user_name || 'Anonim' })}
+                                      className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600"
+                                      title="Kayıt Sil"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Mobil/Tablet: Card Görünümü */}
+                  <div className="lg:hidden space-y-4">
+                    {formResponses.map((response, index) => (
+                      <Card key={response.id} className="border-l-4 border-l-blue-500">
+                        <CardContent className="p-4 space-y-4">
+                          {/* Header */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold">
+                                {(response.user_name || 'A')[0].toUpperCase()}
+                              </div>
+                              <div>
+                                <div className="font-semibold">{response.user_name || 'Anonim'}</div>
+                                <div className="text-xs text-gray-500">
+                                  #{index + 1} • {new Date(response.submitted_at).toLocaleDateString('tr-TR')}
+                                </div>
+                              </div>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeleteConfirm({ id: response.id, name: response.user_name || 'Anonim' })}
+                              className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+
+                          {/* Form Data */}
+                          <div className="space-y-3 border-t pt-3">
+                            {tableHeaders.map(header => {
+                              const value = response.response_data[header.key];
+                              const isFile = header.type === 'file';
+                              
+                              if (isFile) {
+                                const fileName = response.response_data[header.key];
+                                const base64Data = response.response_data[`${header.key}_file`];
+                                
+                                if (!fileName || !base64Data) return null;
+                                
+                                const isImage = isImageFile(fileName);
+                                
+                                return (
+                                  <div key={header.key} className="space-y-1">
+                                    <div className="text-xs font-medium text-gray-500">{header.label}</div>
+                                    <div className="flex items-center gap-2">
+                                      <div className="flex items-center gap-1 text-blue-600">
+                                        <span>{getFileIcon(fileName)}</span>
+                                        <span className="text-sm font-medium truncate max-w-[200px]">
+                                          {fileName}
+                                        </span>
+                                      </div>
+                                      <div className="flex gap-1 ml-auto">
+                                        {isImage && (
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setPreviewImage({ src: base64Data, name: fileName })}
+                                            className="h-7 w-7 p-0"
+                                          >
+                                            <Eye className="h-3 w-3" />
+                                          </Button>
+                                        )}
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => downloadBase64File(base64Data, fileName)}
+                                          className="h-7 w-7 p-0"
+                                        >
+                                          <Download className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              
+                              if (!value || (Array.isArray(value) && value.length === 0)) return null;
+                              
+                              return (
+                                <div key={header.key} className="space-y-1">
+                                  <div className="text-xs font-medium text-gray-500">{header.label}</div>
+                                  <div className="text-sm">
+                                    {Array.isArray(value) ? value.join(', ') : String(value)}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
           )}

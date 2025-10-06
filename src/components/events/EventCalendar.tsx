@@ -137,10 +137,10 @@ const EventCalendar: React.FC<EventCalendarProps> = ({ events }) => {
                       <div
                         key={day.toISOString()}
                         className={`
-                          p-1 sm:p-2 h-12 sm:h-20 border border-slate-200 dark:border-slate-700 cursor-pointer transition-all duration-200 rounded-md
-                          ${isSelected ? 'bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-600 scale-105' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}
+                          p-1 sm:p-2 h-14 sm:h-20 border border-slate-200 dark:border-slate-700 cursor-pointer transition-all duration-200 rounded-md touch-manipulation active:scale-95
+                          ${isSelected ? 'bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-600 ring-2 ring-blue-400 dark:ring-blue-500' : 'hover:bg-slate-50 dark:hover:bg-slate-800 active:bg-slate-100 dark:active:bg-slate-700'}
                           ${!isCurrentMonth ? 'opacity-40' : ''}
-                          ${isCurrentDay ? 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800' : ''}
+                          ${isCurrentDay ? 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 font-bold' : ''}
                         `}
                         onClick={() => setSelectedDate(day)}
                       >
@@ -148,16 +148,22 @@ const EventCalendar: React.FC<EventCalendarProps> = ({ events }) => {
                           {format(day, 'd')}
                         </div>
                         <div className="space-y-0.5 mt-0.5 sm:mt-1">
-                          {dayEvents.slice(0, window.innerWidth < 640 ? 1 : 2).map(event => (
+                          {/* Mobilde 1, desktop'ta 2 etkinlik göster */}
+                          {dayEvents.slice(0, 2).map((event, idx) => (
                             <div
                               key={event.id}
-                              className={`w-full h-0.5 sm:h-1 rounded ${getEventCalendarColor(event.event_type as EventType)}`}
+                              className={`w-full h-1 sm:h-1.5 rounded ${getEventCalendarColor(event.event_type as EventType)} ${idx > 0 ? 'hidden sm:block' : ''}`}
                               title={event.title}
                             />
                           ))}
-                          {dayEvents.length > (window.innerWidth < 640 ? 1 : 2) && (
-                            <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">
-                              +{dayEvents.length - (window.innerWidth < 640 ? 1 : 2)}
+                          {dayEvents.length > 2 && (
+                            <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 hidden sm:block">
+                              +{dayEvents.length - 2}
+                            </div>
+                          )}
+                          {dayEvents.length > 1 && (
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400 sm:hidden">
+                              +{dayEvents.length - 1}
                             </div>
                           )}
                         </div>

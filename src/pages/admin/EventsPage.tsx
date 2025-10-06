@@ -131,8 +131,9 @@ export const EventsPage: React.FC = () => {
   const eventStats = {
     total: events?.length || 0,
     upcoming: events?.filter(e => e.status === 'upcoming').length || 0,
+    ongoing: events?.filter(e => e.status === 'ongoing').length || 0,
     completed: events?.filter(e => e.status === 'completed').length || 0,
-    draft: events?.filter(e => e.status === 'draft').length || 0,
+    cancelled: events?.filter(e => e.status === 'cancelled').length || 0,
   };
 
   const suggestionStats = {
@@ -175,8 +176,8 @@ export const EventsPage: React.FC = () => {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <StatsCard title="Toplam" value={eventStats.total} emoji="📅" variant="primary" />
             <StatsCard title="Yaklaşan" value={eventStats.upcoming} emoji="🔥" variant="success" />
+            <StatsCard title="Devam Eden" value={eventStats.ongoing} emoji="🎯" variant="cyan" />
             <StatsCard title="Tamamlanan" value={eventStats.completed} emoji="✅" variant="purple" />
-            <StatsCard title="Taslak" value={eventStats.draft} emoji="📝" variant="warning" />
           </div>
           <Card>
             <CardContent className="p-4 space-y-4">

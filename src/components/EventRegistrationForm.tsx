@@ -78,9 +78,6 @@ const EventRegistrationForm = ({
     }
 
     // Etkinlik durumu kontrolü
-    if (eventData.status === 'draft') {
-      return { canRegister: false, reason: 'Etkinlik henüz yayınlanmamış' };
-    }
     if (eventData.status === 'cancelled') {
       return { canRegister: false, reason: 'Etkinlik iptal edilmiş' };
     }
@@ -213,7 +210,12 @@ const EventRegistrationForm = ({
     }
 
     if (errors.length > 0) {
-      toast.error(`❌ Form Hataları:\n${errors.join('\n')}`);
+      // Sadece ilk 3 hatayı göster
+      const errorMessages = errors.slice(0, 3).map(err => `• ${err}`).join('\n');
+      const remainingErrors = errors.length > 3 ? `\n... ve ${errors.length - 3} hata daha` : '';
+      toast.error(`❌ Lütfen aşağıdaki alanları kontrol edin:\n${errorMessages}${remainingErrors}`, {
+        duration: 5000
+      });
       return false;
     }
 
@@ -405,7 +407,7 @@ const EventRegistrationForm = ({
             value={value as string}
             onChange={(e) => handleInputChange(field.field_name, e.target.value)}
             placeholder={`${field.field_label} giriniz...`}
-            className="h-12"
+            className="h-12 sm:h-11 text-base"
             required={field.required}
           />
         );

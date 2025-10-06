@@ -181,15 +181,6 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
           
           {/* Additional Info Row */}
           <div className="flex flex-wrap gap-2">
-          {event.max_participants && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-orange-50 dark:bg-orange-900/20 rounded-full border border-orange-200 dark:border-orange-800">
-                <Users className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-                <span className="text-xs sm:text-sm text-orange-700 dark:text-orange-300 font-medium">
-                  Max {event.max_participants} kişi
-                </span>
-            </div>
-          )}
-          
             {event.registration_required && (
               <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-full border border-blue-200 dark:border-blue-800">
                 <span className="text-xs sm:text-sm text-blue-700 dark:text-blue-300 font-medium">
